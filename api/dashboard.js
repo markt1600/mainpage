@@ -123,11 +123,26 @@ async function getQuote({ label, symbol, note }) {
 
 async function getMarkets() {
   const results = await Promise.allSettled(MARKETS.map(getQuote));
-  return results.map((r, i) =>
+  const markets = results.map((r, i) =>
     r.status === "fulfilled"
       ? r.value
       : { label: MARKETS[i].label, note: MARKETS[i].note, symbol: MARKETS[i].symbol, price: null, change: null, pct: null, currency: null }
   );
+
+  // Gold: also express USD/oz as SGD/kg using a live USD->SGD rate.
+  try {
+    const GRAMS_PER_TROY_OZ = 31.1034768;
+    const gold = markets.find((m) => m.symbol === "GC=F");
+    if (gold && gold.price != null) {
+      const fx = await getQuote({ label: "USD/SGD", symbol: "SGD=X", note: "" }); // SGD per 1 USD
+      if (fx.price) {
+        const sgdPerKg = gold.price * (1000 / GRAMS_PER_TROY_OZ) * fx.price;
+        gold.extra = "S$" + Math.round(sgdPerKg).toLocaleString("en-US") + " / kg";
+      }
+    }
+  } catch (_) { /* leave gold as USD/oz only if FX fails */ }
+
+  return markets;
 }
 
 // --- Editorial content via Claude ------------------------------------------
