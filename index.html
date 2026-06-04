@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Daily · marktan.ai</title>
+<meta name="description" content="A daily almanac — news briefs, Tokyo weather, and stories worth knowing. Gathered each morning at marktan.ai." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f5efe2;
+    --paper-2:#efe6d5;
+    --paper-3:#e9dec9;
+    --ink:#211c15;
+    --ink-soft:#5a5142;
+    --ink-faint:#8a7f6c;
+    --rule:#cdc1a9;
+    --rule-strong:#b6a988;
+    --accent:#bb3b22;
+    --accent-deep:#8f2c18;
+    --shadow:rgba(40,30,15,.10);
+    --max:1180px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;
+    font-size:18px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* paper grain */
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    opacity:.05;
+    mix-blend-mode:multiply;
+    pointer-events:none;
+    z-index:9999;
+  }
+
+  a{color:inherit}
+  ::selection{background:var(--accent);color:var(--paper)}
+
+  .accent-bar{height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-deep));}
+
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+
+  /* ---------------- Masthead ---------------- */
+  header{padding:34px 0 0}
+  .eyebrow{
+    text-align:center;
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--accent);
+    padding-left:.42em;
+  }
+  .masthead{
+    text-align:center;
+    font-family:"Fraunces",serif;
+    font-weight:800;
+    font-optical-sizing:auto;
+    font-size:clamp(56px,12vw,128px);
+    line-height:.9;
+    letter-spacing:-.02em;
+    margin:6px 0 2px;
+  }
+  .masthead em{font-style:italic;font-weight:500;color:var(--accent-deep)}
+  .dateline{
+    display:flex;align-items:center;gap:18px;
+    margin:14px 0 0;
+  }
+  .dateline .ln{flex:1;height:1px;background:var(--rule-strong)}
+  .dateline .txt{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-soft);white-space:nowrap;
+  }
+  .dateline .txt b{color:var(--ink);font-weight:600}
+
+  /* ---------------- Projects ---------------- */
+  .projects{
+    margin-top:22px;
+    border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);
+    padding:14px 0;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  }
+  .projects .label{
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);
+    flex-shrink:0;
+  }
+  .chips{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{
+    display:inline-flex;align-items:center;gap:9px;
+    text-decoration:none;
+    background:var(--paper-2);
+    border:1px solid var(--rule-strong);
+    padding:8px 14px 8px 13px;
+    border-radius:2px;
+    transition:.22s cubic-bezier(.2,.7,.3,1);
+  }
+  .chip .idx{
+    font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--accent);
+    font-weight:600;
+  }
+  .chip .nm{font-family:"Fraunces",serif;font-weight:600;font-size:15px}
+  .chip .arr{font-family:"JetBrains Mono",monospace;color:var(--ink-faint);transition:transform .22s ease,color .22s}
+  .chip:hover{background:var(--ink);border-color:var(--ink);transform:translateY(-2px)}
+  .chip:hover .nm,.chip:hover .idx{color:var(--paper)}
+  .chip:hover .arr{transform:translate(3px,-3px);color:var(--accent)}
+
+  /* ---------------- Weather ---------------- */
+  .weather{
+    margin-top:26px;
+    background:
+      radial-gradient(120% 140% at 88% -20%,rgba(187,59,34,.10),transparent 60%),
+      var(--paper-2);
+    border:1px solid var(--rule-strong);
+    border-radius:3px;
+    padding:26px 30px;
+    display:grid;
+    grid-template-columns:auto 1px 1fr;
+    gap:30px;align-items:center;
+  }
+  .w-main{display:flex;align-items:center;gap:22px}
+  .w-glyph{font-size:54px;line-height:1}
+  .w-temp{font-family:"Fraunces",serif;font-weight:600;font-size:76px;line-height:.85;letter-spacing:-.03em}
+  .w-temp sup{font-size:30px;font-weight:500;vertical-align:top;top:.5em;position:relative}
+  .w-meta{margin-top:6px}
+  .w-place{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+  .w-cond{font-style:italic;font-size:19px;color:var(--ink-soft);margin-top:2px}
+  .w-divide{background:var(--rule);width:1px;height:78px;align-self:center}
+  .w-stats{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
+  }
+  .w-stat .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .w-stat .v{font-family:"Fraunces",serif;font-weight:600;font-size:24px;margin-top:3px;line-height:1}
+  .w-stat .v small{font-size:13px;color:var(--ink-soft);font-weight:500}
+
+  /* multiple stacked city weather panels (Singapore above Tokyo) */
+  .weather-stack{margin-top:26px;display:flex;flex-direction:column;gap:16px}
+  .weather-stack .weather{margin-top:0}
+
+  /* ---------------- Markets ---------------- */
+  .markets{margin-top:30px}
+  .mkt-grid{
+    display:grid;grid-template-columns:repeat(5,1fr);
+    gap:1px;background:var(--rule-strong);
+    border:1px solid var(--rule-strong);border-radius:3px;overflow:hidden;
+  }
+  .mkt{background:var(--paper-2);padding:15px 17px}
+  .mkt-lab{
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--ink-faint);margin-bottom:9px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  }
+  .mkt-lab b{color:var(--ink-soft);font-weight:600}
+  .mkt-px{font-family:"Fraunces",serif;font-weight:600;font-size:26px;line-height:1;letter-spacing:-.01em}
+  .mkt-chg{font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:7px;letter-spacing:.02em}
+  .mkt-chg.up{color:#2f6b43}
+  .mkt-chg.down{color:var(--accent)}
+  .mkt-chg.flat{color:var(--ink-faint)}
+
+  /* Account balances: standalone bordered cards (not the full-width ruled grid) */
+  #balances{display:flex;flex-wrap:wrap;gap:14px;background:none;border:none}
+  #balances .mkt{
+    background:var(--paper-2);
+    border:1px solid var(--rule-strong);
+    border-radius:3px;min-width:230px;
+  }
+
+  /* ---------------- Body grid ---------------- */
+  .grid{
+    display:grid;
+    grid-template-columns:1.55fr 1px 1fr;
+    gap:36px;
+    margin-top:40px;
+  }
+  .col-rule{background:var(--rule);width:1px}
+
+  .sec-head{
+    display:flex;align-items:baseline;gap:12px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:8px;margin-bottom:22px;
+  }
+  .sec-head h2{
+    font-family:"Fraunces",serif;font-weight:800;font-size:15px;
+    letter-spacing:.18em;text-transform:uppercase;
+  }
+  .sec-head .dot{color:var(--accent)}
+  .sec-head .cnt{
+    margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-faint);letter-spacing:.1em;
+  }
+
+  /* Features */
+  .feature{padding:0 0 26px;margin-bottom:26px;border-bottom:1px solid var(--rule)}
+  .feature:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .feature .tag{
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:7px;
+  }
+  .feature h3{
+    font-family:"Fraunces",serif;font-weight:600;font-size:clamp(26px,3.4vw,34px);
+    line-height:1.06;letter-spacing:-.015em;margin-bottom:10px;
+  }
+  .feature p{font-size:18.5px;color:#322c22;line-height:1.6;text-wrap:pretty}
+  .feature:first-of-type p::first-letter{
+    font-family:"Fraunces",serif;font-weight:800;
+    font-size:62px;line-height:.66;float:left;
+    padding:8px 12px 0 0;color:var(--accent-deep);
+  }
+
+  /* Briefs */
+  .brief{padding:16px 0;border-bottom:1px solid var(--rule);display:block;text-decoration:none}
+  .brief:first-child{padding-top:0}
+  .brief .top{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+  .brief .cat{
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--paper);background:var(--accent);
+    padding:2px 7px;border-radius:2px;
+  }
+  .brief .src{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);letter-spacing:.06em}
+  .brief h4{font-family:"Fraunces",serif;font-weight:600;font-size:20px;line-height:1.15;margin-bottom:4px}
+  .brief p{font-size:16px;color:var(--ink-soft);line-height:1.5}
+
+  /* Bottom band */
+  .band{
+    margin-top:42px;display:grid;grid-template-columns:1fr 1px 1fr;gap:36px;
+    border-top:2px solid var(--ink);padding-top:26px;
+  }
+  .otd .k,.qod .k{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:10px;
+  }
+  .otd p{font-size:19px;font-style:italic;color:#322c22;line-height:1.5}
+  .qod blockquote{
+    font-family:"Fraunces",serif;font-weight:500;font-size:23px;line-height:1.28;
+    letter-spacing:-.01em;
+  }
+  .qod blockquote::before{content:"“";color:var(--accent);font-size:30px}
+  .qod blockquote::after{content:"”";color:var(--accent);font-size:30px}
+  .qod cite{display:block;margin-top:10px;font-style:normal;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+  .qod cite::before{content:"— "}
+
+  /* Footer */
+  footer{
+    margin-top:46px;border-top:1px solid var(--rule);
+    padding:20px 0 50px;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    color:var(--ink-faint);text-transform:uppercase;
+  }
+  footer .updated b{color:var(--ink-soft)}
+  footer a{color:var(--accent);text-decoration:none}
+
+  .note{
+    font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent-deep);
+    background:rgba(187,59,34,.07);border:1px dashed rgba(187,59,34,.4);
+    padding:8px 12px;border-radius:2px;margin-top:18px;letter-spacing:.04em;
+  }
+
+  /* skeleton */
+  .skel{color:transparent;position:relative;border-radius:2px;overflow:hidden;background:var(--paper-3)}
+  .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:sweep 1.3s infinite}
+  @keyframes sweep{100%{transform:translateX(100%)}}
+
+  /* entrance animation */
+  .rise{opacity:0;transform:translateY(14px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* ---------------- Responsive ---------------- */
+  @media(max-width:880px){
+    body{font-size:17px}
+    .weather{grid-template-columns:1fr;gap:22px}
+    .w-divide{display:none}
+    .w-stats{grid-template-columns:repeat(3,1fr)}
+    .grid{grid-template-columns:1fr;gap:30px}
+    .col-rule{display:none}
+    .grid .briefs-col{border-top:1px solid var(--rule);padding-top:24px}
+    .band{grid-template-columns:1fr;gap:24px}
+    .band .col-rule{display:none}
+    .mkt-grid{grid-template-columns:repeat(3,1fr)}
+  }
+  @media(max-width:520px){
+    .wrap{padding:0 18px}
+    .w-stats{grid-template-columns:repeat(2,1fr)}
+    .projects{gap:12px}
+    .dateline .txt{font-size:10px;letter-spacing:.1em}
+    .mkt-grid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+  <div class="accent-bar"></div>
+
+  <div class="wrap">
+    <header>
+      <div class="eyebrow rise">marktan.ai</div>
+      <h1 class="masthead rise" style="animation-delay:.05s">The <em>Daily</em></h1>
+      <div class="dateline rise" style="animation-delay:.1s">
+        <span class="ln"></span>
+        <span class="txt" id="dateline">Loading the edition…</span>
+        <span class="ln"></span>
+      </div>
+
+      <nav class="projects rise" style="animation-delay:.16s" aria-label="Projects">
+        <span class="label">Vibe&nbsp;Code&nbsp;//</span>
+        <div class="chips" id="chips"></div>
+      </nav>
+    </header>
+
+    <!-- Weather (Singapore above Tokyo) -->
+    <div id="cities" class="weather-stack rise" style="animation-delay:.22s" aria-label="Weather"></div>
+
+    <!-- Markets -->
+    <section class="markets rise" style="animation-delay:.26s" aria-label="Markets">
+      <div class="sec-head">
+        <h2>Markets <span class="dot">·</span> Latest</h2>
+        <span class="cnt" id="mktCnt"></span>
+      </div>
+      <div class="mkt-grid" id="markets"></div>
+    </section>
+
+    <!-- Account: balances + spend -->
+    <section class="markets rise" id="accountSec" style="display:none" aria-label="Account">
+      <div class="sec-head">
+        <h2>Account <span class="dot">·</span> Balances</h2>
+        <span class="cnt"></span>
+      </div>
+      <div class="mkt-grid" id="balances"></div>
+    </section>
+
+    <!-- Body -->
+    <div class="grid">
+      <main class="features-col rise" style="animation-delay:.3s">
+        <div class="sec-head">
+          <h2>Stories <span class="dot">·</span> Worth&nbsp;Knowing</h2>
+          <span class="cnt" id="featCnt"></span>
+        </div>
+        <div id="features"></div>
+      </main>
+
+      <div class="col-rule"></div>
+
+      <aside class="briefs-col rise" style="animation-delay:.36s">
+        <div class="sec-head">
+          <h2>The <span class="dot">·</span> Briefs</h2>
+          <span class="cnt" id="briefCnt"></span>
+        </div>
+        <div id="briefs"></div>
+      </aside>
+    </div>
+
+    <!-- Bottom band -->
+    <div class="band">
+      <div class="otd">
+        <div class="k">On This Day</div>
+        <p id="otd">—</p>
+      </div>
+      <div class="col-rule"></div>
+      <div class="qod">
+        <div class="k">Quote of the Day</div>
+        <blockquote id="quote">—</blockquote>
+        <cite id="quoteBy"></cite>
+      </div>
+    </div>
+
+    <div id="note"></div>
+
+    <footer>
+      <span class="updated">Edition refreshed <b id="updated">—</b></span>
+      <span>SGT <b id="clockSG" style="color:var(--ink-soft)">--:--:--</b> · JST <b id="clockTK" style="color:var(--ink-soft)">--:--:--</b></span>
+      <span>marktan.ai · <a href="https://marktan.ai">home</a></span>
+    </footer>
+  </div>
+
+<script>
+/* ============================================================
+   ADD YOUR PROJECTS HERE — just append to this list and deploy.
+   ============================================================ */
+const PROJECTS = [
+  { name: "Choose Your Own Adventure", url: "https://choose.marktan.ai" },
+  { name: "Retirement Calculator",     url: "https://retire.marktan.ai" },
+  { name: "Excite Bike",               url: "https://excite.marktan.ai" },
+];
+
+/* Sample edition shown if the API isn't reachable yet (e.g. local preview
+   before the key is set). The live site replaces all of this. */
+const DEMO = {
+  dateStr: new Intl.DateTimeFormat("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric",timeZone:"Asia/Singapore"}).format(new Date()),
+  generatedAt: new Date().toISOString(),
+  cities: [
+    { name:"Singapore", unit:"°C", current:30, feelsLike:35, high:32, low:26, humidity:74, wind:9, condition:"Partly cloudy", glyph:"⛅", sunrise:"06:59", sunset:"19:10" },
+    { name:"Tokyo", unit:"°C", current:24, feelsLike:25, high:27, low:19, humidity:62, wind:11, condition:"Mainly clear", glyph:"🌤", sunrise:"04:26", sunset:"18:54" },
+  ],
+  markets: [
+    { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD" },
+    { label:"FTSE All-World", note:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD" },
+    { label:"Gold", note:"USD / oz", price:3318.50, change:12.40, pct:0.37, currency:"USD" },
+    { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD" },
+    { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD" },
+  ],
+  briefs: [
+    { category:"Tech", source:"Sample", headline:"Your live briefs will appear here", summary:"Once ANTHROPIC_API_KEY is set in Vercel, Claude writes fresh briefs each morning. This is placeholder copy." },
+    { category:"World", source:"Sample", headline:"Five briefs, refreshed daily", summary:"A neutral mix of world, Asia, tech and science — gathered with the web search tool." },
+    { category:"Asia", source:"Open-Meteo", headline:"Weather is already live", summary:"Singapore and Tokyo conditions need no API key, so the panels above are real right now." },
+    { category:"Science", source:"Sample", headline:"Edge-cached for speed", summary:"Responses cache at the edge so the page stays fast and the API call is cheap." },
+    { category:"Business", source:"Yahoo", headline:"Markets are keyless too", summary:"Quotes come from Yahoo Finance, so no extra API key is needed for the markets row." },
+  ],
+  features: [
+    { tag:"Ideas", title:"A single glance at the world", body:"This corner fills each day with genuinely interesting stories — science, history, the natural world. For now it shows sample copy, but the structure is exactly what you'll see live." },
+    { tag:"Science", title:"Why we read the morning paper", body:"There's a quiet pleasure in a curated edition: someone has done the gathering for you. This dashboard recreates that ritual for one person — you." },
+    { tag:"Culture", title:"The personal homepage returns", body:"The open web still rewards a place that is unmistakably yours. Add projects up top, let the day assemble itself below." },
+  ],
+  onThisDay:"Set your API key to surface a notable historical event for today's date.",
+  quote:{ text:"We are what we repeatedly do.", author:"Will Durant" },
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderProjects(){
+  $("chips").innerHTML = PROJECTS.map((p,i)=>`
+    <a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">
+      <span class="idx">0${i+1}</span>
+      <span class="nm">${esc(p.name)}</span>
+      <span class="arr">↗</span>
+    </a>`).join("");
+}
+
+function cityPanel(w){
+  const stats = [
+    ["High", `${w.high}<small>°</small>`],
+    ["Low", `${w.low}<small>°</small>`],
+    ["Feels", `${w.feelsLike}<small>°</small>`],
+    ["Humidity", `${w.humidity}<small>%</small>`],
+    ["Wind", `${w.wind}<small> km/h</small>`],
+    ["Sunrise", `${esc(w.sunrise||"—")}`],
+    ["Sunset", `${esc(w.sunset||"—")}`],
+  ].filter(s=>!/NaN|undefined|null/.test(s[1]));
+  return `
+    <section class="weather">
+      <div class="w-main">
+        <div class="w-glyph">${esc(w.glyph||"•")}</div>
+        <div><div class="w-temp">${w.current}<sup>${esc(w.unit||"°C")}</sup></div></div>
+        <div class="w-meta">
+          <div class="w-place">${esc(w.name||"")} · Today</div>
+          <div class="w-cond">${esc(w.condition||"—")}</div>
+        </div>
+      </div>
+      <div class="w-divide"></div>
+      <div class="w-stats">
+        ${stats.map(([k,v])=>`<div class="w-stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
+      </div>
+    </section>`;
+}
+
+function renderCities(cities){
+  cities = (cities||[]).filter(c=>c && !Number.isNaN(c.current));
+  if(!cities.length){ $("cities").innerHTML = `<section class="weather"><div class="w-meta"><div class="w-place">Weather</div><div class="w-cond">unavailable</div></div></section>`; return; }
+  $("cities").innerHTML = cities.map(cityPanel).join("");
+}
+
+const fmtNum = (n, dp) => Number(n).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+function fmtPrice(p){
+  if(p==null || Number.isNaN(p)) return "—";
+  const dp = Math.abs(p) >= 1000 ? (Math.abs(p) >= 100000 ? 0 : 2) : 2;
+  return fmtNum(p, dp);
+}
+function renderMarkets(markets){
+  markets = markets||[];
+  $("mktCnt").textContent = markets.length ? `${markets.length} quotes` : "";
+  $("markets").innerHTML = markets.map(m=>{
+    const has = m.price!=null && !Number.isNaN(m.price);
+    let chg = `<div class="mkt-chg flat">—</div>`;
+    if(has && m.change!=null){
+      const up = m.change > 0, down = m.change < 0;
+      const cls = up?"up":down?"down":"flat";
+      const arrow = up?"▲":down?"▼":"▬";
+      const sign = up?"+":"";
+      chg = `<div class="mkt-chg ${cls}">${arrow} ${fmtNum(Math.abs(m.change), Math.abs(m.change)>=100?0:2)} (${sign}${(m.pct??0).toFixed(2)}%)</div>`;
+    }
+    return `
+      <div class="mkt">
+        <div class="mkt-lab"><b>${esc(m.label)}</b><span>${esc(m.note||"")}</span></div>
+        <div class="mkt-px">${fmtPrice(m.price)}</div>
+        ${chg}
+      </div>`;
+  }).join("");
+}
+
+function renderBriefs(briefs){
+  briefs = briefs||[];
+  $("briefCnt").textContent = briefs.length ? `${briefs.length} items` : "";
+  $("briefs").innerHTML = briefs.map(b=>`
+    <div class="brief">
+      <div class="top">
+        <span class="cat">${esc(b.category||"News")}</span>
+        <span class="src">${esc(b.source||"")}</span>
+      </div>
+      <h4>${esc(b.headline)}</h4>
+      <p>${esc(b.summary)}</p>
+    </div>`).join("");
+}
+
+function renderFeatures(features){
+  features = features||[];
+  $("featCnt").textContent = features.length ? `${features.length} reads` : "";
+  $("features").innerHTML = features.map(f=>`
+    <article class="feature">
+      ${f.tag?`<div class="tag">${esc(f.tag)}</div>`:""}
+      <h3>${esc(f.title)}</h3>
+      <p>${esc(f.body)}</p>
+    </article>`).join("");
+}
+
+function renderExtras(d){
+  $("otd").textContent = d.onThisDay || "—";
+  if(d.quote){
+    $("quote").textContent = d.quote.text || "—";
+    $("quoteBy").textContent = d.quote.author || "";
+  }
+}
+
+function renderAll(d){
+  $("dateline").innerHTML = `<b>${esc(d.dateStr)}</b> · Daily Edition`;
+  renderCities(d.cities);
+  renderMarkets(d.markets);
+  renderBriefs(d.briefs);
+  renderFeatures(d.features);
+  renderExtras(d);
+  if(d.generatedAt){
+    const t = new Date(d.generatedAt);
+    $("updated").textContent = new Intl.DateTimeFormat("en-US",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Singapore"}).format(t) + " SGT";
+  }
+  if(d._note){ $("note").innerHTML = `<div class="note">⚙ ${esc(d._note)}</div>`; }
+}
+
+async function load(){
+  try{
+    const res = await fetch("/api/dashboard", { cache:"no-store" });
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    renderAll(data);
+  }catch(err){
+    renderAll({ ...DEMO, _note: "Preview mode — showing a sample edition. Deploy to Vercel with ANTHROPIC_API_KEY set to go live." });
+  }
+}
+
+/* live clocks: Singapore + Tokyo */
+function tick(){
+  const now = new Date();
+  const f = (tz) => new Intl.DateTimeFormat("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:tz}).format(now);
+  $("clockSG").textContent = f("Asia/Singapore");
+  $("clockTK").textContent = f("Asia/Tokyo");
+}
+
+/* Private balances — only fetched when ?me=<secret> (or ?token=) is present,
+   so public visitors never see them. */
+function privateToken(){
+  const p = new URLSearchParams(location.search);
+  return p.get("me") || p.get("token");
+}
+function renderBalances(balances){
+  balances = (balances||[]).filter(Boolean);
+  if(!balances.length) return;
+  $("accountSec").style.display = "";
+  const fmt = (n) => n==null ? "—" : Number(n).toLocaleString("en-US");
+  const usd = (n) => n==null ? "—" : "$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  $("balances").innerHTML = balances.map(b=>{
+    if(b.error){
+      return `<div class="mkt"><div class="mkt-lab"><b>${esc(b.service)}</b></div><div class="mkt-px" style="font-size:18px">—</div><div class="mkt-chg flat">${esc(b.error)}</div></div>`;
+    }
+    if(b.kind === "spend"){
+      return `
+        <div class="mkt">
+          <div class="mkt-lab"><b>${esc(b.service)}</b><span>spend</span></div>
+          <div class="mkt-px">${usd(b.spendUsd)}</div>
+          <div class="mkt-chg flat">${esc(b.period||"last 30 days")}</div>
+        </div>`;
+    }
+    const reset = b.resetUnix ? new Date(b.resetUnix*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short"}) : "";
+    const sub = `${esc(b.unit||"credits")} left · ${fmt(b.used)} of ${fmt(b.limit)} used${reset? " · resets "+esc(reset):""}`;
+    return `
+      <div class="mkt">
+        <div class="mkt-lab"><b>${esc(b.service)}</b><span>${esc(b.tier||"")}</span></div>
+        <div class="mkt-px">${fmt(b.remaining)}</div>
+        <div class="mkt-chg flat">${sub}</div>
+      </div>`;
+  }).join("");
+}
+async function loadBalances(){
+  const t = privateToken();
+  const qs = t ? "?token=" + encodeURIComponent(t) : "";
+  try{
+    const res = await fetch("/api/balances" + qs, { cache:"no-store" });
+    if(!res.ok) return; // 401 when gated without the right token → stay hidden
+    const d = await res.json();
+    renderBalances(d.balances);
+  }catch(e){ /* stay hidden on failure */ }
+}
+
+renderProjects();
+load();
+loadBalances();
+tick(); setInterval(tick,1000);
+</script>
+</body>
+</html>
