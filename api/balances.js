@@ -21,7 +21,7 @@
 const ANTHROPIC_AMOUNT_IS_CENTS = true;
 
 async function elevenLabs() {
-  const key = process.env.ELEVENLABS_API_KEY;
+  const key = (process.env.ELEVENLABS_API_KEY || "").trim();
   if (!key) return { service: "ElevenLabs", kind: "balance", error: "ELEVENLABS_API_KEY not set" };
 
   const res = await fetch("https://api.elevenlabs.io/v1/user/subscription", {
@@ -46,7 +46,7 @@ async function elevenLabs() {
 }
 
 async function anthropicSpend() {
-  const key = process.env.ANTHROPIC_ADMIN_KEY;
+  const key = (process.env.ANTHROPIC_ADMIN_KEY || "").trim();
   if (!key) return { service: "Claude API", kind: "spend", error: "ANTHROPIC_ADMIN_KEY not set" };
 
   const start = new Date(Date.now() - 30 * 86400000);
