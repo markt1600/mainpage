@@ -189,7 +189,16 @@ export default async function handler(req, res) {
     edition = { ...FALLBACK_EDITION, _note: `Edition unavailable: ${err.message}` };
   }
 
+  // ---- TEMP DEBUG (remove these 3 lines + keyStatus/envKeys below once fixed) ----
+  const envKeys = Object.keys(process.env).filter((k) => /anthro|claude|api[_-]?key/i.test(k));
+  const keyStatus = process.env.ANTHROPIC_API_KEY
+    ? `present(len ${process.env.ANTHROPIC_API_KEY.length})`
+    : "absent";
+  // --------------------------------------------------------------------------------
+
   res.status(200).json({
+    keyStatus, // TEMP DEBUG
+    envKeys,   // TEMP DEBUG
     generatedAt: now.toISOString(),
     dateStr,
     tokyo: weather,
