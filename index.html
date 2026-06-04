@@ -181,6 +181,21 @@
     border-radius:3px;min-width:230px;
   }
 
+  /* Birthdays */
+  #birthdays{display:flex;flex-wrap:wrap;gap:14px}
+  .bday{
+    background:var(--paper-2);border:1px solid var(--rule-strong);
+    border-radius:3px;padding:14px 18px;min-width:190px;
+  }
+  .bday-date{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .bday-name{font-family:"Fraunces",serif;font-weight:600;font-size:23px;line-height:1.05;margin:6px 0 5px}
+  .bday-when{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.04em;color:var(--ink-soft)}
+  .bday.today{
+    border-color:var(--accent);
+    background:radial-gradient(120% 140% at 85% -20%,rgba(187,59,34,.12),transparent 60%),var(--paper-2);
+  }
+  .bday.today .bday-date,.bday.today .bday-when{color:var(--accent)}
+
   /* ---------------- Body grid ---------------- */
   .grid{
     display:grid;
@@ -379,6 +394,15 @@
     </div>
 
     <div id="note"></div>
+
+    <!-- Birthdays: hidden unless one falls within the window -->
+    <section class="markets rise" id="birthdaysSec" style="display:none" aria-label="Birthdays">
+      <div class="sec-head">
+        <h2>Birthdays <span class="dot">·</span> Around Now</h2>
+        <span class="cnt" id="bdayCnt"></span>
+      </div>
+      <div id="birthdays"></div>
+    </section>
 
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
@@ -616,9 +640,82 @@ async function loadBalances(){
   }catch(e){ /* stay hidden on failure */ }
 }
 
+/* ============================================================
+   BIRTHDAYS — shown from 7 days before to 3 days after the date.
+   Section hides itself when none fall in that window.
+   Add/edit entries here {name, month (1-12), day}.
+   ============================================================ */
+const BIRTHDAYS = [
+  { name: "Mom",            month: 12, day: 13 },
+  { name: "Jason Suh",      month: 2,  day: 21 },
+  { name: "Daniela Liscio", month: 8,  day: 18 },
+  { name: "Ming",           month: 6,  day: 12 },
+  { name: "Dad",            month: 6,  day: 15 },
+  { name: "Penny",          month: 7,  day: 27 },
+  { name: "Yoshi",          month: 8,  day: 19 },
+  { name: "Steve Schutte",  month: 3,  day: 13 },
+  { name: "Warren",         month: 6,  day: 17 },
+  { name: "Nicole",         month: 8,  day: 5  },
+  { name: "Mel",            month: 4,  day: 27 },
+  { name: "Daryl Chew",     month: 11, day: 26 },
+  { name: "Boat",           month: 12, day: 20 },
+  { name: "Amanda",         month: 2,  day: 11 },
+  { name: "Stephen Cheong", month: 2,  day: 21 },
+  { name: "Michelle Chan",  month: 3,  day: 15 },
+  { name: "Chris",          month: 5,  day: 2  },
+  { name: "Jeremy Wang",    month: 7,  day: 2  },
+  { name: "Clyde",          month: 7,  day: 24 },
+  { name: "Eling",          month: 8,  day: 16 },
+  { name: "Jean Choi",      month: 9,  day: 24 },
+  { name: "Phoebe Choi",    month: 9,  day: 27 },
+  { name: "Nick Johnson",   month: 2,  day: 3  },
+];
+
+function birthdaysInWindow(){
+  const DAY = 86400000;
+  const n = new Date();
+  const today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  const out = [];
+  for(const b of BIRTHDAYS){
+    for(const yr of [today.getFullYear()-1, today.getFullYear(), today.getFullYear()+1]){
+      const d = new Date(yr, b.month-1, b.day);
+      const delta = Math.round((d - today)/DAY); // +ve = upcoming, -ve = passed
+      if(delta >= -3 && delta <= 7){ out.push({ ...b, delta, date: d }); break; }
+    }
+  }
+  out.sort((a,b)=> a.delta - b.delta);
+  return out;
+}
+
+function whenLabel(delta){
+  if(delta === 0) return "today";
+  if(delta === 1) return "tomorrow";
+  if(delta === -1) return "yesterday";
+  if(delta > 1)  return `in ${delta} days`;
+  return `${-delta} days ago`;
+}
+
+function renderBirthdays(){
+  const list = birthdaysInWindow();
+  if(!list.length) return; // section stays hidden
+  $("birthdaysSec").style.display = "";
+  $("bdayCnt").textContent = list.length === 1 ? "1 coming up" : `${list.length} coming up`;
+  $("birthdays").innerHTML = list.map(b=>{
+    const date = b.date.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+    const today = b.delta === 0;
+    return `
+      <div class="bday${today?' today':''}">
+        <div class="bday-date">${esc(date)}${today?" 🎂":""}</div>
+        <div class="bday-name">${esc(b.name)}</div>
+        <div class="bday-when">${esc(whenLabel(b.delta))}</div>
+      </div>`;
+  }).join("");
+}
+
 renderProjects();
 load();
 loadBalances();
+renderBirthdays();
 tick(); setInterval(tick,1000);
 </script>
 </body>
