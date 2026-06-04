@@ -2,19 +2,30 @@
 // Vercel Serverless Function (Node.js runtime).
 //
 // Builds the daily dashboard payload:
-//   1. Fetches Tokyo weather from Open-Meteo (free, no API key required)
-//   2. Uses Claude (with the web_search tool) to write fresh news briefs,
-//      a couple of longer "interesting story" features, an on-this-day note,
-//      and a quote of the day.
+//   1. Weather for Singapore + Tokyo from Open-Meteo (free, no API key)
+//   2. Market quotes (Yahoo Finance, keyless): ARES, VWRA.L, gold, S&P 500, BRK.A
+//   3. News briefs + interesting-story features via Claude (with web search)
 //
-// The ANTHROPIC_API_KEY lives ONLY here (set it in Vercel → Project →
-// Settings → Environment Variables). It is never shipped to the browser.
-//
-// The response is edge-cached (see Cache-Control below) so Claude is called
-// roughly once an hour rather than on every page view — fast and cheap.
+// ANTHROPIC_API_KEY lives ONLY here (Vercel → Settings → Environment Variables);
+// it is never shipped to the browser. The response is edge-cached so the heavy
+// work runs about once an hour rather than on every page view.
 
-const TOKYO = { lat: 35.6762, lon: 139.6503 };
 const MODEL = "claude-haiku-4-5-20251001"; // fast + economical; swap to "claude-sonnet-4-6" for richer prose
+
+// Cities render top-to-bottom in this order (Singapore first, then Tokyo).
+const CITIES = [
+  { name: "Singapore", lat: 1.3521, lon: 103.8198, tz: "Asia/Singapore" },
+  { name: "Tokyo", lat: 35.6762, lon: 139.6503, tz: "Asia/Tokyo" },
+];
+
+// Market instruments. label = display name, symbol = Yahoo Finance ticker.
+const MARKETS = [
+  { label: "Ares Management", symbol: "ARES", note: "ARES" },
+  { label: "FTSE All-World", symbol: "VWRA.L", note: "VWRA.L" },
+  { label: "Gold", symbol: "GC=F", note: "USD / oz" },
+  { label: "S&P 500", symbol: "^GSPC", note: "SPX" },
+  { label: "Berkshire", symbol: "BRK-A", note: "BRK.A" },
+];
 
 // WMO weather interpretation codes → human label + glyph
 const WMO = {
@@ -39,12 +50,12 @@ function describeCode(code) {
   return hit ? { label: hit[0], glyph: hit[1] } : { label: "—", glyph: "•" };
 }
 
-async function getTokyoWeather() {
+async function getCityWeather(city) {
   const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${TOKYO.lat}&longitude=${TOKYO.lon}` +
+    `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}` +
     `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature` +
     `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset` +
-    `&timezone=Asia%2FTokyo&forecast_days=1`;
+    `&timezone=${encodeURIComponent(city.tz)}&forecast_days=1`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
@@ -55,6 +66,8 @@ async function getTokyoWeather() {
   const hhmm = (iso) => (iso ? iso.slice(11, 16) : null);
 
   return {
+    name: city.name,
+    tz: city.tz,
     unit: "°C",
     current: Math.round(d.current?.temperature_2m),
     feelsLike: Math.round(d.current?.apparent_temperature),
@@ -69,26 +82,100 @@ async function getTokyoWeather() {
   };
 }
 
-const SCHEMA_PROMPT = (dateStr, weather) => `You are the editor of a tasteful daily almanac published at marktan.ai. Today is ${dateStr} (Tokyo time). Current Tokyo weather: ${weather ? `${weather.current}${weather.unit}, ${weather.condition}` : "unavailable"}.
+async function getCities() {
+  const results = await Promise.allSettled(CITIES.map(getCityWeather));
+  return results
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
+}
 
-Use the web_search tool to gather what actually happened in the world in the last 24–48 hours, then compose the day's edition. Keep everything publication-grade, neutral, and suitable for a public homepage — no personal information, no rumor, no clickbait.
+// --- Markets via Yahoo Finance's keyless chart endpoint --------------------
+async function getQuote({ label, symbol, note }) {
+  const url =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
+    `?interval=1d&range=5d`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; marktan-dashboard/1.0)",
+      Accept: "application/json",
+    },
+  });
+  if (!res.ok) throw new Error(`Yahoo ${res.status} for ${symbol}`);
+  const j = await res.json();
+  const meta = j?.chart?.result?.[0]?.meta;
+  if (!meta) throw new Error(`No data for ${symbol}`);
+
+  const price = meta.regularMarketPrice;
+  const prev = meta.previousClose ?? meta.chartPreviousClose;
+  const change = price != null && prev != null ? price - prev : null;
+  const pct = change != null && prev ? (change / prev) * 100 : null;
+
+  return {
+    label,
+    note,
+    symbol,
+    price,
+    change,
+    pct,
+    currency: meta.currency || "USD",
+  };
+}
+
+async function getMarkets() {
+  const results = await Promise.allSettled(MARKETS.map(getQuote));
+  return results.map((r, i) =>
+    r.status === "fulfilled"
+      ? r.value
+      : { label: MARKETS[i].label, note: MARKETS[i].note, symbol: MARKETS[i].symbol, price: null, change: null, pct: null, currency: null }
+  );
+}
+
+// --- Editorial content via Claude ------------------------------------------
+const SCHEMA_PROMPT = (dateStr) => `You are the editor of a tasteful daily almanac published at marktan.ai. Today is ${dateStr}.
+
+Use the web_search tool to gather what actually happened in the world in the last 24-48 hours, then compose the day's edition. Keep everything publication-grade, neutral, and suitable for a public homepage - no personal information, no rumor, no clickbait.
+
+IMPORTANT: Write every text value as clean PLAIN TEXT only. Do NOT include citation markers, footnotes, reference numbers, HTML tags (such as <cite>), or markdown of any kind. Just natural prose.
 
 Return ONLY a single valid minified JSON object (no markdown, no commentary, no code fences) with EXACTLY this shape:
 
 {
   "briefs": [
-    { "headline": "short factual headline (max ~9 words)", "summary": "2 sentence neutral summary", "source": "publication name", "category": "World|Tech|Business|Japan|Science|Culture" }
+    { "headline": "short factual headline (max ~9 words)", "summary": "2 sentence neutral summary", "source": "publication name", "category": "World|Tech|Business|Japan|Asia|Science|Culture" }
   ],
   "features": [
-    { "title": "a curiosity-driven, evergreen title", "body": "3–4 sentence engaging story about something genuinely interesting — science, history, ideas, the natural world, culture", "tag": "one or two words" }
+    { "title": "a curiosity-driven, evergreen title", "body": "3-4 sentence engaging story about something genuinely interesting - science, history, ideas, the natural world, culture", "tag": "one or two words" }
   ],
   "onThisDay": "one sentence about a notable historical event on this calendar date",
-  "quote": { "text": "a short, non-cliché quote", "author": "name" }
+  "quote": { "text": "a short, non-cliche quote", "author": "name" }
 }
 
-Provide exactly 5 briefs (mix of World, Tech, Japan, Science/Business) and exactly 3 features. Be accurate; prefer reputable sources.`;
+Provide exactly 5 briefs (a mix of World, Asia, Tech, Business, Science) and exactly 3 features. Be accurate; prefer reputable sources.`;
 
-async function getEdition(dateStr, weather) {
+// Remove any citation/markup the model might still emit, just in case.
+const clean = (s) =>
+  typeof s === "string"
+    ? s
+        .replace(/<\/?cite[^>]*>/gi, "")   // <cite index="..."> ... </cite>
+        .replace(/<[^>]+>/g, "")            // any other stray tags
+        .replace(/\[\d+(?:[-,:]\d+)*\]/g, "") // [1] [1-14] style refs
+        .replace(/\s+/g, " ")
+        .trim()
+    : s;
+
+const cleanBrief = (b) => ({
+  headline: clean(b.headline),
+  summary: clean(b.summary),
+  source: clean(b.source),
+  category: clean(b.category),
+});
+const cleanFeature = (f) => ({
+  title: clean(f.title),
+  body: clean(f.body),
+  tag: clean(f.tag),
+});
+
+async function getEdition(dateStr) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { ...FALLBACK_EDITION, _note: "ANTHROPIC_API_KEY not set — showing sample edition." };
 
@@ -102,7 +189,7 @@ async function getEdition(dateStr, weather) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 2500,
-      messages: [{ role: "user", content: SCHEMA_PROMPT(dateStr, weather) }],
+      messages: [{ role: "user", content: SCHEMA_PROMPT(dateStr) }],
       tools: [
         {
           type: "web_search_20250305",
@@ -110,9 +197,9 @@ async function getEdition(dateStr, weather) {
           max_uses: 2,
           user_location: {
             type: "approximate",
-            city: "Tokyo",
-            country: "JP",
-            timezone: "Asia/Tokyo",
+            city: "Singapore",
+            country: "SG",
+            timezone: "Asia/Singapore",
           },
         },
       ],
@@ -131,27 +218,24 @@ async function getEdition(dateStr, weather) {
     .join("")
     .trim();
 
-  // Extract the JSON object even if the model wrapped it in stray characters.
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1) throw new Error("No JSON found in model output");
   const parsed = JSON.parse(text.slice(start, end + 1));
 
   return {
-    briefs: Array.isArray(parsed.briefs) ? parsed.briefs.slice(0, 6) : [],
-    features: Array.isArray(parsed.features) ? parsed.features.slice(0, 4) : [],
-    onThisDay: parsed.onThisDay || null,
-    quote: parsed.quote || null,
+    briefs: Array.isArray(parsed.briefs) ? parsed.briefs.slice(0, 6).map(cleanBrief) : [],
+    features: Array.isArray(parsed.features) ? parsed.features.slice(0, 4).map(cleanFeature) : [],
+    onThisDay: clean(parsed.onThisDay) || null,
+    quote: parsed.quote ? { text: clean(parsed.quote.text), author: clean(parsed.quote.author) } : null,
   };
 }
 
-// Used when the API key is missing or Claude is unreachable, so the page
-// always renders something elegant.
 const FALLBACK_EDITION = {
   briefs: [
     { headline: "Set ANTHROPIC_API_KEY to go live", summary: "This is sample copy. Once your key is configured in Vercel, real briefs appear here each morning.", source: "marktan.ai", category: "Tech" },
     { headline: "Built on Vercel serverless", summary: "Your API key stays server-side and is never exposed to visitors. Responses are edge-cached for speed.", source: "Vercel", category: "Tech" },
-    { headline: "Weather is live regardless", summary: "Tokyo conditions come from Open-Meteo and need no key, so the weather panel works immediately.", source: "Open-Meteo", category: "Japan" },
+    { headline: "Weather and markets are live regardless", summary: "Conditions come from Open-Meteo and quotes from Yahoo, neither of which needs a key.", source: "Open-Meteo", category: "Asia" },
     { headline: "Add projects in seconds", summary: "Edit the PROJECTS array in index.html to list new Vibe Code experiments at the top of the page.", source: "marktan.ai", category: "World" },
     { headline: "Refreshes roughly hourly", summary: "Cache-Control headers keep Claude from being called on every visit, controlling cost cleanly.", source: "marktan.ai", category: "Business" },
   ],
@@ -165,26 +249,27 @@ const FALLBACK_EDITION = {
 };
 
 export default async function handler(req, res) {
-  // Edge cache: serve cached copy instantly, refresh in the background.
-  res.setHeader(
-    "Cache-Control",
-    "public, s-maxage=3600, stale-while-revalidate=86400"
-  );
+  // Edge cache for ~24h: the edition (stories + markets) is generated about
+  // once a day. The morning cron (vercel.json) warms it; visitors share the
+  // cached copy, so the paid Claude call runs roughly once per day.
+  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   const now = new Date();
   const dateStr = new Intl.DateTimeFormat("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
-    timeZone: "Asia/Tokyo",
+    timeZone: "Asia/Singapore",
   }).format(now);
 
-  // Weather and edition run independently so one failing never blanks the other.
-  const [weatherResult, ] = await Promise.allSettled([getTokyoWeather()]);
-  const weather = weatherResult.status === "fulfilled" ? weatherResult.value : null;
+  // Weather, markets, and the edition run independently so one failing
+  // never blanks the others.
+  const [citiesR, marketsR] = await Promise.allSettled([getCities(), getMarkets()]);
+  const cities = citiesR.status === "fulfilled" ? citiesR.value : [];
+  const markets = marketsR.status === "fulfilled" ? marketsR.value : [];
 
   let edition;
   try {
-    edition = await getEdition(dateStr, weather);
+    edition = await getEdition(dateStr);
   } catch (err) {
     edition = { ...FALLBACK_EDITION, _note: `Edition unavailable: ${err.message}` };
   }
@@ -192,7 +277,8 @@ export default async function handler(req, res) {
   res.status(200).json({
     generatedAt: now.toISOString(),
     dateStr,
-    tokyo: weather,
+    cities,
+    markets,
     ...edition,
   });
 }
