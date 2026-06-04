@@ -195,12 +195,6 @@ async function getEdition(dateStr) {
           type: "web_search_20250305",
           name: "web_search",
           max_uses: 2,
-          user_location: {
-            type: "approximate",
-            city: "Singapore",
-            country: "SG",
-            timezone: "Asia/Singapore",
-          },
         },
       ],
     }),
