@@ -702,6 +702,14 @@ function renderBirthdays(){
 }
 
 /* Fitness (Strava) — distance + avg speed over 24h / 7d / 30d */
+function paceMinKm(kmh){
+  if(!kmh || kmh <= 0) return "—";
+  const secPerKm = 3600 / kmh;
+  let m = Math.floor(secPerKm / 60);
+  let s = Math.round(secPerKm - m*60);
+  if(s === 60){ m += 1; s = 0; }
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
 function renderFitness(d){
   if(!d || d.error || !d.windows) return; // stay hidden if not set up / no data
   $("fitnessSec").style.display = "";
@@ -710,7 +718,9 @@ function renderFitness(d){
   $("fitCnt").textContent = total ? `${total} activities / 30d` : "";
   const card = (label, w) => {
     const km = w && w.km!=null ? w.km.toFixed(1) : "0.0";
-    const spd = w && w.avgKmh!=null ? w.avgKmh.toFixed(1)+" km/h run avg" : "no runs";
+    const spd = (w && w.avgKmh!=null)
+      ? `${paceMinKm(w.avgKmh)}/km · ${w.avgKmh.toFixed(1)} km/h run avg`
+      : "no runs";
     const n = w ? w.count : 0;
     return `
       <div class="mkt">
