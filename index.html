@@ -169,6 +169,10 @@
   .mkt-px{font-family:"Fraunces",serif;font-weight:600;font-size:26px;line-height:1;letter-spacing:-.01em}
   .mkt-chg{font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:7px;letter-spacing:.02em}
   .mkt-extra{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-top:5px;letter-spacing:.02em}
+
+  /* Fitness: 3 windows side by side */
+  #fitness{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:520px){#fitness{grid-template-columns:1fr}}
   .mkt-chg.up{color:#2f6b43}
   .mkt-chg.down{color:var(--accent)}
   .mkt-chg.flat{color:var(--ink-faint)}
@@ -347,6 +351,15 @@
         <span class="cnt" id="mktCnt"></span>
       </div>
       <div class="mkt-grid" id="markets"></div>
+    </section>
+
+    <!-- Fitness (Strava): hidden until the Strava env vars are set -->
+    <section class="markets rise" id="fitnessSec" style="display:none" aria-label="Fitness">
+      <div class="sec-head">
+        <h2>Fitness <span class="dot">·</span> Strava</h2>
+        <span class="cnt" id="fitCnt"></span>
+      </div>
+      <div class="mkt-grid" id="fitness"></div>
     </section>
 
     <!-- Account: balances + spend -->
@@ -712,9 +725,39 @@ function renderBirthdays(){
   }).join("");
 }
 
+/* Fitness (Strava) — distance + avg speed over 24h / 7d / 30d */
+function renderFitness(d){
+  if(!d || d.error || !d.windows) return; // stay hidden if not set up / no data
+  $("fitnessSec").style.display = "";
+  const W = d.windows;
+  const total = (W.d30 && W.d30.count) || 0;
+  $("fitCnt").textContent = total ? `${total} activities / 30d` : "";
+  const card = (label, w) => {
+    const km = w && w.km!=null ? w.km.toFixed(1) : "0.0";
+    const spd = w && w.avgKmh!=null ? w.avgKmh.toFixed(1)+" km/h run avg" : "no runs";
+    const n = w ? w.count : 0;
+    return `
+      <div class="mkt">
+        <div class="mkt-lab"><b>${esc(label)}</b><span>${n} ${n===1?"act.":"acts."}</span></div>
+        <div class="mkt-px">${km}<span style="font-size:15px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace"> km</span></div>
+        <div class="mkt-extra">${esc(spd)}</div>
+      </div>`;
+  };
+  $("fitness").innerHTML = card("Last 24h", W.d1) + card("Last 7 days", W.d7) + card("Last 30 days", W.d30);
+}
+async function loadFitness(){
+  try{
+    const res = await fetch("/api/fitness", { cache:"no-store" });
+    if(!res.ok) return;
+    const d = await res.json();
+    renderFitness(d);
+  }catch(e){ /* stay hidden on failure */ }
+}
+
 renderProjects();
 load();
 loadBalances();
+loadFitness();
 renderBirthdays();
 tick(); setInterval(tick,1000);
 </script>
