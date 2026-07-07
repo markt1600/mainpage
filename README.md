@@ -76,7 +76,7 @@ In **`index.html`**:
 In **`api/dashboard.js`**:
 - **Model** — `MODEL` defaults to `claude-haiku-4-5-20251001` (fast, cheap). Swap for a Sonnet model for richer prose.
 - **Cities** — edit the `CITIES` array (name, lat/lon, timezone). Panels render top-to-bottom in array order.
-- **Tickers** — edit the `MARKETS` array (display label + Yahoo Finance symbol). SpaceX has no public ticker; the "SpaceX proxy" tile tracks DXYZ (Destiny Tech100), a fund whose largest holding is SpaceX — it can trade far from underlying NAV.
+- **Tickers** — edit the `MARKETS` array (display label + Yahoo Finance symbol).
 - **FX pairs** — edit the `FX_PAIRS` array (Yahoo symbols like `SGDJPY=X`).
 - **Holiday regions** — edit `HOLIDAY_REGIONS` (Nager.Date country codes; optional `subdivision` like `CA-BC`).
 - **News sources & section sizes** — the allowed publications live in the `allowed_domains` list; the prompt (`SCHEMA_PROMPT`) asks for 5 briefs + 3 features.
