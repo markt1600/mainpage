@@ -169,6 +169,10 @@
   .mkt-px{font-family:"Fraunces",serif;font-weight:600;font-size:26px;line-height:1;letter-spacing:-.01em}
   .mkt-chg{font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:7px;letter-spacing:.02em}
   .mkt-extra{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-top:5px;letter-spacing:.02em}
+  .mkt-spark{display:block;width:100%;height:24px;margin-top:9px;opacity:.85}
+  .mkt-spark.up{color:#2f6b43}
+  .mkt-spark.down{color:var(--accent)}
+  .mkt-spark.flat{color:var(--ink-faint)}
 
   /* Fitness: 3 windows side by side */
   #fitness{grid-template-columns:repeat(3,1fr)}
@@ -460,16 +464,16 @@ const DEMO = {
   dateStr: new Intl.DateTimeFormat("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric",timeZone:"Asia/Singapore"}).format(new Date()),
   generatedAt: new Date().toISOString(),
   cities: [
-    { name:"Singapore", unit:"°C", current:30, feelsLike:35, high:32, low:26, humidity:74, wind:9, condition:"Partly cloudy", glyph:"⛅", sunrise:"06:59", sunset:"19:10" },
-    { name:"Tokyo", unit:"°C", current:24, feelsLike:25, high:27, low:19, humidity:62, wind:11, condition:"Mainly clear", glyph:"🌤", sunrise:"04:26", sunset:"18:54" },
+    { name:"Singapore", unit:"°C", current:30, feelsLike:35, high:32, low:26, humidity:74, wind:9, rainChance:65, aqi:52, condition:"Partly cloudy", glyph:"⛅", sunrise:"06:59", sunset:"19:10" },
+    { name:"Tokyo", unit:"°C", current:24, feelsLike:25, high:27, low:19, humidity:62, wind:11, rainChance:10, aqi:34, condition:"Mainly clear", glyph:"🌤", sunrise:"04:26", sunset:"18:54" },
   ],
   markets: [
-    { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD" },
-    { label:"FTSE All-World", note:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD" },
-    { label:"Gold", note:"USD / oz", price:3318.50, change:12.40, pct:0.37, currency:"USD", extras:["S$142,758 / kg","S$2,223 / ½oz"] },
-    { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD" },
-    { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD" },
-    { label:"Bitcoin", note:"BTC / USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD" },
+    { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD", spark:[169.8,171.2,170.5,171.1,172.34] },
+    { label:"FTSE All-World", note:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD", spark:[143.1,143.4,142.9,142.6,142.18] },
+    { label:"Gold", note:"USD / oz", price:3318.50, change:12.40, pct:0.37, currency:"USD", extras:["S$142,758 / kg","S$2,223 / ½oz"], spark:[3290,3305,3298,3306,3318.5] },
+    { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD", spark:[6010,5990,6021,6006,5998.12] },
+    { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD", spark:[705100,709800,708200,710920,712450] },
+    { label:"Bitcoin", note:"BTC / USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD", spark:[92100,94300,93500,93600,95420] },
   ],
   briefs: [
     { category:"Tech", source:"Sample", headline:"Your live briefs will appear here", summary:"Once ANTHROPIC_API_KEY is set in Vercel, Claude writes fresh briefs each morning. This is placeholder copy." },
@@ -499,6 +503,16 @@ function renderProjects(){
     </a>`).join("");
 }
 
+/* US AQI bands, shortened to fit the stat tiles */
+function aqiBand(a){
+  if(a<=50) return "good";
+  if(a<=100) return "moderate";
+  if(a<=150) return "unhealthy*";  /* * = for sensitive groups */
+  if(a<=200) return "unhealthy";
+  if(a<=300) return "very bad";
+  return "hazardous";
+}
+
 function cityPanel(w){
   const stats = [
     ["High", `${w.high}<small>°</small>`],
@@ -506,6 +520,8 @@ function cityPanel(w){
     ["Feels", `${w.feelsLike}<small>°</small>`],
     ["Humidity", `${w.humidity}<small>%</small>`],
     ["Wind", `${w.wind}<small> km/h</small>`],
+    ["Rain", `${w.rainChance}<small>%</small>`],
+    ["Air (AQI)", `${w.aqi}<small> ${w.aqi!=null?esc(aqiBand(w.aqi)):""}</small>`],
     ["Sunrise", `${esc(w.sunrise||"—")}`],
     ["Sunset", `${esc(w.sunset||"—")}`],
   ].filter(s=>!/NaN|undefined|null/.test(s[1]));
@@ -538,6 +554,24 @@ function fmtPrice(p){
   const dp = Math.abs(p) >= 1000 ? (Math.abs(p) >= 100000 ? 0 : 2) : 2;
   return fmtNum(p, dp);
 }
+/* Tiny 5-day trend line drawn from the daily closes the API sends along. */
+function sparkline(points){
+  points = (points||[]).filter(p=>p!=null && !Number.isNaN(p));
+  if(points.length < 2) return "";
+  const w=120, h=24, pad=2;
+  const min=Math.min(...points), max=Math.max(...points), span=(max-min)||1;
+  const pts = points.map((p,i)=>{
+    const x = pad + (i/(points.length-1))*(w-2*pad);
+    const y = h-pad - ((p-min)/span)*(h-2*pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const last=points[points.length-1], first=points[0];
+  const cls = last>first ? "up" : last<first ? "down" : "flat";
+  return `<svg class="mkt-spark ${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+  </svg>`;
+}
+
 function renderMarkets(markets){
   markets = markets||[];
   $("mktCnt").textContent = markets.length ? `${markets.length} quotes` : "";
@@ -557,6 +591,7 @@ function renderMarkets(markets){
         <div class="mkt-px">${fmtPrice(m.price)}</div>
         ${(m.extras||[]).map(e=>`<div class="mkt-extra">${esc(e)}</div>`).join("")}
         ${chg}
+        ${sparkline(m.spark)}
       </div>`;
   }).join("");
 }

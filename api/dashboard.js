@@ -2,8 +2,9 @@
 // Vercel Serverless Function (Node.js runtime).
 //
 // Builds the daily dashboard payload:
-//   1. Weather for Singapore + Tokyo from Open-Meteo (free, no API key)
-//   2. Market quotes (Yahoo Finance, keyless): ARES, VWRA.L, gold, S&P 500, BRK.A
+//   1. Weather for Singapore + Tokyo from Open-Meteo (free, no API key),
+//      including rain chance and US AQI air quality
+//   2. Market quotes (Yahoo Finance, keyless) with 5-day sparkline closes
 //   3. News briefs + interesting-story features via Claude (with web search)
 //
 // ANTHROPIC_API_KEY lives ONLY here (Vercel → Settings → Environment Variables);
@@ -51,20 +52,34 @@ function describeCode(code) {
   return hit ? { label: hit[0], glyph: hit[1] } : { label: "—", glyph: "•" };
 }
 
+// Current US AQI from Open-Meteo's (also keyless) air-quality API.
+async function getCityAqi(city) {
+  const url =
+    `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}` +
+    `&current=us_aqi&timezone=${encodeURIComponent(city.tz)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Air-quality ${res.status}`);
+  const d = await res.json();
+  const aqi = d.current?.us_aqi;
+  return Number.isFinite(aqi) ? Math.round(aqi) : null;
+}
+
 async function getCityWeather(city) {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}` +
     `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature` +
-    `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,precipitation_probability_max` +
     `&timezone=${encodeURIComponent(city.tz)}&forecast_days=1`;
 
-  const res = await fetch(url);
+  // AQI comes from a separate endpoint; a failure there never blanks the weather.
+  const [res, aqi] = await Promise.all([fetch(url), getCityAqi(city).catch(() => null)]);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   const d = await res.json();
 
   const code = d.current?.weather_code ?? d.daily?.weather_code?.[0];
   const { label, glyph } = describeCode(code);
   const hhmm = (iso) => (iso ? iso.slice(11, 16) : null);
+  const rain = d.daily?.precipitation_probability_max?.[0];
 
   return {
     name: city.name,
@@ -76,6 +91,8 @@ async function getCityWeather(city) {
     low: Math.round(d.daily?.temperature_2m_min?.[0]),
     humidity: Math.round(d.current?.relative_humidity_2m),
     wind: Math.round(d.current?.wind_speed_10m),
+    rainChance: Number.isFinite(rain) ? Math.round(rain) : null,
+    aqi,
     condition: label,
     glyph,
     sunrise: hhmm(d.daily?.sunrise?.[0]),
@@ -103,13 +120,18 @@ async function getQuote({ label, symbol, note }) {
   });
   if (!res.ok) throw new Error(`Yahoo ${res.status} for ${symbol}`);
   const j = await res.json();
-  const meta = j?.chart?.result?.[0]?.meta;
+  const result = j?.chart?.result?.[0];
+  const meta = result?.meta;
   if (!meta) throw new Error(`No data for ${symbol}`);
 
   const price = meta.regularMarketPrice;
   const prev = meta.previousClose ?? meta.chartPreviousClose;
   const change = price != null && prev != null ? price - prev : null;
   const pct = change != null && prev ? (change / prev) * 100 : null;
+
+  // Daily closes over the 5-day range, for a small trend sparkline.
+  const closes = (result?.indicators?.quote?.[0]?.close || []).filter((c) => c != null);
+  if (closes.length && price != null) closes[closes.length - 1] = price; // latest point = live price
 
   return {
     label,
@@ -118,6 +140,7 @@ async function getQuote({ label, symbol, note }) {
     price,
     change,
     pct,
+    spark: closes.length >= 2 ? closes : null,
     currency: meta.currency || "USD",
   };
 }
@@ -127,7 +150,7 @@ async function getMarkets() {
   const markets = results.map((r, i) =>
     r.status === "fulfilled"
       ? r.value
-      : { label: MARKETS[i].label, note: MARKETS[i].note, symbol: MARKETS[i].symbol, price: null, change: null, pct: null, currency: null }
+      : { label: MARKETS[i].label, note: MARKETS[i].note, symbol: MARKETS[i].symbol, price: null, change: null, pct: null, spark: null, currency: null }
   );
 
   // Gold: also express USD/oz as SGD/kg using a live USD->SGD rate.
