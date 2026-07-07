@@ -162,16 +162,16 @@ Return ONLY a single valid minified JSON object (no markdown, no commentary, no 
 
 {
   "briefs": [
-    { "headline": "short punchy headline (max ~9 words)", "summary": "2 sentence summary", "source": "publication name", "category": "Tech|Gadgets|Gear|Apps|Lifestyle|Design|Auto|Gaming" }
+    { "headline": "short punchy headline (max ~9 words)", "summary": "2 sentence summary", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results", "category": "Tech|Gadgets|Gear|Apps|Lifestyle|Design|Auto|Gaming" }
   ],
   "features": [
-    { "title": "an engaging title", "body": "3-4 sentence write-up of a cool product, gadget, or tech/lifestyle story worth a look", "tag": "one or two words" }
+    { "title": "an engaging title", "body": "3-4 sentence write-up of a cool product, gadget, or tech/lifestyle story worth a look", "tag": "one or two words", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results" }
   ],
   "onThisDay": "one sentence about a notable event in tech or technology history on this calendar date",
   "quote": { "text": "a short, non-cliche quote (ideally about design, technology, or craft)", "author": "name" }
 }
 
-Provide exactly 5 briefs and exactly 3 features, drawn from the publications above. Be accurate and specific — name the actual products, companies, and apps.`;
+Provide exactly 5 briefs and exactly 3 features, drawn from the publications above. Be accurate and specific — name the actual products, companies, and apps. Every brief and feature MUST include the "url" of the article it came from — copy the URL verbatim from the search results, never invent or shorten one. If you truly cannot determine the article URL, use an empty string.`;
 
 // Remove any citation/markup the model might still emit, just in case.
 const clean = (s) =>
@@ -184,16 +184,23 @@ const clean = (s) =>
         .trim()
     : s;
 
+// Only pass along real-looking http(s) article URLs.
+const cleanUrl = (u) =>
+  typeof u === "string" && /^https?:\/\/\S+$/i.test(u.trim()) ? u.trim() : null;
+
 const cleanBrief = (b) => ({
   headline: clean(b.headline),
   summary: clean(b.summary),
   source: clean(b.source),
+  url: cleanUrl(b.url),
   category: clean(b.category),
 });
 const cleanFeature = (f) => ({
   title: clean(f.title),
   body: clean(f.body),
   tag: clean(f.tag),
+  source: clean(f.source),
+  url: cleanUrl(f.url),
 });
 
 async function getEdition(dateStr) {
@@ -222,7 +229,7 @@ async function getEdition(dateStr) {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({ model: MODEL, max_tokens: 2500, messages, tools }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 3000, messages, tools }),
     });
 
     if (!res.ok) {
@@ -287,8 +294,7 @@ export default async function handler(req, res) {
   }).format(now);
 
   // Weather, markets, and the edition run independently so one failing
-  // never blanks the others. (Facts are served by /api/facts on their own
-  // cron, so the two web-search calls never land in the same minute.)
+  // never blanks the others.
   const [citiesR, marketsR] = await Promise.allSettled([getCities(), getMarkets()]);
   const cities = citiesR.status === "fulfilled" ? citiesR.value : [];
   const markets = marketsR.status === "fulfilled" ? marketsR.value : [];
