@@ -41,9 +41,6 @@ const HOLIDAY_REGIONS = [
 ];
 
 // Market instruments. label = display name, symbol = Yahoo Finance ticker.
-// SpaceX is private and has no public ticker; DXYZ (Destiny Tech100) is the
-// closest tradeable proxy — a fund whose largest holding is SpaceX. Note that
-// it often trades at a large premium/discount to its underlying NAV.
 const MARKETS = [
   { label: "Ares Management", symbol: "ARES", note: "ARES" },
   { label: "FTSE All-World", symbol: "VWRA.L", note: "VWRA.L" },
@@ -52,7 +49,7 @@ const MARKETS = [
   { label: "Berkshire", symbol: "BRK-A", note: "BRK.A" },
   { label: "Bitcoin", symbol: "BTC-USD", note: "BTC / USD" },
   { label: "NVIDIA", symbol: "NVDA", note: "NVDA" },
-  { label: "SpaceX proxy", symbol: "DXYZ", note: "DXYZ fund" },
+  { label: "SpaceX", symbol: "SPCX", note: "SPCX" },
 ];
 
 // WMO weather interpretation codes → human label + glyph
