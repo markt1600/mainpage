@@ -195,6 +195,15 @@
     border-radius:3px;min-width:230px;
   }
 
+  /* Happy Day */
+  .happy{display:flex;align-items:center;gap:18px;margin-top:30px}
+  .happy .ln{flex:1;height:1px;background:var(--rule)}
+  .happy .txt{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--accent);white-space:nowrap;
+  }
+  .happy .txt b{color:var(--ink);font-weight:600}
+
   /* Birthdays */
   #birthdays{display:flex;flex-wrap:wrap;gap:14px}
   .bday{
@@ -390,6 +399,13 @@
       </div>
       <div class="mkt-grid" id="balances"></div>
     </section>
+
+    <!-- Happy Day: relationship day counter (scheme documented in the script) -->
+    <div class="happy rise" id="happyDay" style="display:none" aria-label="Happy Day">
+      <span class="ln"></span>
+      <span class="txt">♥ <b id="happyDayTxt"></b></span>
+      <span class="ln"></span>
+    </div>
 
     <!-- Body -->
     <div class="grid">
@@ -753,6 +769,41 @@ async function loadBalances(){
 }
 
 /* ============================================================
+   HAPPY DAY — relationship day counter with Mel.
+   Format: "Happy Day <years×365>.<day-of-year>", e.g. 1095.95 =
+   3 full years, 95th day into the 4th year. Day 1 of each
+   relationship year is 4 April (so 4 Apr 2026 → 1095.1, and the
+   day after the year's last day rolls over to 1460.1). Keyed to
+   Singapore time — it ticks over at midnight SGT.
+   ============================================================ */
+const HAPPY_DAY = { month: 4, day: 4, firstYear: 2023 };
+
+function happyDayText(){
+  // Today's calendar date in Singapore, regardless of the viewer's timezone.
+  const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date()).split("-").map(Number);
+
+  // Most recent 4 April on or before today (SGT).
+  const before = m < HAPPY_DAY.month || (m === HAPPY_DAY.month && d < HAPPY_DAY.day);
+  const annivYear = before ? y - 1 : y;
+  const years = annivYear - HAPPY_DAY.firstYear;
+  if(years < 0) return null;
+
+  const dayNum = Math.round(
+    (Date.UTC(y, m - 1, d) - Date.UTC(annivYear, HAPPY_DAY.month - 1, HAPPY_DAY.day)) / 86400000
+  ) + 1;
+  return `Happy Day ${years * 365}.${dayNum}`;
+}
+
+function renderHappyDay(){
+  const t = happyDayText();
+  if(!t) return; // stays hidden before the start date
+  $("happyDay").style.display = "";
+  $("happyDayTxt").textContent = t;
+}
+
+/* ============================================================
    BIRTHDAYS — shown from 7 days before to 3 days after the date.
    Section hides itself when none fall in that window.
    Add/edit entries here {name, month (1-12), day}.
@@ -869,6 +920,7 @@ $("regen").addEventListener("click", regenerate);
 loadBalances();
 loadFitness();
 renderBirthdays();
+renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 tick(); setInterval(tick,1000);
 </script>
 </body>
