@@ -17,12 +17,12 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | On This Day + Quote of the Day | Same Claude call | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
-| Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | Private: `?me=` link only |
-| Birthdays (shown 7 days before → 3 days after) | `BIRTHDAYS` array in `index.html` | Private: `?me=` link only |
+| Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
+| Birthdays (shown 7 days before → 3 days after) | `BIRTHDAYS` array in `index.html` | No |
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
 
-**Personal sections** (Happy Day, birthdays, balances) only appear when visiting with the private link `/?me=<secret>`, so casual visitors see just the almanac. Note the birthday/Happy Day data is only *hidden* for public visitors — it still ships in the page source; balances are gated server-side by `DASHBOARD_SECRET`.
+Account balances are the one private section: if `DASHBOARD_SECRET` is set they only appear when visiting `/?me=<secret>`.
 
 ## Files
 
