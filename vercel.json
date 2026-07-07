@@ -3,19 +3,12 @@
   "functions": {
     "api/dashboard.js": {
       "maxDuration": 60
-    },
-    "api/facts.js": {
-      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/dashboard",
       "schedule": "0 21 * * *"
-    },
-    {
-      "path": "/api/facts",
-      "schedule": "0 22 * * *"
     }
   ]
 }

@@ -174,17 +174,6 @@
   #fitness{grid-template-columns:repeat(3,1fr)}
   @media(max-width:520px){#fitness{grid-template-columns:1fr}}
 
-  /* Did You Know facts */
-  #facts{display:flex;flex-wrap:wrap;gap:16px}
-  .fact{
-    flex:1 1 280px;background:var(--paper-2);
-    border:1px solid var(--rule-strong);border-radius:3px;padding:16px 19px;
-  }
-  .fact-subj{font-family:"Fraunces",serif;font-weight:600;font-size:19px;letter-spacing:-.01em;margin-bottom:7px}
-  .fact-body{font-family:"Newsreader",serif;font-size:16.5px;color:#322c22;line-height:1.55;text-wrap:pretty}
-  .fact-src{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-top:10px}
-  .fact-quote{font-family:"Newsreader",serif;font-style:italic;font-size:15.5px;color:#5a5142;border-left:2px solid var(--accent);padding-left:11px;margin-top:11px;line-height:1.45;text-wrap:pretty}
-  .fact-note{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint);letter-spacing:.02em;margin-top:14px}
   .mkt-chg.up{color:#2f6b43}
   .mkt-chg.down{color:var(--accent)}
   .mkt-chg.flat{color:var(--ink-faint)}
@@ -266,6 +255,16 @@
   .brief .src{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);letter-spacing:.06em}
   .brief h4{font-family:"Fraunces",serif;font-weight:600;font-size:20px;line-height:1.15;margin-bottom:4px}
   .brief p{font-size:16px;color:var(--ink-soft);line-height:1.5}
+  a.brief .src::after{content:" ↗";color:var(--accent)}
+  a.brief:hover h4{color:var(--accent-deep);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+
+  /* source links under stories */
+  .srclink{
+    display:inline-block;margin-top:9px;
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);text-decoration:none;
+  }
+  .srclink:hover{color:var(--accent-deep);text-decoration:underline;text-underline-offset:3px}
 
   /* Bottom band */
   .band{
@@ -420,16 +419,6 @@
 
     <div id="note"></div>
 
-    <!-- Daily facts about notable figures -->
-    <section class="markets rise" id="factsSec" style="display:none" aria-label="Did You Know">
-      <div class="sec-head">
-        <h2>Did You Know <span class="dot">·</span> Daily</h2>
-        <span class="cnt"></span>
-      </div>
-      <div id="facts"></div>
-      <p class="fact-note">Facts are AI-generated and web-checked against a source — please verify anything important.</p>
-    </section>
-
     <!-- Birthdays: hidden unless one falls within the window -->
     <section class="markets rise" id="birthdaysSec" style="display:none" aria-label="Birthdays">
       <div class="sec-head">
@@ -495,11 +484,6 @@ const DEMO = {
     { tag:"Culture", title:"The personal homepage returns", body:"The open web still rewards a place that is unmistakably yours. Add projects up top, let the day assemble itself below." },
   ],
   onThisDay:"Set your API key to surface a notable historical event for today's date.",
-  facts:[
-    { subject:"Haruki Murakami", fact:"He ran a Tokyo jazz bar called Peter Cat before he started writing, and is a devoted marathon runner.", quote:"Pain is inevitable. Suffering is optional.", source:"What I Talk About When I Talk About Running" },
-    { subject:"Stephen Hawking", fact:"He once threw a party for time travellers and only sent the invitations out afterward — nobody came.", quote:"Look up at the stars and not down at your feet.", source:"BBC" },
-    { subject:"Carl Sagan", fact:"He helped craft the golden records aboard the Voyager probes, a message to any future finders.", quote:"We are made of star-stuff.", source:"Cosmos" },
-  ],
   quote:{ text:"We are what we repeatedly do.", author:"Will Durant" },
 };
 
@@ -577,29 +561,40 @@ function renderMarkets(markets){
   }).join("");
 }
 
+/* Only link out to URLs that actually look like http(s) article links. */
+const safeUrl = (u) => (typeof u === "string" && /^https?:\/\/\S+$/i.test(u.trim())) ? u.trim() : null;
+
 function renderBriefs(briefs){
   briefs = briefs||[];
   $("briefCnt").textContent = briefs.length ? `${briefs.length} items` : "";
-  $("briefs").innerHTML = briefs.map(b=>`
-    <div class="brief">
+  $("briefs").innerHTML = briefs.map(b=>{
+    const url = safeUrl(b.url);
+    const inner = `
       <div class="top">
         <span class="cat">${esc(b.category||"News")}</span>
         <span class="src">${esc(b.source||"")}</span>
       </div>
       <h4>${esc(b.headline)}</h4>
-      <p>${esc(b.summary)}</p>
-    </div>`).join("");
+      <p>${esc(b.summary)}</p>`;
+    return url
+      ? `<a class="brief" href="${esc(url)}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="brief">${inner}</div>`;
+  }).join("");
 }
 
 function renderFeatures(features){
   features = features||[];
   $("featCnt").textContent = features.length ? `${features.length} reads` : "";
-  $("features").innerHTML = features.map(f=>`
+  $("features").innerHTML = features.map(f=>{
+    const url = safeUrl(f.url);
+    return `
     <article class="feature">
       ${f.tag?`<div class="tag">${esc(f.tag)}</div>`:""}
       <h3>${esc(f.title)}</h3>
       <p>${esc(f.body)}</p>
-    </article>`).join("");
+      ${url?`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Read at ${esc(f.source||"the source")} ↗</a>`:""}
+    </article>`;
+  }).join("");
 }
 
 function renderExtras(d){
@@ -608,19 +603,6 @@ function renderExtras(d){
     $("quote").textContent = d.quote.text || "—";
     $("quoteBy").textContent = d.quote.author || "";
   }
-}
-
-function renderFacts(facts){
-  facts = (facts||[]).filter(f=>f && f.fact);
-  if(!facts.length){ $("factsSec").style.display = "none"; return; }
-  $("factsSec").style.display = "";
-  $("facts").innerHTML = facts.map(f=>`
-    <div class="fact">
-      <div class="fact-subj">${esc(f.subject)}</div>
-      <div class="fact-body">${esc(f.fact)}</div>
-      ${f.quote?`<div class="fact-quote">“${esc(f.quote)}”</div>`:""}
-      ${f.source?`<div class="fact-src">verified via ${esc(f.source)}</div>`:""}
-    </div>`).join("");
 }
 
 function renderAll(d){
@@ -635,17 +617,6 @@ function renderAll(d){
     $("updated").textContent = new Intl.DateTimeFormat("en-US",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Singapore"}).format(t) + " SGT";
   }
   if(d._note){ $("note").innerHTML = `<div class="note">⚙ ${esc(d._note)}</div>`; }
-}
-
-async function loadFacts(){
-  try{
-    const res = await fetch("/api/facts", { cache:"no-store" });
-    if(!res.ok) throw new Error(res.status);
-    const d = await res.json();
-    renderFacts(d.facts);
-  }catch(e){
-    renderFacts(DEMO.facts); // local preview fallback
-  }
 }
 
 async function load(fresh){
@@ -845,7 +816,6 @@ load();
 $("regen").addEventListener("click", regenerate);
 loadBalances();
 loadFitness();
-loadFacts();
 renderBirthdays();
 tick(); setInterval(tick,1000);
 </script>
