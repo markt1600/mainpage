@@ -13,7 +13,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Markets (8 quotes, 5-day sparklines with date spans; gold also in S$/kg) | Yahoo Finance chart API | No |
 | Exchange rates (USD→SGD, SGD→JPY, SGD→CAD, USD→CAD) | Yahoo Finance chart API | No |
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
-| Stories & Briefs (with "read at source" links) | Claude + web search over Uncrate, Gear Patrol, Gizmodo, Engadget | `ANTHROPIC_API_KEY` |
+| Stories & Briefs (with "read at source" links) | Claude + web search over Uncrate, Gear Patrol, Gizmodo, Engadget, Stacked Homes | `ANTHROPIC_API_KEY` |
 | On This Day + Quote of the Day | Same Claude call | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
