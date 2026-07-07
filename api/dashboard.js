@@ -262,7 +262,7 @@ async function getHolidays() {
 // --- Editorial content via Claude ------------------------------------------
 const SCHEMA_PROMPT = (dateStr) => `You are the editor of a tasteful daily tech & lifestyle almanac published at marktan.ai. Today is ${dateStr}.
 
-Use the web_search tool to find the most interesting recent stories in technology, gadgets, gear, design, apps, gaming, and lifestyle from the past few days. Your searches are restricted to a curated set of publications (Uncrate, Gear Patrol, Gizmodo, Engadget) — surface what's genuinely notable, cool, or useful from them.
+Use the web_search tool to find the most interesting recent stories in technology, gadgets, gear, design, apps, gaming, lifestyle, and Singapore property from the past few days. Your searches are restricted to a curated set of publications (Uncrate, Gear Patrol, Gizmodo, Engadget, and Stacked Homes — the Singapore property site) — surface what's genuinely notable, cool, or useful from them. Aim to include at least one Stacked Homes property story when they have something recent worth reading.
 
 IMPORTANT: Write every text value as clean PLAIN TEXT only. Do NOT include citation markers, footnotes, reference numbers, HTML tags (such as <cite>), or markdown of any kind. Just natural prose.
 
@@ -270,7 +270,7 @@ Return ONLY a single valid minified JSON object (no markdown, no commentary, no 
 
 {
   "briefs": [
-    { "headline": "short punchy headline (max ~9 words)", "summary": "2 sentence summary", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results", "category": "Tech|Gadgets|Gear|Apps|Lifestyle|Design|Auto|Gaming" }
+    { "headline": "short punchy headline (max ~9 words)", "summary": "2 sentence summary", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results", "category": "Tech|Gadgets|Gear|Apps|Lifestyle|Design|Auto|Gaming|Property" }
   ],
   "features": [
     { "title": "an engaging title", "body": "3-4 sentence write-up of a cool product, gadget, or tech/lifestyle story worth a look", "tag": "one or two words", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results" }
@@ -317,7 +317,7 @@ async function generateEdition(key, dateStr) {
       type: "web_search_20250305",
       name: "web_search",
       max_uses: 3,
-      allowed_domains: ["uncrate.com", "gearpatrol.com", "gizmodo.com", "engadget.com"],
+      allowed_domains: ["uncrate.com", "gearpatrol.com", "gizmodo.com", "engadget.com", "stackedhomes.com"],
     },
   ];
   const messages = [{ role: "user", content: SCHEMA_PROMPT(dateStr) }];
