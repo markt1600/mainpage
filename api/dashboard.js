@@ -129,8 +129,14 @@ async function getQuote({ label, symbol, note }) {
   const change = price != null && prev != null ? price - prev : null;
   const pct = change != null && prev ? (change / prev) * 100 : null;
 
-  // Daily closes over the 5-day range, for a small trend sparkline.
-  const closes = (result?.indicators?.quote?.[0]?.close || []).filter((c) => c != null);
+  // Daily closes over the 5-day range (with matching unix timestamps),
+  // for a small trend sparkline labelled with its date span.
+  const stamps = result?.timestamp || [];
+  const points = (result?.indicators?.quote?.[0]?.close || [])
+    .map((c, i) => ({ c, t: stamps[i] ?? null }))
+    .filter((p) => p.c != null);
+  const closes = points.map((p) => p.c);
+  const times = points.map((p) => p.t);
   if (closes.length && price != null) closes[closes.length - 1] = price; // latest point = live price
 
   return {
@@ -141,6 +147,7 @@ async function getQuote({ label, symbol, note }) {
     change,
     pct,
     spark: closes.length >= 2 ? closes : null,
+    sparkTimes: closes.length >= 2 ? times : null,
     currency: meta.currency || "USD",
   };
 }
@@ -150,7 +157,7 @@ async function getMarkets() {
   const markets = results.map((r, i) =>
     r.status === "fulfilled"
       ? r.value
-      : { label: MARKETS[i].label, note: MARKETS[i].note, symbol: MARKETS[i].symbol, price: null, change: null, pct: null, spark: null, currency: null }
+      : { label: MARKETS[i].label, note: MARKETS[i].note, symbol: MARKETS[i].symbol, price: null, change: null, pct: null, spark: null, sparkTimes: null, currency: null }
   );
 
   // Gold: also express USD/oz as SGD/kg using a live USD->SGD rate.
@@ -226,15 +233,12 @@ const cleanFeature = (f) => ({
   url: cleanUrl(f.url),
 });
 
-async function getEdition(dateStr) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return { ...FALLBACK_EDITION, _note: "ANTHROPIC_API_KEY not set — showing sample edition." };
-
+async function generateEdition(key, dateStr) {
   const tools = [
     {
       type: "web_search_20250305",
       name: "web_search",
-      max_uses: 2,
+      max_uses: 3,
       allowed_domains: ["uncrate.com", "gearpatrol.com", "gizmodo.com", "engadget.com"],
     },
   ];
@@ -244,7 +248,7 @@ async function getEdition(dateStr) {
   // written its final answer. When that happens we feed the partial turn back
   // (preserving the search-result blocks) and let it resume, up to a few times.
   let data;
-  for (let turn = 0; turn < 4; turn++) {
+  for (let turn = 0; turn < 6; turn++) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -252,7 +256,7 @@ async function getEdition(dateStr) {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({ model: MODEL, max_tokens: 3000, messages, tools }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 4500, messages, tools }),
     });
 
     if (!res.ok) {
@@ -271,11 +275,15 @@ async function getEdition(dateStr) {
     .filter((b) => b.type === "text")
     .map((b) => b.text)
     .join("")
+    // Tolerate code fences despite the prompt forbidding them.
+    .replace(/```(?:json)?/gi, "")
     .trim();
 
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("No JSON found in model output");
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error(`No JSON found in model output (stop: ${data.stop_reason || "?"})`);
+  }
   const parsed = JSON.parse(text.slice(start, end + 1));
 
   return {
@@ -284,6 +292,23 @@ async function getEdition(dateStr) {
     onThisDay: clean(parsed.onThisDay) || null,
     quote: parsed.quote ? { text: clean(parsed.quote.text), author: clean(parsed.quote.author) } : null,
   };
+}
+
+async function getEdition(dateStr) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return { ...FALLBACK_EDITION, _note: "ANTHROPIC_API_KEY not set — showing sample edition." };
+
+  // One retry: an occasional malformed/truncated answer shouldn't sink the
+  // whole day's edition (this path runs about once per day via cron).
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await generateEdition(key, dateStr);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
 }
 
 const FALLBACK_EDITION = {

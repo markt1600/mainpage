@@ -173,6 +173,11 @@
   .mkt-spark.up{color:#2f6b43}
   .mkt-spark.down{color:var(--accent)}
   .mkt-spark.flat{color:var(--ink-faint)}
+  .mkt-spark-dates{
+    display:flex;justify-content:space-between;margin-top:4px;
+    font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--ink-faint);
+  }
 
   /* Fitness: 3 windows side by side */
   #fitness{grid-template-columns:repeat(3,1fr)}
@@ -460,6 +465,7 @@ const PROJECTS = [
 
 /* Sample edition shown if the API isn't reachable yet (e.g. local preview
    before the key is set). The live site replaces all of this. */
+const demoTs = Array.from({length:5},(_,i)=>Math.floor(Date.now()/1000)-(4-i)*86400);
 const DEMO = {
   dateStr: new Intl.DateTimeFormat("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric",timeZone:"Asia/Singapore"}).format(new Date()),
   generatedAt: new Date().toISOString(),
@@ -468,12 +474,12 @@ const DEMO = {
     { name:"Tokyo", unit:"°C", current:24, feelsLike:25, high:27, low:19, humidity:62, wind:11, rainChance:10, aqi:34, condition:"Mainly clear", glyph:"🌤", sunrise:"04:26", sunset:"18:54" },
   ],
   markets: [
-    { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD", spark:[169.8,171.2,170.5,171.1,172.34] },
-    { label:"FTSE All-World", note:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD", spark:[143.1,143.4,142.9,142.6,142.18] },
-    { label:"Gold", note:"USD / oz", price:3318.50, change:12.40, pct:0.37, currency:"USD", extras:["S$142,758 / kg","S$2,223 / ½oz"], spark:[3290,3305,3298,3306,3318.5] },
-    { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD", spark:[6010,5990,6021,6006,5998.12] },
-    { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD", spark:[705100,709800,708200,710920,712450] },
-    { label:"Bitcoin", note:"BTC / USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD", spark:[92100,94300,93500,93600,95420] },
+    { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD", spark:[169.8,171.2,170.5,171.1,172.34], sparkTimes:demoTs },
+    { label:"FTSE All-World", note:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD", spark:[143.1,143.4,142.9,142.6,142.18], sparkTimes:demoTs },
+    { label:"Gold", note:"USD / oz", price:3318.50, change:12.40, pct:0.37, currency:"USD", extras:["S$142,758 / kg","S$2,223 / ½oz"], spark:[3290,3305,3298,3306,3318.5], sparkTimes:demoTs },
+    { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD", spark:[6010,5990,6021,6006,5998.12], sparkTimes:demoTs },
+    { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD", spark:[705100,709800,708200,710920,712450], sparkTimes:demoTs },
+    { label:"Bitcoin", note:"BTC / USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD", spark:[92100,94300,93500,93600,95420], sparkTimes:demoTs },
   ],
   briefs: [
     { category:"Tech", source:"Sample", headline:"Your live briefs will appear here", summary:"Once ANTHROPIC_API_KEY is set in Vercel, Claude writes fresh briefs each morning. This is placeholder copy." },
@@ -554,10 +560,14 @@ function fmtPrice(p){
   const dp = Math.abs(p) >= 1000 ? (Math.abs(p) >= 100000 ? 0 : 2) : 2;
   return fmtNum(p, dp);
 }
-/* Tiny 5-day trend line drawn from the daily closes the API sends along. */
-function sparkline(points){
-  points = (points||[]).filter(p=>p!=null && !Number.isNaN(p));
-  if(points.length < 2) return "";
+/* Tiny 5-day trend line drawn from the daily closes the API sends along,
+   with the covered date span labelled underneath. */
+function sparkline(m){
+  const raw = Array.isArray(m.spark) ? m.spark : [];
+  const ts = Array.isArray(m.sparkTimes) ? m.sparkTimes : [];
+  const pairs = raw.map((p,i)=>({p, t: ts[i] ?? null})).filter(o=>o.p!=null && !Number.isNaN(o.p));
+  if(pairs.length < 2) return "";
+  const points = pairs.map(o=>o.p);
   const w=120, h=24, pad=2;
   const min=Math.min(...points), max=Math.max(...points), span=(max-min)||1;
   const pts = points.map((p,i)=>{
@@ -567,9 +577,14 @@ function sparkline(points){
   }).join(" ");
   const last=points[points.length-1], first=points[0];
   const cls = last>first ? "up" : last<first ? "down" : "flat";
+  const fmtDay = (t)=> t ? new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short"}).format(new Date(t*1000)) : "";
+  const d1 = fmtDay(pairs[0].t), d2 = fmtDay(pairs[pairs.length-1].t);
+  const dates = (d1 && d2)
+    ? `<div class="mkt-spark-dates"><span>${esc(d1)}</span><span>${esc(d2)}</span></div>`
+    : "";
   return `<svg class="mkt-spark ${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
     <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-  </svg>`;
+  </svg>${dates}`;
 }
 
 function renderMarkets(markets){
@@ -591,7 +606,7 @@ function renderMarkets(markets){
         <div class="mkt-px">${fmtPrice(m.price)}</div>
         ${(m.extras||[]).map(e=>`<div class="mkt-extra">${esc(e)}</div>`).join("")}
         ${chg}
-        ${sparkline(m.spark)}
+        ${sparkline(m)}
       </div>`;
   }).join("");
 }
