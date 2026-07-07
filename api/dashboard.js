@@ -13,15 +13,37 @@
 
 const MODEL = "claude-haiku-4-5-20251001"; // fast + economical; swap to "claude-sonnet-4-6" for richer prose
 
-// Cities render top-to-bottom in this order.
+// Cities render top-to-bottom in this order. snow: true adds a seasonal
+// (Nov-Apr) snow report — fresh snowfall today + snow depth on the ground.
 const CITIES = [
   { name: "Singapore", lat: 1.3521, lon: 103.8198, tz: "Asia/Singapore" },
   { name: "Tokyo", lat: 35.6762, lon: 139.6503, tz: "Asia/Tokyo" },
   { name: "Vancouver", lat: 49.2827, lon: -123.1207, tz: "America/Vancouver" },
-  { name: "Whistler", lat: 50.1163, lon: -122.9574, tz: "America/Vancouver" },
+  { name: "Whistler", lat: 50.1163, lon: -122.9574, tz: "America/Vancouver", snow: true },
+];
+
+// FX pairs (Yahoo Finance symbols, same keyless endpoint as the markets).
+const FX_PAIRS = [
+  { label: "USD → SGD", symbol: "SGD=X", note: "" },
+  { label: "SGD → JPY", symbol: "SGDJPY=X", note: "" },
+  { label: "SGD → CAD", symbol: "SGDCAD=X", note: "" },
+  { label: "USD → CAD", symbol: "CAD=X", note: "" },
+];
+
+// Public-holiday regions (Nager.Date, keyless). subdivision filters
+// country feeds to holidays that apply in that province/region.
+const HOLIDAY_REGIONS = [
+  { code: "SG", label: "Singapore" },
+  { code: "JP", label: "Japan" },
+  { code: "CA", label: "Vancouver", subdivision: "CA-BC" },
+  { code: "HK", label: "Hong Kong" },
+  { code: "CN", label: "Shanghai" },
 ];
 
 // Market instruments. label = display name, symbol = Yahoo Finance ticker.
+// SpaceX is private and has no public ticker; DXYZ (Destiny Tech100) is the
+// closest tradeable proxy — a fund whose largest holding is SpaceX. Note that
+// it often trades at a large premium/discount to its underlying NAV.
 const MARKETS = [
   { label: "Ares Management", symbol: "ARES", note: "ARES" },
   { label: "FTSE All-World", symbol: "VWRA.L", note: "VWRA.L" },
@@ -29,6 +51,8 @@ const MARKETS = [
   { label: "S&P 500", symbol: "^GSPC", note: "SPX" },
   { label: "Berkshire", symbol: "BRK-A", note: "BRK.A" },
   { label: "Bitcoin", symbol: "BTC-USD", note: "BTC / USD" },
+  { label: "NVIDIA", symbol: "NVDA", note: "NVDA" },
+  { label: "SpaceX proxy", symbol: "DXYZ", note: "DXYZ fund" },
 ];
 
 // WMO weather interpretation codes → human label + glyph
@@ -67,10 +91,17 @@ async function getCityAqi(city) {
 }
 
 async function getCityWeather(city) {
+  // Snow report only during the snow season (Nov-Apr, city-local time).
+  const month = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: city.tz, month: "numeric" }).format(new Date())
+  );
+  const snowSeason = !!city.snow && (month >= 11 || month <= 4);
+
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}` +
     `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature` +
     `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,precipitation_probability_max` +
+    (snowSeason ? `,snowfall_sum&hourly=snow_depth` : ``) +
     `&timezone=${encodeURIComponent(city.tz)}&forecast_days=1`;
 
   // AQI comes from a separate endpoint; a failure there never blanks the weather.
@@ -82,6 +113,21 @@ async function getCityWeather(city) {
   const { label, glyph } = describeCode(code);
   const hhmm = (iso) => (iso ? iso.slice(11, 16) : null);
   const rain = d.daily?.precipitation_probability_max?.[0];
+
+  // Fresh snowfall today (cm) + snow depth on the ground now (m → cm),
+  // taken from the most recent hourly reading at or before the current hour.
+  let snowToday = null, snowBase = null;
+  if (snowSeason) {
+    const sf = d.daily?.snowfall_sum?.[0];
+    snowToday = Number.isFinite(sf) ? Math.round(sf * 10) / 10 : null;
+    const hour = Number(
+      new Intl.DateTimeFormat("en-US", { timeZone: city.tz, hour: "numeric", hourCycle: "h23" }).format(new Date())
+    );
+    const depths = d.hourly?.snow_depth || [];
+    for (let i = Math.min(hour, depths.length - 1); i >= 0; i--) {
+      if (depths[i] != null) { snowBase = Math.round(depths[i] * 100); break; }
+    }
+  }
 
   return {
     name: city.name,
@@ -95,6 +141,8 @@ async function getCityWeather(city) {
     wind: Math.round(d.current?.wind_speed_10m),
     rainChance: Number.isFinite(rain) ? Math.round(rain) : null,
     aqi,
+    snowToday,
+    snowBase,
     condition: label,
     glyph,
     sunrise: hhmm(d.daily?.sunrise?.[0]),
@@ -181,6 +229,37 @@ async function getMarkets() {
   } catch (_) { /* leave gold as USD/oz only if FX fails */ }
 
   return markets;
+}
+
+// FX pairs reuse the same Yahoo quote endpoint (sparkline included).
+async function getFx() {
+  const results = await Promise.allSettled(FX_PAIRS.map(getQuote));
+  return results
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
+}
+
+// --- Public holidays via Nager.Date (keyless) -------------------------------
+async function getRegionHoliday({ code, label, subdivision }) {
+  const res = await fetch(`https://date.nager.at/api/v3/NextPublicHolidays/${code}`);
+  if (!res.ok) throw new Error(`Nager ${res.status} for ${code}`);
+  const list = await res.json();
+
+  // Keep nationwide holidays, plus subdivision-specific ones (e.g. CA-BC).
+  const applies = (h) =>
+    h.global || !Array.isArray(h.counties) || h.counties.length === 0
+      ? true
+      : subdivision ? h.counties.includes(subdivision) : false;
+
+  const hit = (Array.isArray(list) ? list : []).find(applies);
+  return hit && hit.date && hit.name ? { region: label, name: hit.name, date: hit.date } : null;
+}
+
+async function getHolidays() {
+  const results = await Promise.allSettled(HOLIDAY_REGIONS.map(getRegionHoliday));
+  return results
+    .filter((r) => r.status === "fulfilled" && r.value)
+    .map((r) => r.value);
 }
 
 // --- Editorial content via Claude ------------------------------------------
@@ -343,11 +422,15 @@ export default async function handler(req, res) {
     timeZone: "Asia/Singapore",
   }).format(now);
 
-  // Weather, markets, and the edition run independently so one failing
-  // never blanks the others.
-  const [citiesR, marketsR] = await Promise.allSettled([getCities(), getMarkets()]);
+  // Weather, markets, FX, holidays, and the edition run independently so
+  // one failing never blanks the others.
+  const [citiesR, marketsR, fxR, holidaysR] = await Promise.allSettled([
+    getCities(), getMarkets(), getFx(), getHolidays(),
+  ]);
   const cities = citiesR.status === "fulfilled" ? citiesR.value : [];
   const markets = marketsR.status === "fulfilled" ? marketsR.value : [];
+  const fx = fxR.status === "fulfilled" ? fxR.value : [];
+  const holidays = holidaysR.status === "fulfilled" ? holidaysR.value : [];
 
   let edition;
   try {
@@ -361,6 +444,8 @@ export default async function handler(req, res) {
     dateStr,
     cities,
     markets,
+    fx,
+    holidays,
     ...edition,
   });
 }

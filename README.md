@@ -9,16 +9,20 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Section | Source | Needs a key? |
 |---|---|---|
 | Projects bar | `PROJECTS` array in `index.html` | No |
-| Weather (Singapore, Tokyo, Vancouver, Whistler — incl. rain chance & US AQI) | Open-Meteo forecast + air-quality APIs | No |
-| Markets (6 quotes, 5-day sparklines with date spans; gold also in S$/kg) | Yahoo Finance chart API | No |
+| Weather (Singapore, Tokyo, Vancouver, Whistler — incl. rain chance & US AQI; Whistler adds a Nov–Apr snow report) | Open-Meteo forecast + air-quality APIs | No |
+| Markets (8 quotes, 5-day sparklines with date spans; gold also in S$/kg) | Yahoo Finance chart API | No |
+| Exchange rates (USD→SGD, SGD→JPY, SGD→CAD, USD→CAD) | Yahoo Finance chart API | No |
+| Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
 | Stories & Briefs (with "read at source" links) | Claude + web search over Uncrate, Gear Patrol, Gizmodo, Engadget | `ANTHROPIC_API_KEY` |
 | On This Day + Quote of the Day | Same Claude call | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
-| Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
-| Birthdays (shown 7 days before → 3 days after) | `BIRTHDAYS` array in `index.html` | No |
+| Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | Private: `?me=` link only |
+| Birthdays (shown 7 days before → 3 days after) | `BIRTHDAYS` array in `index.html` | Private: `?me=` link only |
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
+
+**Personal sections** (Happy Day, birthdays, balances) only appear when visiting with the private link `/?me=<secret>`, so casual visitors see just the almanac. Note the birthday/Happy Day data is only *hidden* for public visitors — it still ships in the page source; balances are gated server-side by `DASHBOARD_SECRET`.
 
 ## Files
 
@@ -72,7 +76,9 @@ In **`index.html`**:
 In **`api/dashboard.js`**:
 - **Model** — `MODEL` defaults to `claude-haiku-4-5-20251001` (fast, cheap). Swap for a Sonnet model for richer prose.
 - **Cities** — edit the `CITIES` array (name, lat/lon, timezone). Panels render top-to-bottom in array order.
-- **Tickers** — edit the `MARKETS` array (display label + Yahoo Finance symbol).
+- **Tickers** — edit the `MARKETS` array (display label + Yahoo Finance symbol). SpaceX has no public ticker; the "SpaceX proxy" tile tracks DXYZ (Destiny Tech100), a fund whose largest holding is SpaceX — it can trade far from underlying NAV.
+- **FX pairs** — edit the `FX_PAIRS` array (Yahoo symbols like `SGDJPY=X`).
+- **Holiday regions** — edit `HOLIDAY_REGIONS` (Nager.Date country codes; optional `subdivision` like `CA-BC`).
 - **News sources & section sizes** — the allowed publications live in the `allowed_domains` list; the prompt (`SCHEMA_PROMPT`) asks for 5 briefs + 3 features.
 - **Refresh rate / cost** — change `s-maxage=86400` in the `Cache-Control` header and the cron schedule in `vercel.json`.
 

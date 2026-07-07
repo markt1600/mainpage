@@ -179,6 +179,15 @@
     text-transform:uppercase;color:var(--ink-faint);
   }
 
+  /* Markets: 8 tiles → 4 × 2 on desktop, 2-up on small screens */
+  #markets{grid-template-columns:repeat(4,1fr)}
+  /* FX: 4 pairs side by side */
+  #fx{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:880px){
+    #markets{grid-template-columns:repeat(2,1fr)}
+    #fx{grid-template-columns:repeat(2,1fr)}
+  }
+
   /* Fitness: 3 windows side by side */
   #fitness{grid-template-columns:repeat(3,1fr)}
   @media(max-width:520px){#fitness{grid-template-columns:1fr}}
@@ -204,8 +213,8 @@
   }
   .happy .txt b{color:var(--ink);font-weight:600}
 
-  /* Birthdays */
-  #birthdays{display:flex;flex-wrap:wrap;gap:14px}
+  /* Birthdays + Holidays (same card row layout) */
+  #birthdays,#holidays{display:flex;flex-wrap:wrap;gap:14px}
   .bday{
     background:var(--paper-2);border:1px solid var(--rule-strong);
     border-radius:3px;padding:14px 18px;min-width:190px;
@@ -382,6 +391,15 @@
       <div class="mkt-grid" id="markets"></div>
     </section>
 
+    <!-- Exchange rates -->
+    <section class="markets rise" id="fxSec" style="display:none" aria-label="Exchange rates">
+      <div class="sec-head">
+        <h2>Exchange <span class="dot">·</span> Rates</h2>
+        <span class="cnt" id="fxCnt"></span>
+      </div>
+      <div class="mkt-grid" id="fx"></div>
+    </section>
+
     <!-- Fitness (Strava): hidden until the Strava env vars are set -->
     <section class="markets rise" id="fitnessSec" style="display:none" aria-label="Fitness">
       <div class="sec-head">
@@ -453,9 +471,18 @@
       <div id="birthdays"></div>
     </section>
 
+    <!-- Public holidays: next one per region -->
+    <section class="markets rise" id="holidaysSec" style="display:none" aria-label="Public holidays">
+      <div class="sec-head">
+        <h2>Holidays <span class="dot">·</span> Coming Up</h2>
+        <span class="cnt" id="holCnt"></span>
+      </div>
+      <div id="holidays"></div>
+    </section>
+
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
-      <span>SGT <b id="clockSG" style="color:var(--ink-soft)">--:--:--</b> · JST <b id="clockTK" style="color:var(--ink-soft)">--:--:--</b></span>
+      <span>SGT <b id="clockSG" style="color:var(--ink-soft)">--:--:--</b> · JST <b id="clockTK" style="color:var(--ink-soft)">--:--:--</b> · PT <b id="clockVC" style="color:var(--ink-soft)">--:--:--</b></span>
       <span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
     </footer>
   </div>
@@ -489,7 +516,7 @@ const DEMO = {
     { name:"Singapore", unit:"°C", current:30, feelsLike:35, high:32, low:26, humidity:74, wind:9, rainChance:65, aqi:52, condition:"Partly cloudy", glyph:"⛅", sunrise:"06:59", sunset:"19:10" },
     { name:"Tokyo", unit:"°C", current:24, feelsLike:25, high:27, low:19, humidity:62, wind:11, rainChance:10, aqi:34, condition:"Mainly clear", glyph:"🌤", sunrise:"04:26", sunset:"18:54" },
     { name:"Vancouver", unit:"°C", current:18, feelsLike:18, high:21, low:13, humidity:58, wind:14, rainChance:20, aqi:22, condition:"Mainly clear", glyph:"🌤", sunrise:"05:14", sunset:"21:20" },
-    { name:"Whistler", unit:"°C", current:14, feelsLike:13, high:19, low:8, humidity:64, wind:7, rainChance:35, aqi:18, condition:"Partly cloudy", glyph:"⛅", sunrise:"05:07", sunset:"21:28" },
+    { name:"Whistler", unit:"°C", current:14, feelsLike:13, high:19, low:8, humidity:64, wind:7, rainChance:35, aqi:18, snowToday:6.5, snowBase:182, condition:"Partly cloudy", glyph:"⛅", sunrise:"05:07", sunset:"21:28" },
   ],
   markets: [
     { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD", spark:[169.8,171.2,170.5,171.1,172.34], sparkTimes:demoTs },
@@ -498,6 +525,21 @@ const DEMO = {
     { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD", spark:[6010,5990,6021,6006,5998.12], sparkTimes:demoTs },
     { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD", spark:[705100,709800,708200,710920,712450], sparkTimes:demoTs },
     { label:"Bitcoin", note:"BTC / USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD", spark:[92100,94300,93500,93600,95420], sparkTimes:demoTs },
+    { label:"NVIDIA", note:"NVDA", price:168.42, change:2.35, pct:1.41, currency:"USD", spark:[163.1,165.8,164.9,166.07,168.42], sparkTimes:demoTs },
+    { label:"SpaceX proxy", note:"DXYZ fund", price:38.75, change:-0.85, pct:-2.15, currency:"USD", spark:[41.2,40.1,40.6,39.6,38.75], sparkTimes:demoTs },
+  ],
+  fx: [
+    { label:"USD → SGD", note:"", price:1.2842, change:-0.0015, pct:-0.12, spark:[1.2910,1.2884,1.2901,1.2857,1.2842], sparkTimes:demoTs },
+    { label:"SGD → JPY", note:"", price:115.83, change:0.39, pct:0.34, spark:[114.92,115.21,115.58,115.44,115.83], sparkTimes:demoTs },
+    { label:"SGD → CAD", note:"", price:1.0641, change:0.0008, pct:0.08, spark:[1.0612,1.0629,1.0618,1.0633,1.0641], sparkTimes:demoTs },
+    { label:"USD → CAD", note:"", price:1.3667, change:-0.0007, pct:-0.05, spark:[1.3721,1.3694,1.3702,1.3674,1.3667], sparkTimes:demoTs },
+  ],
+  holidays: [
+    { region:"Japan", name:"Marine Day", date:"2026-07-20" },
+    { region:"Vancouver", name:"British Columbia Day", date:"2026-08-03" },
+    { region:"Singapore", name:"National Day", date:"2026-08-09" },
+    { region:"Shanghai", name:"Mid-Autumn Festival", date:"2026-09-25" },
+    { region:"Hong Kong", name:"National Day", date:"2026-10-01" },
   ],
   briefs: [
     { category:"Tech", source:"Sample", headline:"Your live briefs will appear here", summary:"Once ANTHROPIC_API_KEY is set in Vercel, Claude writes fresh briefs each morning. This is placeholder copy." },
@@ -546,6 +588,8 @@ function cityPanel(w){
     ["Wind", `${w.wind}<small> km/h</small>`],
     ["Rain", `${w.rainChance}<small>%</small>`],
     ["Air (AQI)", `${w.aqi}<small> ${w.aqi!=null?esc(aqiBand(w.aqi)):""}</small>`],
+    ["Snow (24h)", `${w.snowToday}<small> cm</small>`],
+    ["Snow base", `${w.snowBase}<small> cm</small>`],
     ["Sunrise", `${esc(w.sunrise||"—")}`],
     ["Sunset", `${esc(w.sunset||"—")}`],
   ].filter(s=>!/NaN|undefined|null/.test(s[1]));
@@ -632,6 +676,55 @@ function renderMarkets(markets){
 /* Only link out to URLs that actually look like http(s) article links. */
 const safeUrl = (u) => (typeof u === "string" && /^https?:\/\/\S+$/i.test(u.trim())) ? u.trim() : null;
 
+/* FX pairs — same tiles as markets, but rates get 4 decimal places. */
+function renderFx(fx){
+  fx = (fx||[]).filter(m=>m && m.price!=null);
+  if(!fx.length){ $("fxSec").style.display = "none"; return; }
+  $("fxSec").style.display = "";
+  $("fxCnt").textContent = `${fx.length} pairs`;
+  const fmtFx = (p) => Number(p).toFixed(Math.abs(p) < 10 ? 4 : 2);
+  $("fx").innerHTML = fx.map(m=>{
+    let chg = `<div class="mkt-chg flat">—</div>`;
+    if(m.pct!=null){
+      const up = m.pct > 0, down = m.pct < 0;
+      chg = `<div class="mkt-chg ${up?"up":down?"down":"flat"}">${up?"▲":down?"▼":"▬"} ${up?"+":""}${m.pct.toFixed(2)}%</div>`;
+    }
+    return `
+      <div class="mkt">
+        <div class="mkt-lab"><b>${esc(m.label)}</b><span>${esc(m.note||"")}</span></div>
+        <div class="mkt-px">${fmtFx(m.price)}</div>
+        ${chg}
+        ${sparkline(m)}
+      </div>`;
+  }).join("");
+}
+
+/* Next public holiday per region, soonest first. Keyed to SGT like the rest
+   of the page. */
+function renderHolidays(hols){
+  hols = (hols||[]).filter(h=>h && h.date && h.name);
+  const [ty,tm,td] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
+  const todayUTC = Date.UTC(ty, tm-1, td);
+  const list = hols.map(h=>{
+    const [y,m,d] = h.date.split("-").map(Number);
+    return { ...h, delta: Math.round((Date.UTC(y,m-1,d) - todayUTC)/86400000) };
+  }).filter(h=>h.delta >= 0).sort((a,b)=>a.delta - b.delta);
+  if(!list.length){ $("holidaysSec").style.display = "none"; return; }
+  $("holidaysSec").style.display = "";
+  $("holCnt").textContent = `next per region`;
+  $("holidays").innerHTML = list.map(h=>{
+    const [y,m,d] = h.date.split("-").map(Number);
+    const nice = new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}).format(new Date(Date.UTC(y,m-1,d)));
+    const today = h.delta === 0;
+    return `
+      <div class="bday${today?' today':''}">
+        <div class="bday-date">${esc(h.region)}${today?" 🎉":""}</div>
+        <div class="bday-name">${esc(h.name)}</div>
+        <div class="bday-when">${esc(nice)} · ${esc(whenLabel(h.delta))}</div>
+      </div>`;
+  }).join("");
+}
+
 function renderBriefs(briefs){
   briefs = briefs||[];
   $("briefCnt").textContent = briefs.length ? `${briefs.length} items` : "";
@@ -677,6 +770,8 @@ function renderAll(d){
   $("dateline").innerHTML = `<b>${esc(d.dateStr)}</b> · Daily Edition`;
   renderCities(d.cities);
   renderMarkets(d.markets);
+  renderFx(d.fx);
+  renderHolidays(d.holidays);
   renderBriefs(d.briefs);
   renderFeatures(d.features);
   renderExtras(d);
@@ -721,6 +816,7 @@ function tick(){
   const f = (tz) => new Intl.DateTimeFormat("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:tz}).format(now);
   $("clockSG").textContent = f("Asia/Singapore");
   $("clockTK").textContent = f("Asia/Tokyo");
+  $("clockVC").textContent = f("America/Vancouver");
 }
 
 /* Private balances — only fetched when ?me=<secret> (or ?token=) is present,
@@ -797,6 +893,7 @@ function happyDayText(){
 }
 
 function renderHappyDay(){
+  if(!privateToken()) return; // personal — only shown on the private ?me= link
   const t = happyDayText();
   if(!t) return; // stays hidden before the start date
   $("happyDay").style.display = "";
@@ -859,6 +956,7 @@ function whenLabel(delta){
 }
 
 function renderBirthdays(){
+  if(!privateToken()) return; // personal — only shown on the private ?me= link
   const list = birthdaysInWindow();
   if(!list.length) return; // section stays hidden
   $("birthdaysSec").style.display = "";
