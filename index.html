@@ -893,7 +893,6 @@ function happyDayText(){
 }
 
 function renderHappyDay(){
-  if(!privateToken()) return; // personal — only shown on the private ?me= link
   const t = happyDayText();
   if(!t) return; // stays hidden before the start date
   $("happyDay").style.display = "";
@@ -956,7 +955,6 @@ function whenLabel(delta){
 }
 
 function renderBirthdays(){
-  if(!privateToken()) return; // personal — only shown on the private ?me= link
   const list = birthdaysInWindow();
   if(!list.length) return; // section stays hidden
   $("birthdaysSec").style.display = "";
