@@ -86,6 +86,19 @@
     color:var(--ink-soft);white-space:nowrap;
   }
   .dateline .txt b{color:var(--ink);font-weight:600}
+  .clocks{
+    display:flex;justify-content:center;align-items:baseline;gap:14px;
+    margin-top:12px;
+    font-family:"JetBrains Mono",monospace;
+  }
+  .clocks .cz{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+  .clocks .clock b{font-size:16px;font-weight:600;color:var(--ink);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+  .clocks .sep{color:var(--rule-strong)}
+  @media(max-width:520px){
+    .clocks{gap:10px}
+    .clocks .clock b{font-size:13px}
+    .clocks .cz{font-size:9px;letter-spacing:.12em}
+  }
 
   /* ---------------- Projects ---------------- */
   .projects{
@@ -373,6 +386,14 @@
         <span class="ln"></span>
       </div>
 
+      <div class="clocks rise" style="animation-delay:.13s" aria-label="Current time">
+        <span class="clock"><span class="cz">SGT</span> <b id="clockSG">--:--:--</b></span>
+        <span class="sep">·</span>
+        <span class="clock"><span class="cz">JST</span> <b id="clockTK">--:--:--</b></span>
+        <span class="sep">·</span>
+        <span class="clock"><span class="cz">PT</span> <b id="clockVC">--:--:--</b></span>
+      </div>
+
       <nav class="projects rise" style="animation-delay:.16s" aria-label="Projects">
         <span class="label">Vibe&nbsp;Code&nbsp;//</span>
         <div class="chips" id="chips"></div>
@@ -482,7 +503,6 @@
 
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
-      <span>SGT <b id="clockSG" style="color:var(--ink-soft)">--:--:--</b> · JST <b id="clockTK" style="color:var(--ink-soft)">--:--:--</b> · PT <b id="clockVC" style="color:var(--ink-soft)">--:--:--</b></span>
       <span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
     </footer>
   </div>
