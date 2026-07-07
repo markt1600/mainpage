@@ -13,10 +13,12 @@
 
 const MODEL = "claude-haiku-4-5-20251001"; // fast + economical; swap to "claude-sonnet-4-6" for richer prose
 
-// Cities render top-to-bottom in this order (Singapore first, then Tokyo).
+// Cities render top-to-bottom in this order.
 const CITIES = [
   { name: "Singapore", lat: 1.3521, lon: 103.8198, tz: "Asia/Singapore" },
   { name: "Tokyo", lat: 35.6762, lon: 139.6503, tz: "Asia/Tokyo" },
+  { name: "Vancouver", lat: 49.2827, lon: -123.1207, tz: "America/Vancouver" },
+  { name: "Whistler", lat: 50.1163, lon: -122.9574, tz: "America/Vancouver" },
 ];
 
 // Market instruments. label = display name, symbol = Yahoo Finance ticker.
