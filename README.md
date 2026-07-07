@@ -1,6 +1,6 @@
 # The Daily — marktan.ai
 
-A single-page daily dashboard in an editorial / broadsheet style: weather for Singapore and Tokyo, live market quotes, AI-written tech & lifestyle news with links to the original articles, Strava mileage, upcoming birthdays, and a quote of the day — gathered fresh each morning.
+A single-page daily dashboard in an editorial / broadsheet style: weather for Singapore, Tokyo, Vancouver, and Whistler, live market quotes, AI-written tech & lifestyle news with links to the original articles, Strava mileage, upcoming birthdays, and a quote of the day — gathered fresh each morning.
 
 Built as one static page plus a few Vercel serverless functions. No framework, no build step.
 
@@ -9,7 +9,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Section | Source | Needs a key? |
 |---|---|---|
 | Projects bar | `PROJECTS` array in `index.html` | No |
-| Weather (Singapore + Tokyo, incl. rain chance & US AQI) | Open-Meteo forecast + air-quality APIs | No |
+| Weather (Singapore, Tokyo, Vancouver, Whistler — incl. rain chance & US AQI) | Open-Meteo forecast + air-quality APIs | No |
 | Markets (6 quotes, 5-day sparklines with date spans; gold also in S$/kg) | Yahoo Finance chart API | No |
 | Stories & Briefs (with "read at source" links) | Claude + web search over Uncrate, Gear Patrol, Gizmodo, Engadget | `ANTHROPIC_API_KEY` |
 | On This Day + Quote of the Day | Same Claude call | `ANTHROPIC_API_KEY` |
