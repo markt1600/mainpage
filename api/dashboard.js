@@ -347,11 +347,21 @@ async function generateEdition(key, dateStr) {
   ];
   const messages = [{ role: "user", content: SCHEMA_PROMPT(dateStr) }];
 
+  // Tolerate code fences despite the prompt forbidding them.
+  const extractText = (d) =>
+    (d.content || [])
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .replace(/```(?:json)?/gi, "")
+      .trim();
+  const hasJson = (t) => t.indexOf("{") !== -1 && t.lastIndexOf("}") > t.indexOf("{");
+
   // Web-search turns can return stop_reason "pause_turn" before the model has
   // written its final answer. When that happens we feed the partial turn back
   // (preserving the search-result blocks) and let it resume, up to a few times.
-  let data;
-  for (let turn = 0; turn < 6; turn++) {
+  let data, text = "", nudges = 0;
+  for (let turn = 0; turn < 8; turn++) {
     const res = await anthropicFetch(key, { model: MODEL, max_tokens: 6000, messages, tools });
 
     if (!res.ok) {
@@ -364,20 +374,29 @@ async function generateEdition(key, dateStr) {
       messages.push({ role: "assistant", content: data.content });
       continue;
     }
+
+    text = extractText(data);
+    // The model occasionally ends its turn having narrated its searches but
+    // without writing the JSON. It already has the material in context, so
+    // ask it to produce the answer rather than failing the whole edition.
+    if (!hasJson(text) && nudges < 2 && Array.isArray(data.content) && data.content.length) {
+      messages.push({ role: "assistant", content: data.content });
+      messages.push({
+        role: "user",
+        content: "Return ONLY the JSON object now, exactly in the shape specified earlier — no commentary, no code fences. Start your reply with { and end with }.",
+      });
+      nudges++;
+      continue;
+    }
     break;
   }
-  const text = (data.content || [])
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("")
-    // Tolerate code fences despite the prompt forbidding them.
-    .replace(/```(?:json)?/gi, "")
-    .trim();
 
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error(`No JSON found in model output (stop: ${data.stop_reason || "?"})`);
+    // Surfaces in Vercel's function logs for diagnosis.
+    console.error("Edition: no JSON in model output.", "stop:", data?.stop_reason, "text:", text.slice(0, 400));
+    throw new Error(`No JSON found in model output (stop: ${data?.stop_reason || "?"})`);
   }
   const parsed = JSON.parse(text.slice(start, end + 1));
 
@@ -451,6 +470,9 @@ export default async function handler(req, res) {
     edition = await getEdition(dateStr);
   } catch (err) {
     edition = { ...FALLBACK_EDITION, _note: `Edition unavailable: ${err.message}` };
+    // Never cache a failed edition for the full day — let the next visitor
+    // (or the next page load) retry within a few minutes instead.
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
   }
 
   res.status(200).json({

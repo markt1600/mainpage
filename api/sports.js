@@ -78,6 +78,8 @@ async function anthropicFetch(key, body, attempts = 3) {
   return res;
 }
 
+// Returns an array of events ([] = genuinely nothing major on) or null when
+// the generation itself failed, so the handler can cache failures briefly.
 async function getSports(dateStr) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return [];
@@ -85,33 +87,51 @@ async function getSports(dateStr) {
     const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
     const messages = [{ role: "user", content: SPORTS_PROMPT(dateStr) }];
 
-    // Resume the turn if web search pauses it before the JSON is written.
-    let data;
-    for (let turn = 0; turn < 6; turn++) {
+    const extractText = (d) =>
+      (d.content || [])
+        .filter((b) => b.type === "text")
+        .map((b) => b.text)
+        .join("")
+        .replace(/```(?:json)?/gi, "")
+        .trim();
+    const hasJson = (t) => t.indexOf("{") !== -1 && t.lastIndexOf("}") > t.indexOf("{");
+
+    // Resume the turn if web search pauses it before the JSON is written;
+    // nudge if the model ends its turn without producing the JSON.
+    let data, text = "", nudges = 0;
+    for (let turn = 0; turn < 8; turn++) {
       const res = await anthropicFetch(key, { model: MODEL, max_tokens: 3500, messages, tools });
-      if (!res.ok) return [];
+      if (!res.ok) return null;
       data = await res.json();
       if (data.stop_reason === "pause_turn" && Array.isArray(data.content)) {
         messages.push({ role: "assistant", content: data.content });
         continue;
       }
+      text = extractText(data);
+      if (!hasJson(text) && nudges < 2 && Array.isArray(data.content) && data.content.length) {
+        messages.push({ role: "assistant", content: data.content });
+        messages.push({
+          role: "user",
+          content: "Return ONLY the JSON object now, exactly in the shape specified earlier — no commentary, no code fences. Start your reply with { and end with }.",
+        });
+        nudges++;
+        continue;
+      }
       break;
     }
 
-    const text = (data.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .replace(/```(?:json)?/gi, "")
-      .trim();
     const s = text.indexOf("{"), e = text.lastIndexOf("}");
-    if (s === -1 || e === -1 || e <= s) return [];
+    if (s === -1 || e === -1 || e <= s) {
+      console.error("Sports: no JSON in model output.", "stop:", data?.stop_reason, "text:", text.slice(0, 400));
+      return null;
+    }
     const parsed = JSON.parse(text.slice(s, e + 1));
     return Array.isArray(parsed.events)
       ? parsed.events.slice(0, 3).map(cleanEvent).filter((ev) => ev.headline && ev.summary)
       : [];
-  } catch (_) {
-    return []; // fail soft: the section simply doesn't appear
+  } catch (err) {
+    console.error("Sports: generation failed.", err?.message || err);
+    return null; // fail soft: the section simply doesn't appear
   }
 }
 
@@ -127,5 +147,9 @@ export default async function handler(req, res) {
   }).format(new Date());
 
   const events = await getSports(dateStr);
-  res.status(200).json({ generatedAt: new Date().toISOString(), events });
+  if (events === null) {
+    // Generation failed — retry within minutes rather than caching all day.
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+  }
+  res.status(200).json({ generatedAt: new Date().toISOString(), events: events || [] });
 }
