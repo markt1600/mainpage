@@ -191,6 +191,10 @@
     font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.06em;
     text-transform:uppercase;color:var(--ink-faint);
   }
+  /* per-currency strengthen/weaken arrows on FX tiles */
+  .fx-dir{font-size:8.5px;margin-left:1px}
+  .fx-dir.up{color:#2f6b43}
+  .fx-dir.down{color:var(--accent)}
 
   /* Markets: 8 tiles → 4 × 2 on desktop, 2-up on small screens */
   #markets{grid-template-columns:repeat(4,1fr)}
@@ -696,7 +700,17 @@ function renderMarkets(markets){
 /* Only link out to URLs that actually look like http(s) article links. */
 const safeUrl = (u) => (typeof u === "string" && /^https?:\/\/\S+$/i.test(u.trim())) ? u.trim() : null;
 
-/* FX pairs — same tiles as markets, but rates get 4 decimal places. */
+/* FX pairs — same tiles as markets, but rates get 4 decimal places.
+   Each currency gets a small arrow: the rate is quote-per-base, so a rising
+   rate means the base currency strengthened and the quote weakened today. */
+function fxPairLabel(m){
+  const parts = String(m.label||"").split("→").map(s=>s.trim());
+  if(parts.length !== 2 || m.pct == null || m.pct === 0) return esc(m.label);
+  const baseUp = m.pct > 0;
+  const arr = (up)=>`<span class="fx-dir ${up?"up":"down"}">${up?"▲":"▼"}</span>`;
+  return `${esc(parts[0])}${arr(baseUp)} → ${esc(parts[1])}${arr(!baseUp)}`;
+}
+
 function renderFx(fx){
   fx = (fx||[]).filter(m=>m && m.price!=null);
   if(!fx.length){ $("fxSec").style.display = "none"; return; }
@@ -711,7 +725,7 @@ function renderFx(fx){
     }
     return `
       <div class="mkt">
-        <div class="mkt-lab"><b>${esc(m.label)}</b><span>${esc(m.note||"")}</span></div>
+        <div class="mkt-lab"><b>${fxPairLabel(m)}</b><span>${esc(m.note||"")}</span></div>
         <div class="mkt-px">${fmtFx(m.price)}</div>
         ${chg}
         ${sparkline(m)}
