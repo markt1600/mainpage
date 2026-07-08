@@ -224,6 +224,17 @@
     border-radius:3px;min-width:230px;
   }
 
+  /* Sports results */
+  #sports{display:flex;flex-wrap:wrap;gap:16px}
+  .sport{
+    flex:1 1 300px;background:var(--paper-2);
+    border:1px solid var(--rule-strong);border-radius:3px;padding:16px 19px;
+  }
+  .sport-event{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
+  .sport-head{font-family:"Fraunces",serif;font-weight:600;font-size:20px;line-height:1.12;letter-spacing:-.01em;margin-bottom:7px}
+  .sport-body{font-family:"Newsreader",serif;font-size:16px;color:#322c22;line-height:1.55;text-wrap:pretty}
+  .sport-scores{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.7;letter-spacing:.02em}
+
   /* Happy Day */
   .happy{display:flex;align-items:center;gap:18px;margin-top:30px}
   .happy .ln{flex:1;height:1px;background:var(--rule)}
@@ -453,6 +464,16 @@
       <span class="ln"></span>
     </div>
 
+    <!-- Sports: only appears while a major event is on (World Cup, Grand
+         Slams, Tour de France, Olympics, late playoff rounds, F1, ...) -->
+    <section class="markets rise" id="sportsSec" style="display:none" aria-label="Sports">
+      <div class="sec-head">
+        <h2>Sports <span class="dot">·</span> Last 24 Hours</h2>
+        <span class="cnt" id="sportsCnt"></span>
+      </div>
+      <div id="sports"></div>
+    </section>
+
     <!-- Body -->
     <div class="grid">
       <main class="features-col rise" style="animation-delay:.3s">
@@ -560,6 +581,10 @@ const DEMO = {
     { label:"SGD → JPY", note:"", price:115.83, change:0.39, pct:0.34, spark:[114.92,115.21,115.58,115.44,115.83], sparkTimes:demoTs },
     { label:"SGD → CAD", note:"", price:1.0641, change:0.0008, pct:0.08, spark:[1.0612,1.0629,1.0618,1.0633,1.0641], sparkTimes:demoTs },
     { label:"USD → CAD", note:"", price:1.3667, change:-0.0007, pct:-0.05, spark:[1.3721,1.3694,1.3702,1.3674,1.3667], sparkTimes:demoTs },
+  ],
+  sports: [
+    { event:"Wimbledon", headline:"Sample: semifinal line-ups decided on Centre Court", summary:"This is placeholder copy — with the API live, real results from the past 24 hours appear here whenever a major event is on.", scorelines:["A. Player def. B. Player 6-4 3-6 7-6(4) 6-2"], source:"Sample", url:"" },
+    { event:"Tour de France", headline:"Sample: breakaway survives a mountain stage", summary:"Scores, key moments, and standings land in this panel. When no major event is running, the whole section hides itself.", scorelines:["Stage 9: Rider One, +0:42 GC lead"], source:"Sample", url:"" },
   ],
   holidays: [
     { region:"Japan", name:"Marine Day", date:"2026-07-20" },
@@ -715,6 +740,37 @@ function renderMarkets(markets){
 
 /* Only link out to URLs that actually look like http(s) article links. */
 const safeUrl = (u) => (typeof u === "string" && /^https?:\/\/\S+$/i.test(u.trim())) ? u.trim() : null;
+
+/* Sports — only rendered while a major event is on; hidden otherwise. */
+function renderSports(events){
+  events = (events||[]).filter(e=>e && e.headline && e.summary);
+  if(!events.length){ $("sportsSec").style.display = "none"; return; }
+  $("sportsSec").style.display = "";
+  $("sportsCnt").textContent = events.length === 1 ? "1 event" : `${events.length} events`;
+  $("sports").innerHTML = events.map(e=>{
+    const url = safeUrl(e.url);
+    return `
+    <div class="sport">
+      ${e.event?`<div class="sport-event">${esc(e.event)}</div>`:""}
+      <div class="sport-head">${esc(e.headline)}</div>
+      <div class="sport-body">${esc(e.summary)}</div>
+      ${(e.scorelines&&e.scorelines.length)?`<div class="sport-scores">${e.scorelines.map(s=>esc(s)).join("<br>")}</div>`:""}
+      ${url?`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Read at ${esc(e.source||"the source")} ↗</a>`:""}
+    </div>`;
+  }).join("");
+}
+
+async function loadSports(){
+  try{
+    const res = await fetch("/api/sports", { cache:"no-store" });
+    if(!res.ok) throw new Error(res.status);
+    const d = await res.json();
+    renderSports(d.events);
+  }catch(e){
+    // Live site: stay hidden on failure. Local preview: show sample cards.
+    if(location.hostname === "localhost" || location.hostname === "127.0.0.1") renderSports(DEMO.sports);
+  }
+}
 
 /* FX pairs — same tiles as markets, but rates get 4 decimal places.
    Each currency gets a small arrow: the rate is quote-per-base, so a rising
@@ -1065,6 +1121,7 @@ load();
 $("regen").addEventListener("click", regenerate);
 loadBalances();
 loadFitness();
+loadSports();
 renderBirthdays();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 tick(); setInterval(tick,1000);
