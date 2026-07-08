@@ -182,6 +182,9 @@
   .mkt-px{font-family:"Fraunces",serif;font-weight:600;font-size:26px;line-height:1;letter-spacing:-.01em}
   .mkt-chg{font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:7px;letter-spacing:.02em}
   .mkt-extra{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-top:5px;letter-spacing:.02em}
+  /* cost-basis borders: green when price ≥ your average buy-in, red when below */
+  .mkt.above-basis{box-shadow:inset 0 0 0 2px #2f6b43}
+  .mkt.below-basis{box-shadow:inset 0 0 0 2px var(--accent)}
   .mkt-spark{display:block;width:100%;height:24px;margin-top:9px;opacity:.85}
   .mkt-spark.up{color:#2f6b43}
   .mkt-spark.down{color:var(--accent)}
@@ -543,14 +546,14 @@ const DEMO = {
     { name:"Whistler", unit:"°C", current:14, feelsLike:13, high:19, low:8, humidity:64, wind:7, rainChance:35, aqi:18, snowToday:6.5, snowBase:182, condition:"Partly cloudy", glyph:"⛅", sunrise:"05:07", sunset:"21:28" },
   ],
   markets: [
-    { label:"Ares Management", note:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD", spark:[169.8,171.2,170.5,171.1,172.34], sparkTimes:demoTs },
-    { label:"FTSE All-World", note:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD", spark:[143.1,143.4,142.9,142.6,142.18], sparkTimes:demoTs },
-    { label:"Gold", note:"USD / oz", price:3318.50, change:12.40, pct:0.37, currency:"USD", extras:["S$142,758 / kg","S$2,223 / ½oz"], spark:[3290,3305,3298,3306,3318.5], sparkTimes:demoTs },
-    { label:"S&P 500", note:"SPX", price:5998.12, change:-8.30, pct:-0.14, currency:"USD", spark:[6010,5990,6021,6006,5998.12], sparkTimes:demoTs },
-    { label:"Berkshire", note:"BRK.A", price:712450, change:1530, pct:0.22, currency:"USD", spark:[705100,709800,708200,710920,712450], sparkTimes:demoTs },
-    { label:"Bitcoin", note:"BTC / USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD", spark:[92100,94300,93500,93600,95420], sparkTimes:demoTs },
-    { label:"NVIDIA", note:"NVDA", price:168.42, change:2.35, pct:1.41, currency:"USD", spark:[163.1,165.8,164.9,166.07,168.42], sparkTimes:demoTs },
-    { label:"SpaceX", note:"SPCX", price:178.20, change:3.15, pct:1.80, currency:"USD", spark:[168.4,172.9,170.8,175.05,178.2], sparkTimes:demoTs },
+    { label:"Ares Management", note:"ARES", symbol:"ARES", price:172.34, change:1.21, pct:0.71, currency:"USD", spark:[169.8,171.2,170.5,171.1,172.34], sparkTimes:demoTs },
+    { label:"FTSE All-World", note:"VWRA.L", symbol:"VWRA.L", price:142.18, change:-0.44, pct:-0.31, currency:"USD", spark:[143.1,143.4,142.9,142.6,142.18], sparkTimes:demoTs },
+    { label:"Gold", note:"USD / oz", symbol:"GC=F", price:3318.50, change:12.40, pct:0.37, currency:"USD", extras:["S$142,758 / kg","S$2,223 / ½oz"], spark:[3290,3305,3298,3306,3318.5], sparkTimes:demoTs },
+    { label:"S&P 500", note:"SPX", symbol:"^GSPC", price:5998.12, change:-8.30, pct:-0.14, currency:"USD", spark:[6010,5990,6021,6006,5998.12], sparkTimes:demoTs },
+    { label:"Berkshire", note:"BRK.A", symbol:"BRK-A", price:712450, change:1530, pct:0.22, currency:"USD", spark:[705100,709800,708200,710920,712450], sparkTimes:demoTs },
+    { label:"Bitcoin", note:"BTC / USD", symbol:"BTC-USD", price:95420.00, change:1820.50, pct:1.95, currency:"USD", spark:[92100,94300,93500,93600,95420], sparkTimes:demoTs },
+    { label:"NVIDIA", note:"NVDA", symbol:"NVDA", price:168.42, change:2.35, pct:1.41, currency:"USD", spark:[163.1,165.8,164.9,166.07,168.42], sparkTimes:demoTs },
+    { label:"SpaceX", note:"SPCX", symbol:"SPCX", price:178.20, change:3.15, pct:1.80, currency:"USD", spark:[168.4,172.9,170.8,175.05,178.2], sparkTimes:demoTs },
   ],
   fx: [
     { label:"USD → SGD", note:"", price:1.2842, change:-0.0015, pct:-0.12, spark:[1.2910,1.2884,1.2901,1.2857,1.2842], sparkTimes:demoTs },
@@ -673,6 +676,16 @@ function sparkline(m){
   </svg>${dates}`;
 }
 
+/* ============================================================
+   AVERAGE BUY-IN PRICES — keyed by Yahoo symbol. Tiles get a green
+   border while the live price is at/above your average cost and a
+   red border while below it. Add/edit entries here.
+   ============================================================ */
+const COST_BASIS = {
+  "BTC-USD": 65405,
+  "VWRA.L": 175.59,
+};
+
 function renderMarkets(markets){
   markets = markets||[];
   $("mktCnt").textContent = markets.length ? `${markets.length} quotes` : "";
@@ -686,8 +699,11 @@ function renderMarkets(markets){
       const sign = up?"+":"";
       chg = `<div class="mkt-chg ${cls}">${arrow} ${fmtNum(Math.abs(m.change), Math.abs(m.change)>=100?0:2)} (${sign}${(m.pct??0).toFixed(2)}%)</div>`;
     }
+    const basis = COST_BASIS[m.symbol];
+    const basisCls = (basis != null && has) ? (m.price >= basis ? " above-basis" : " below-basis") : "";
+    const basisTitle = (basis != null) ? ` title="avg buy-in ${fmtNum(basis, 2)}"` : "";
     return `
-      <div class="mkt">
+      <div class="mkt${basisCls}"${basisTitle}>
         <div class="mkt-lab"><b>${esc(m.label)}</b><span>${esc(m.note||"")}</span></div>
         <div class="mkt-px">${fmtPrice(m.price)}</div>
         ${(m.extras||[]).map(e=>`<div class="mkt-extra">${esc(e)}</div>`).join("")}
