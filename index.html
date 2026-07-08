@@ -75,6 +75,15 @@
     margin:6px 0 2px;
   }
   .masthead em{font-style:italic;font-weight:500;color:var(--accent-deep)}
+  /* "thinking" pulse on the accent word while data is still loading */
+  .masthead.thinking em{animation:think 1.5s ease-in-out infinite}
+  @keyframes think{
+    0%,100%{opacity:1;text-shadow:none}
+    50%{opacity:.45;text-shadow:0 0 20px rgba(187,59,34,.35)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .masthead.thinking em{animation:none;opacity:.7}
+  }
   .dateline{
     display:flex;align-items:center;gap:18px;
     margin:14px 0 0;
@@ -613,6 +622,18 @@ const DEMO = {
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+/* "Thinking" indicator: the masthead's accent word pulses while any data
+   fetch is still in flight, and settles once the last one resolves. */
+let pendingLoads = 0;
+function beginThinking(){
+  pendingLoads++;
+  document.querySelector(".masthead").classList.add("thinking");
+}
+function endThinking(){
+  pendingLoads = Math.max(0, pendingLoads - 1);
+  if(!pendingLoads) document.querySelector(".masthead").classList.remove("thinking");
+}
+
 function renderProjects(){
   $("chips").innerHTML = PROJECTS.map((p,i)=>`
     <a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">
@@ -762,6 +783,7 @@ function renderSports(events){
 }
 
 async function loadSports(){
+  beginThinking();
   try{
     const res = await fetch("/api/sports", { cache:"no-store" });
     if(!res.ok) throw new Error(res.status);
@@ -770,6 +792,8 @@ async function loadSports(){
   }catch(e){
     // Live site: stay hidden on failure. Local preview: show sample cards.
     if(location.hostname === "localhost" || location.hostname === "127.0.0.1") renderSports(DEMO.sports);
+  }finally{
+    endThinking();
   }
 }
 
@@ -890,6 +914,7 @@ function renderAll(d){
 }
 
 async function load(fresh){
+  beginThinking();
   try{
     const url = fresh ? "/api/dashboard?fresh=" + Date.now() : "/api/dashboard";
     const res = await fetch(url, { cache:"no-store" });
@@ -900,6 +925,8 @@ async function load(fresh){
   }catch(err){
     if(!fresh) renderAll({ ...DEMO, _note: "Preview mode — showing a sample edition. Deploy to Vercel with ANTHROPIC_API_KEY set to go live." });
     return false;
+  }finally{
+    endThinking();
   }
 }
 
@@ -963,12 +990,14 @@ function renderBalances(balances){
 async function loadBalances(){
   const t = privateToken();
   const qs = t ? "?token=" + encodeURIComponent(t) : "";
+  beginThinking();
   try{
     const res = await fetch("/api/balances" + qs, { cache:"no-store" });
     if(!res.ok) return; // 401 when gated without the right token → stay hidden
     const d = await res.json();
     renderBalances(d.balances);
   }catch(e){ /* stay hidden on failure */ }
+  finally{ endThinking(); }
 }
 
 /* ============================================================
@@ -1109,12 +1138,14 @@ function renderFitness(d){
   $("fitness").innerHTML = card("Last 24h", W.d1) + card("Last 7 days", W.d7) + card("Last 30 days", W.d30);
 }
 async function loadFitness(){
+  beginThinking();
   try{
     const res = await fetch("/api/fitness", { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     renderFitness(d);
   }catch(e){ /* stay hidden on failure */ }
+  finally{ endThinking(); }
 }
 
 renderProjects();
