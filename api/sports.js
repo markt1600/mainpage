@@ -57,6 +57,27 @@ Write every value as clean PLAIN TEXT - no citation markers, footnotes, referenc
 Return ONLY a single valid minified JSON object (no markdown, no code fences) of EXACTLY this shape:
 {"events":[{"event":"competition name","headline":"short punchy headline (max ~10 words)","summary":"2-3 sentences with the key results and moments, including actual scores","scorelines":["compact result lines, e.g. Spain 2-1 France (aet)"],"source":"publication you used","url":"full https URL of a source article, copied exactly from your search results"}]}`;
 
+// POST to the Anthropic API, retrying on rate-limit (429) and overloaded
+// (529) responses with the server-suggested wait, so this call can tolerate
+// landing in the same tokens-per-minute window as the news call.
+async function anthropicFetch(key, body, attempts = 3) {
+  let res;
+  for (let i = 0; i < attempts; i++) {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify(body),
+    });
+    if ((res.status === 429 || res.status === 529) && i < attempts - 1) {
+      const wait = Math.min(Number(res.headers.get("retry-after")) || 15, 25);
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      continue;
+    }
+    break;
+  }
+  return res;
+}
+
 async function getSports(dateStr) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return [];
@@ -67,11 +88,7 @@ async function getSports(dateStr) {
     // Resume the turn if web search pauses it before the JSON is written.
     let data;
     for (let turn = 0; turn < 6; turn++) {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: MODEL, max_tokens: 2500, messages, tools }),
-      });
+      const res = await anthropicFetch(key, { model: MODEL, max_tokens: 3500, messages, tools });
       if (!res.ok) return [];
       data = await res.json();
       if (data.stop_reason === "pause_turn" && Array.isArray(data.content)) {

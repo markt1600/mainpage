@@ -311,6 +311,31 @@ const cleanFeature = (f) => ({
   url: cleanUrl(f.url),
 });
 
+// POST to the Anthropic API, retrying on rate-limit (429) and overloaded
+// (529) responses with the server-suggested wait, so the news and sports
+// calls can tolerate landing in the same tokens-per-minute window.
+async function anthropicFetch(key, body, attempts = 3) {
+  let res;
+  for (let i = 0; i < attempts; i++) {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
+    });
+    if ((res.status === 429 || res.status === 529) && i < attempts - 1) {
+      const wait = Math.min(Number(res.headers.get("retry-after")) || 15, 25);
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      continue;
+    }
+    break;
+  }
+  return res;
+}
+
 async function generateEdition(key, dateStr) {
   const tools = [
     {
@@ -327,15 +352,7 @@ async function generateEdition(key, dateStr) {
   // (preserving the search-result blocks) and let it resume, up to a few times.
   let data;
   for (let turn = 0; turn < 6; turn++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: 4500, messages, tools }),
-    });
+    const res = await anthropicFetch(key, { model: MODEL, max_tokens: 6000, messages, tools });
 
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
