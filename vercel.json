@@ -3,12 +3,19 @@
   "functions": {
     "api/dashboard.js": {
       "maxDuration": 60
+    },
+    "api/sports.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/dashboard",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/sports",
+      "schedule": "0 22 * * *"
     }
   ]
 }

@@ -15,6 +15,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
 | Stories & Briefs (with "read at source" links) | Claude + web search over Uncrate, Gear Patrol, Gizmodo, Engadget, Stacked Homes | `ANTHROPIC_API_KEY` |
 | On This Day + Quote of the Day | Same Claude call | `ANTHROPIC_API_KEY` |
+| Sports · Last 24 Hours (only while a major event is on — World Cup, Grand Slams, Tour de France, Olympics, late playoff rounds, F1…) | Claude + web search (`/api/sports`) | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
@@ -28,6 +29,7 @@ Account balances are the one private section: if `DASHBOARD_SECRET` is set they 
 
 - **`index.html`** — the whole frontend. Fetches `/api/dashboard`, `/api/fitness`, and `/api/balances` and renders them. If the dashboard call fails (e.g. opening the file locally), it falls back to a sample edition instead of breaking.
 - **`api/dashboard.js`** — weather, markets, and the Claude-written edition (briefs, features, on-this-day, quote). Each story includes the URL of the original article, validated server-side before it reaches the page. The edition call retries once on a malformed answer.
+- **`api/sports.js`** — major-event sports results. Its own endpoint (and a cron an hour after the news one) so the two web-search Claude calls never share a rate-limit minute; returns an empty list when nothing major is on, and the section hides itself.
 - **`api/fitness.js`** — Strava summary. Exchanges a long-lived refresh token for an access token on each run; cached ~1h.
 - **`api/balances.js`** — ElevenLabs credits + Claude API 30-day spend. Never cached. Optionally gated: set `DASHBOARD_SECRET` and visit `/?me=<secret>` to see it; without the secret set, it's public.
 - **`vercel.json`** — 60s `maxDuration` for the dashboard function (web search can be slow) and a daily cron that warms the cache.
