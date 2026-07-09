@@ -837,8 +837,10 @@ async function loadSports(){
    null if TBA), endDate for multi-day events, venue, status, note,
    url }. Finished events drop off automatically; TBA acts sort last.
    Dates found via web search on 9 Jul 2026 — verify when booking.
+   This inline list is the FALLBACK; the live page fetches the
+   authoritative list from /data/events.json (editable at /admin).
    ============================================================ */
-const EVENTS = [
+let EVENTS = [
   { act: "HONNE", kind: "Concert", date: "2026-08-04", endDate: "2026-08-06", venue: "Capitol Theatre", status: "on sale", note: "10 Year Anniversary Tour", url: "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre" },
   { act: "The Weeknd", kind: "Concert", date: "2026-10-02", endDate: "2026-10-03", venue: "National Stadium", status: "on sale", note: "After Hours Til Dawn Tour", url: "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025" },
   { act: "F1 Singapore GP", kind: "Motorsport", date: "2026-10-09", endDate: "2026-10-11", venue: "Marina Bay Street Circuit", status: "on sale", note: "First Singapore sprint weekend", url: "https://www.formula1.com/en/racing/2026/singapore" },
@@ -1155,8 +1157,10 @@ function renderHappyDay(){
    BIRTHDAYS — shown from 7 days before to 3 days after the date.
    Section hides itself when none fall in that window.
    Add/edit entries here {name, month (1-12), day}.
+   This inline list is the FALLBACK; the live page fetches the
+   authoritative list from /data/birthdays.json (editable at /admin).
    ============================================================ */
-const BIRTHDAYS = [
+let BIRTHDAYS = [
   { name: "Mom",            month: 12, day: 13 },
   { name: "Jason Suh",      month: 2,  day: 21 },
   { name: "Daniela Liscio", month: 8,  day: 18 },
@@ -1223,6 +1227,26 @@ function renderBirthdays(){
   }).join("");
 }
 
+/* Events & Birthdays are edited at /admin, which commits the lists to
+   data/events.json and data/birthdays.json. Fetch those authoritative
+   files, falling back to the inline arrays if they're missing/unparseable
+   (e.g. opening index.html locally). Then render. */
+async function loadLists(){
+  const pull = async (path) => {
+    try{
+      const res = await fetch(path, { cache:"no-store" });
+      if(!res.ok) return null;
+      const d = await res.json();
+      return Array.isArray(d) ? d : null;
+    }catch(e){ return null; }
+  };
+  const [ev, bd] = await Promise.all([pull("/data/events.json"), pull("/data/birthdays.json")]);
+  if(ev) EVENTS = ev;
+  if(bd) BIRTHDAYS = bd;
+  renderEvents();
+  renderBirthdays();
+}
+
 /* Fitness (Strava) — distance + avg speed over 24h / 7d / 30d */
 function paceMinKm(kmh){
   if(!kmh || kmh <= 0) return "—";
@@ -1270,8 +1294,7 @@ $("regen").addEventListener("click", regenerate);
 loadBalances();
 loadFitness();
 loadSports();
-renderEvents();
-renderBirthdays();
+loadLists();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 tick(); setInterval(tick,1000);
 </script>

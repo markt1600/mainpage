@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Admin · marktan.ai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f5efe2; --paper-2:#efe6d5; --paper-3:#e9dec9;
+    --ink:#211c15; --ink-soft:#5a5142; --ink-faint:#8a7f6c;
+    --rule:#cdc1a9; --rule-strong:#b6a988;
+    --accent:#bb3b22; --accent-deep:#8f2c18;
+    --ok:#2f6f4f; --err:#a52a1a;
+    --max:1180px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:"Fraunces",Georgia,serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:80px}
+  .accent-bar{height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-deep))}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 22px}
+  a{color:var(--accent-deep)}
+  header{padding:26px 0 14px;border-bottom:2px solid var(--rule-strong);margin-bottom:22px}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent-deep)}
+  h1{font-size:34px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+  .sub{color:var(--ink-soft);font-size:14px;margin-top:4px}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-3);padding:1px 5px;border-radius:3px}
+
+  /* gate */
+  #gate{max-width:420px;margin:14vh auto 0}
+  #gate .card{background:var(--paper-2);border:1px solid var(--rule);border-radius:10px;padding:26px}
+  label{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px}
+  input,select{width:100%;font-family:"JetBrains Mono",monospace;font-size:13px;padding:8px 9px;border:1px solid var(--rule-strong);border-radius:6px;background:var(--paper);color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.06em;padding:9px 16px;border:1px solid var(--accent-deep);background:var(--accent);color:var(--paper);border-radius:6px;cursor:pointer;text-transform:uppercase}
+  button:hover{background:var(--accent-deep)}
+  button.ghost{background:transparent;color:var(--ink-soft);border-color:var(--rule-strong)}
+  button.ghost:hover{background:var(--paper-3);color:var(--ink)}
+  button.danger{background:transparent;color:var(--err);border-color:transparent;padding:4px 8px;font-size:15px}
+  button.danger:hover{background:rgba(165,42,26,.1)}
+  button:disabled{opacity:.5;cursor:default}
+
+  section.panel{margin-bottom:40px}
+  .phead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .phead h2{font-size:23px;font-weight:600}
+  .phead .meta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint)}
+  .tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--paper-2)}
+  table{border-collapse:collapse;width:100%;min-width:640px}
+  th{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);text-align:left;padding:9px 8px;border-bottom:1px solid var(--rule-strong);white-space:nowrap;font-weight:600}
+  td{padding:5px 6px;border-bottom:1px solid var(--rule);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  td input,td select{font-size:12px;padding:6px 7px}
+  td.num{width:74px}
+  td.act{width:44px;text-align:center}
+  .bar{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .status{font-family:"JetBrains Mono",monospace;font-size:12px}
+  .status.ok{color:var(--ok)}
+  .status.err{color:var(--err)}
+  .status.dirty{color:var(--accent-deep)}
+  .hint{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint);margin-top:6px}
+  #err{color:var(--err);font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:8px}
+  .topbar{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin-top:8px}
+  #app{display:none}
+</style>
+</head>
+<body>
+<div class="accent-bar"></div>
+
+<!-- Secret gate -->
+<div id="gate">
+  <div class="card">
+    <div class="eyebrow">marktan.ai</div>
+    <h1 style="font-size:26px;margin:2px 0 4px">Admin</h1>
+    <p class="sub" style="margin-bottom:16px">Enter the admin password to edit Birthdays &amp; Events.</p>
+    <label for="secret">Password</label>
+    <input id="secret" type="password" autocomplete="current-password" placeholder="ADMIN_SECRET" />
+    <div style="margin-top:14px"><button id="enter">Unlock</button></div>
+    <div id="gateErr" style="color:var(--err);font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">marktan.ai · dashboard admin</div>
+      <h1>Birthdays &amp; Events</h1>
+      <p class="sub">Edits commit to <code id="repoLbl">markt1600/mainpage</code> and go live after Vercel redeploys (~1 min). <a href="/" target="_blank">View dashboard ↗</a></p>
+      <div class="topbar"><button class="ghost" id="lock">Lock</button></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- EVENTS -->
+    <section class="panel">
+      <div class="phead">
+        <h2>Events</h2>
+        <span class="meta" id="evMeta"></span>
+      </div>
+      <div class="tablewrap">
+        <table id="evTable">
+          <thead><tr>
+            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
+          </tr></thead>
+          <tbody id="evBody"></tbody>
+        </table>
+      </div>
+      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Finished events drop off the dashboard automatically.</div>
+      <div class="bar">
+        <button class="ghost" id="evAdd">+ Add event</button>
+        <button id="evSave">Save events</button>
+        <span class="status" id="evStatus"></span>
+      </div>
+    </section>
+
+    <!-- BIRTHDAYS -->
+    <section class="panel">
+      <div class="phead">
+        <h2>Birthdays</h2>
+        <span class="meta" id="bdMeta"></span>
+      </div>
+      <div class="tablewrap">
+        <table id="bdTable">
+          <thead><tr><th>Name</th><th>Month</th><th>Day</th><th class="act"></th></tr></thead>
+          <tbody id="bdBody"></tbody>
+        </table>
+      </div>
+      <div class="hint">Month 1–12, day 1–31. Shown on the dashboard from 7 days before to 3 days after.</div>
+      <div class="bar">
+        <button class="ghost" id="bdAdd">+ Add birthday</button>
+        <button id="bdSave">Save birthdays</button>
+        <span class="status" id="bdStatus"></span>
+      </div>
+    </section>
+
+    <div id="err"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let TOKEN = "";
+let sha = { events: null, birthdays: null };
+let dirty = { events: false, birthdays: false };
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/* ---------- gate ---------- */
+function showApp(){ $("gate").style.display = "none"; $("app").style.display = "block"; }
+async function tryUnlock(secret){
+  $("gateErr").textContent = "";
+  try{
+    const res = await fetch(`/api/admin?token=${encodeURIComponent(secret)}`, { cache:"no-store" });
+    if(res.status === 401){ $("gateErr").textContent = "Wrong password."; return; }
+    if(!res.ok){ const j = await res.json().catch(()=>({})); $("gateErr").textContent = j.error || `Error ${res.status}`; return; }
+    const d = await res.json();
+    TOKEN = secret;
+    try{ localStorage.setItem("mt_admin_token", secret); }catch(_){}
+    hydrate(d);
+    showApp();
+  }catch(e){ $("gateErr").textContent = String(e.message || e); }
+}
+$("enter").addEventListener("click", ()=>tryUnlock($("secret").value.trim()));
+$("secret").addEventListener("keydown", e=>{ if(e.key==="Enter") tryUnlock($("secret").value.trim()); });
+$("lock").addEventListener("click", ()=>{ try{ localStorage.removeItem("mt_admin_token"); }catch(_){} location.reload(); });
+
+/* ---------- hydrate ---------- */
+function hydrate(d){
+  if(d.repo) $("repoLbl").textContent = d.repo;
+  sha.events = d.events && d.events.sha || null;
+  sha.birthdays = d.birthdays && d.birthdays.sha || null;
+  renderEvents((d.events && d.events.list) || []);
+  renderBirthdays((d.birthdays && d.birthdays.list) || []);
+  setDirty("events", false); setDirty("birthdays", false);
+  updateMeta();
+}
+function updateMeta(){
+  $("evMeta").textContent = `${$("evBody").children.length} entries`;
+  $("bdMeta").textContent = `${$("bdBody").children.length} entries`;
+}
+function setDirty(kind, v){
+  dirty[kind] = v;
+  const el = kind === "events" ? $("evStatus") : $("bdStatus");
+  if(v){ el.textContent = "unsaved changes"; el.className = "status dirty"; }
+  else if(!el.classList.contains("ok") && !el.classList.contains("err")){ el.textContent = ""; }
+}
+
+/* ---------- events table ---------- */
+function evRow(e){
+  e = e || {};
+  const tr = document.createElement("tr");
+  const cell = (val, key, ph, cls) => {
+    const td = document.createElement("td"); if(cls) td.className = cls;
+    const inp = document.createElement("input");
+    inp.value = val == null ? "" : val; inp.placeholder = ph || ""; inp.dataset.key = key;
+    inp.addEventListener("input", ()=>setDirty("events", true));
+    td.appendChild(inp); return td;
+  };
+  tr.appendChild(cell(e.act, "act", "Event name"));
+  tr.appendChild(cell(e.kind, "kind", "Concert"));
+  tr.appendChild(cell(e.date, "date", "2026-10-02", "num"));
+  tr.appendChild(cell(e.endDate, "endDate", "—", "num"));
+  tr.appendChild(cell(e.venue, "venue", "Venue"));
+  tr.appendChild(cell(e.status, "status", "on sale"));
+  tr.appendChild(cell(e.note, "note", "Note"));
+  tr.appendChild(cell(e.url, "url", "https://…"));
+  const del = document.createElement("td"); del.className = "act";
+  const b = document.createElement("button"); b.className = "danger"; b.textContent = "✕"; b.title = "Delete";
+  b.addEventListener("click", ()=>{ tr.remove(); setDirty("events", true); updateMeta(); });
+  del.appendChild(b); tr.appendChild(del);
+  return tr;
+}
+function renderEvents(list){
+  const body = $("evBody"); body.innerHTML = "";
+  list.forEach(e => body.appendChild(evRow(e)));
+}
+function collectEvents(){
+  return [...$("evBody").children].map(tr=>{
+    const g = k => (tr.querySelector(`input[data-key="${k}"]`)||{}).value?.trim() || "";
+    return { act:g("act"), kind:g("kind"), date:g("date")||null, endDate:g("endDate")||null,
+             venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
+  }).filter(e=>e.act);
+}
+$("evAdd").addEventListener("click", ()=>{ $("evBody").appendChild(evRow({})); setDirty("events", true); updateMeta(); });
+
+/* ---------- birthdays table ---------- */
+function bdRow(b){
+  b = b || {};
+  const tr = document.createElement("tr");
+  const td1 = document.createElement("td");
+  const name = document.createElement("input"); name.value = b.name||""; name.placeholder="Name"; name.dataset.key="name";
+  name.addEventListener("input", ()=>setDirty("birthdays", true)); td1.appendChild(name); tr.appendChild(td1);
+
+  const td2 = document.createElement("td"); td2.className="num";
+  const mon = document.createElement("select"); mon.dataset.key="month";
+  MONTHS.forEach((m,i)=>{ const o=document.createElement("option"); o.value=i+1; o.textContent=`${i+1} · ${m}`; if(b.month===i+1)o.selected=true; mon.appendChild(o); });
+  mon.addEventListener("change", ()=>setDirty("birthdays", true)); td2.appendChild(mon); tr.appendChild(td2);
+
+  const td3 = document.createElement("td"); td3.className="num";
+  const day = document.createElement("input"); day.type="number"; day.min=1; day.max=31; day.value=b.day||""; day.dataset.key="day"; day.placeholder="1–31";
+  day.addEventListener("input", ()=>setDirty("birthdays", true)); td3.appendChild(day); tr.appendChild(td3);
+
+  const del = document.createElement("td"); del.className="act";
+  const btn = document.createElement("button"); btn.className="danger"; btn.textContent="✕"; btn.title="Delete";
+  btn.addEventListener("click", ()=>{ tr.remove(); setDirty("birthdays", true); updateMeta(); });
+  del.appendChild(btn); tr.appendChild(del);
+  return tr;
+}
+function renderBirthdays(list){
+  const body = $("bdBody"); body.innerHTML = "";
+  list.forEach(b => body.appendChild(bdRow(b)));
+}
+function collectBirthdays(){
+  return [...$("bdBody").children].map(tr=>{
+    const name = (tr.querySelector('input[data-key="name"]')||{}).value?.trim() || "";
+    const month = parseInt((tr.querySelector('select[data-key="month"]')||{}).value, 10);
+    const day = parseInt((tr.querySelector('input[data-key="day"]')||{}).value, 10);
+    return { name, month, day };
+  }).filter(b=>b.name && b.month>=1 && b.month<=12 && b.day>=1 && b.day<=31);
+}
+$("bdAdd").addEventListener("click", ()=>{ $("bdBody").appendChild(bdRow({})); setDirty("birthdays", true); updateMeta(); });
+
+/* ---------- save ---------- */
+async function save(kind, data, statusEl, btn){
+  statusEl.className = "status"; statusEl.textContent = "saving…"; btn.disabled = true;
+  try{
+    const res = await fetch(`/api/admin?token=${encodeURIComponent(TOKEN)}`, {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ type:kind, data, sha: sha[kind] }),
+    });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){
+      statusEl.className = "status err";
+      statusEl.textContent = res.status === 409 ? "conflict — reload, someone else edited" : (j.error || `error ${res.status}`);
+      return;
+    }
+    sha[kind] = j.sha || sha[kind];
+    dirty[kind] = false;
+    statusEl.className = "status ok";
+    statusEl.textContent = `saved · ${j.count} entries · live after redeploy`;
+  }catch(e){
+    statusEl.className = "status err"; statusEl.textContent = String(e.message || e);
+  }finally{ btn.disabled = false; }
+}
+$("evSave").addEventListener("click", ()=>{ renderEvents(collectEvents()); updateMeta(); save("events", collectEvents(), $("evStatus"), $("evSave")); });
+$("bdSave").addEventListener("click", ()=>{ renderBirthdays(collectBirthdays()); updateMeta(); save("birthdays", collectBirthdays(), $("bdStatus"), $("bdSave")); });
+
+window.addEventListener("beforeunload", (e)=>{ if(dirty.events||dirty.birthdays){ e.preventDefault(); e.returnValue=""; } });
+
+/* ---------- boot: remember token, allow ?token= deep-link ---------- */
+(function(){
+  let t = "";
+  try{ const u = new URL(location.href); t = u.searchParams.get("token") || ""; }catch(_){}
+  if(!t){ try{ t = localStorage.getItem("mt_admin_token") || ""; }catch(_){} }
+  if(t){ $("secret").value = t; tryUnlock(t); }
+})();
+</script>
+</body>
+</html>
