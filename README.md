@@ -15,6 +15,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
 | Stories & Briefs (deep-linked to the desk) | The day's **MERIDIAN** edition — `feed.json` from `github.com/markt1600/dailymag` (dailymag.marktan.ai). No web search here. | No |
 | Quote of the Day + edition provenance line | MERIDIAN's "From the Desk" quote (same `feed.json`) | No |
+| MERIDIAN pipeline tile (header) — green "No. N · built 06:47 · 24pp · QA clean", red past 07:15 SGT if today's issue hasn't landed, grey before that | `status.json` from `github.com/markt1600/dailymag`, committed by each build after its QA gate; re-checked every 10 min | No |
 | Sports · Last 24 Hours (only while a major event is on — World Cup, Grand Slams, Tour de France, Olympics, late playoff rounds, F1…) | Claude + web search (`/api/sports`) | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |

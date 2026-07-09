@@ -109,6 +109,23 @@
     .clocks .cz{font-size:9px;letter-spacing:.12em}
   }
 
+  /* MERIDIAN pipeline tile — did this morning's build land? */
+  .mstat{
+    display:flex;align-items:center;gap:8px;justify-content:center;
+    margin:12px auto 0;width:max-content;max-width:100%;
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;
+    color:var(--ink-soft);text-decoration:none;white-space:nowrap;overflow:hidden;
+    border:1px solid var(--rule);border-radius:999px;padding:5px 14px;background:var(--paper-2);
+  }
+  .mstat:hover{border-color:var(--rule-strong);color:var(--ink)}
+  .mstat .dot2{width:7px;height:7px;border-radius:50%;flex:none;background:var(--ink-faint)}
+  .mstat.ok .dot2{background:#2f6f4f}
+  .mstat.late .dot2{background:var(--accent);animation:blink 1.6s ease-in-out infinite}
+  .mstat.late{color:var(--accent-deep);border-color:var(--accent)}
+  @keyframes blink{50%{opacity:.35}}
+  @media (prefers-reduced-motion: reduce){ .mstat.late .dot2{animation:none} }
+  @media(max-width:520px){ .mstat{font-size:9.5px;padding:4px 11px} }
+
   /* ---------------- Projects ---------------- */
   .projects{
     margin-top:22px;
@@ -433,6 +450,11 @@
         <span class="sep">·</span>
         <span class="clock"><span class="cz">PT</span> <b id="clockVC">--:--:--</b></span>
       </div>
+
+      <!-- MERIDIAN pipeline status: green = today's issue built; red = past
+           07:15 SGT with no today-dated build. Reads status.json committed
+           by each MERIDIAN build; hides itself if the fetch fails. -->
+      <a class="mstat" id="mstat" style="display:none" href="https://dailymag.marktan.ai" target="_blank" rel="noopener" aria-label="MERIDIAN build status"></a>
 
       <nav class="projects rise" style="animation-delay:.16s" aria-label="Projects">
         <span class="label">Vibe&nbsp;Code&nbsp;//</span>
@@ -1247,6 +1269,38 @@ async function loadLists(){
   renderBirthdays();
 }
 
+/* ============================================================
+   MERIDIAN pipeline tile. Each MERIDIAN build commits status.json
+   (issue, ISO date, built-at SGT, pages, qa) strictly after its QA
+   gate. Compare its date with today's SGT date:
+     · matches                → green  "No. N · built 06:47 · 24pp · QA clean"
+     · stale & past 07:15 SGT → red    "today's edition hasn't published"
+     · stale & earlier        → grey   "builds ~06–07h" (normal pre-dawn state)
+   Refreshed every 10 min so grey flips to green as the build lands.
+   ============================================================ */
+const MERIDIAN_STATUS = "https://raw.githubusercontent.com/markt1600/dailymag/main/status.json";
+async function loadMeridianStatus(){
+  try{
+    const res = await fetch(MERIDIAN_STATUS, { cache:"no-store" });
+    if(!res.ok) return;
+    const s = await res.json();
+    if(!s || !s.issue) return;
+    const el = $("mstat");
+    const sgDate = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    const [hh,mm] = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Singapore",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()).split(":").map(Number);
+    const sgMins = hh*60 + mm;
+    const built = (String(s.builtAt||"").match(/T(\d{2}:\d{2})/)||[])[1] || "";
+    const chip = (cls, txt)=>{ el.className = `mstat ${cls}`; el.innerHTML = `<span class="dot2"></span><span>${txt}</span>`; el.style.display = "flex"; };
+    if(s.isoDate === sgDate){
+      chip("ok", `MERIDIAN No. ${esc(s.issue)}${built?` · built ${esc(built)}`:""}${s.pages?` · ${esc(s.pages)}pp`:""}${s.qa==="pass"?" · QA clean":""} ↗`);
+    } else if(sgMins >= 435){ // 07:15 SGT — the dashboard's own refresh time
+      chip("late", `MERIDIAN — today's edition hasn't published · latest No. ${esc(s.issue)} · ${esc(s.date||s.isoDate||"")} ↗`);
+    } else {
+      chip("", `MERIDIAN No. ${esc(s.issue)} · ${esc(s.date||"")} · today's builds ~06–07h ↗`);
+    }
+  }catch(e){ /* stay hidden */ }
+}
+
 /* Fitness (Strava) — distance + avg speed over 24h / 7d / 30d */
 function paceMinKm(kmh){
   if(!kmh || kmh <= 0) return "—";
@@ -1295,6 +1349,7 @@ loadBalances();
 loadFitness();
 loadSports();
 loadLists();
+loadMeridianStatus(); setInterval(loadMeridianStatus, 10*60*1000); // flips grey → green as the morning build lands
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 tick(); setInterval(tick,1000);
 </script>
