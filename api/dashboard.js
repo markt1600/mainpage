@@ -322,6 +322,7 @@ async function getEdition() {
   return {
     briefs,
     features,
+    macro: feed.macro && Array.isArray(feed.macro.reads) && feed.macro.reads.length ? feed.macro : null,
     // Provenance line (fills the bottom band); notes which edition these are from.
     onThisDay: feed.issue
       ? `Today's stories are drawn from MERIDIAN No. ${feed.issue}${feed.date ? " · " + clean(feed.date) : ""} — read the full twelve-desk edition at dailymag.marktan.ai.`
@@ -337,6 +338,7 @@ const FALLBACK_EDITION = {
   features: [
     { title: "MERIDIAN edition unavailable", body: "Today's stories come from the MERIDIAN daily edition, which couldn't be reached just now. Weather and markets above are live; stories return on the next refresh.", tag: "Notice", source: "MERIDIAN", url: MERIDIAN_SITE },
   ],
+  macro: null,
   onThisDay: null,
   quote: null,
 };
