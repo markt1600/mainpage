@@ -13,8 +13,8 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Markets (8 quotes, 5-day sparklines with date spans; gold also in S$/kg) | Yahoo Finance chart API | No |
 | Exchange rates (USD→SGD, SGD→JPY, SGD→CAD, USD→CAD) | Yahoo Finance chart API | No |
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
-| Stories & Briefs (with "read at source" links) | Claude + web search over Uncrate, Gear Patrol, Gizmodo, Engadget, Stacked Homes | `ANTHROPIC_API_KEY` |
-| On This Day + Quote of the Day | Same Claude call | `ANTHROPIC_API_KEY` |
+| Stories & Briefs (deep-linked to the desk) | The day's **MERIDIAN** edition — `feed.json` from `github.com/markt1600/dailymag` (dailymag.marktan.ai). No web search here. | No |
+| Quote of the Day + edition provenance line | MERIDIAN's "From the Desk" quote (same `feed.json`) | No |
 | Sports · Last 24 Hours (only while a major event is on — World Cup, Grand Slams, Tour de France, Olympics, late playoff rounds, F1…) | Claude + web search (`/api/sports`) | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
@@ -29,7 +29,7 @@ Account balances are the one private section: if `DASHBOARD_SECRET` is set they 
 ## Files
 
 - **`index.html`** — the whole frontend. Fetches `/api/dashboard`, `/api/fitness`, and `/api/balances` and renders them. If the dashboard call fails (e.g. opening the file locally), it falls back to a sample edition instead of breaking.
-- **`api/dashboard.js`** — weather, markets, and the Claude-written edition (briefs, features, on-this-day, quote). Each story includes the URL of the original article, validated server-side before it reaches the page. The edition call retries once on a malformed answer.
+- **`api/dashboard.js`** — weather, markets, FX, holidays, and the day's edition. The **Stories & Briefs come from MERIDIAN**: it fetches `feed.json` from `github.com/markt1600/dailymag` (published each morning ~7am SGT), maps the desk leads into features (MERIDIAN's cover-teaser top picks) + briefs, and deep-links each back to its desk at dailymag.marktan.ai. No web search runs here — the research is MERIDIAN's. If today's feed hasn't published yet, the raw file is simply the most recent edition (the "last good" stories, dated in the provenance line).
 - **`api/sports.js`** — major-event sports results. Its own endpoint (and a cron an hour after the news one) so the two web-search Claude calls never share a rate-limit minute; returns an empty list when nothing major is on, and the section hides itself.
 - **`api/fitness.js`** — Strava summary. Exchanges a long-lived refresh token for an access token on each run; cached ~1h.
 - **`api/balances.js`** — ElevenLabs credits + Claude API 30-day spend. Never cached. Optionally gated: set `DASHBOARD_SECRET` and visit `/?me=<secret>` to see it; without the secret set, it's public.
@@ -37,7 +37,7 @@ Account balances are the one private section: if `DASHBOARD_SECRET` is set they 
 
 ## Caching & cost
 
-`/api/dashboard` is edge-cached for ~24 hours (`s-maxage=86400`), so the paid Claude call runs roughly **once per day**. The cron (`0 21 * * *` UTC = 05:00 SGT / 06:00 JST) generates each morning's edition before you wake up; visitors share the cached copy. The "↻ new stories" link in the footer forces a fresh, uncached generation on demand.
+`/api/dashboard` is edge-cached for ~24 hours (`s-maxage=86400`). The Stories & Briefs no longer run a paid web search — they're a cheap fetch of MERIDIAN's `feed.json` — so the daily cost is essentially just the sports call. The cron (`15 23 * * *` UTC = **07:15 SGT**) warms the cache *after* MERIDIAN publishes (it builds ~06:00–07:00 SGT), so the morning edition reflects that day's MERIDIAN. The "↻ new stories" link in the footer forces a fresh, uncached fetch on demand.
 
 ## Environment variables
 
@@ -45,7 +45,7 @@ Set these in Vercel → Settings → Environment Variables:
 
 | Variable | Used by | Notes |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | `dashboard.js` | From https://console.anthropic.com. Required for the news edition. |
+| `ANTHROPIC_API_KEY` | `sports.js` | From https://console.anthropic.com. Now used only by the sports function; the dashboard's Stories & Briefs come from MERIDIAN and need no key. |
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN` | `fitness.js` | Refresh token from a one-time OAuth authorization with scope `activity:read_all`. |
 | `ELEVENLABS_API_KEY` | `balances.js` | elevenlabs.io → Profile → API key. |
 | `ANTHROPIC_ADMIN_KEY` | `balances.js` | Admin key (`sk-ant-admin…`) from console → Settings → Organization → Admin keys. Not the same as `ANTHROPIC_API_KEY`. |

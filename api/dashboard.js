@@ -5,13 +5,12 @@
 //   1. Weather for Singapore + Tokyo from Open-Meteo (free, no API key),
 //      including rain chance and US AQI air quality
 //   2. Market quotes (Yahoo Finance, keyless) with 5-day sparkline closes
-//   3. News briefs + interesting-story features via Claude (with web search)
+//   3. News briefs + interesting-story features drawn from the day's MERIDIAN
+//      edition (github.com/markt1600/dailymag) — reusing research already done,
+//      so this function no longer runs its own web search.
 //
-// ANTHROPIC_API_KEY lives ONLY here (Vercel → Settings → Environment Variables);
-// it is never shipped to the browser. The response is edge-cached so the heavy
-// work runs about once an hour rather than on every page view.
-
-const MODEL = "claude-haiku-4-5-20251001"; // fast + economical; swap to "claude-sonnet-4-6" for richer prose
+// The response is edge-cached so the work runs about once a day rather than on
+// every page view. (Sports still uses Claude in its own function.)
 
 // Cities render top-to-bottom in this order. snow: true adds a seasonal
 // (Nov-Apr) snow report — fresh snowfall today + snow depth on the ground.
@@ -259,187 +258,87 @@ async function getHolidays() {
     .map((r) => r.value);
 }
 
-// --- Editorial content via Claude ------------------------------------------
-const SCHEMA_PROMPT = (dateStr) => `You are the editor of a tasteful daily tech & lifestyle almanac published at marktan.ai. Today is ${dateStr}.
+// --- Editorial content: reuse the day's MERIDIAN edition --------------------
+// marktan's Stories & Briefs are drawn from MERIDIAN (github.com/markt1600/
+// dailymag), which publishes a fresh twelve-desk edition each morning (~7am
+// SGT) and emits a compact `feed.json` of its top stories. We fetch that and
+// map the desk leads into features + briefs — no web search here, so we never
+// duplicate the research MERIDIAN already did. Each story deep-links back to
+// its desk in the edition. If today's feed hasn't published yet, the raw file
+// is simply the most recent edition — the "last good" stories, clearly dated.
+const MERIDIAN_FEED = "https://raw.githubusercontent.com/markt1600/dailymag/main/feed.json";
+const MERIDIAN_SITE = "https://dailymag.marktan.ai";
 
-Use the web_search tool to find the most interesting recent stories in technology, gadgets, gear, design, apps, gaming, lifestyle, and Singapore property from the past few days. Your searches are restricted to a curated set of publications (Uncrate, Gear Patrol, Gizmodo, Engadget, and Stacked Homes — the Singapore property site) — surface what's genuinely notable, cool, or useful from them. Aim to include at least one Stacked Homes property story when they have something recent worth reading.
-
-IMPORTANT: Write every text value as clean PLAIN TEXT only. Do NOT include citation markers, footnotes, reference numbers, HTML tags (such as <cite>), or markdown of any kind. Just natural prose.
-
-Return ONLY a single valid minified JSON object (no markdown, no commentary, no code fences) with EXACTLY this shape:
-
-{
-  "briefs": [
-    { "headline": "short punchy headline (max ~9 words)", "summary": "2 sentence summary", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results", "category": "Tech|Gadgets|Gear|Apps|Lifestyle|Design|Auto|Gaming|Property" }
-  ],
-  "features": [
-    { "title": "an engaging title", "body": "3-4 sentence write-up of a cool product, gadget, or tech/lifestyle story worth a look", "tag": "one or two words", "source": "publication name", "url": "full https URL of the original article, copied exactly from your search results" }
-  ],
-  "onThisDay": "one sentence about a notable event in tech or technology history on this calendar date",
-  "quote": { "text": "a short, non-cliche quote (ideally about design, technology, or craft)", "author": "name" }
-}
-
-Provide exactly 5 briefs and exactly 3 features, drawn from the publications above. Be accurate and specific — name the actual products, companies, and apps. Every brief and feature MUST include the "url" of the article it came from — copy the URL verbatim from the search results, never invent or shorten one. If you truly cannot determine the article URL, use an empty string.`;
-
-// Remove any citation/markup the model might still emit, just in case.
+// Sanitise any stray markup/citation cruft; keep values as clean plain text.
 const clean = (s) =>
   typeof s === "string"
     ? s
-        .replace(/<\/?cite[^>]*>/gi, "")   // <cite index="..."> ... </cite>
-        .replace(/<[^>]+>/g, "")            // any other stray tags
-        .replace(/\[\d+(?:[-,:]\d+)*\]/g, "") // [1] [1-14] style refs
+        .replace(/<\/?cite[^>]*>/gi, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\[\d+(?:[-,:]\d+)*\]/g, "")
         .replace(/\s+/g, " ")
         .trim()
     : s;
 
-// Only pass along real-looking http(s) article URLs.
-const cleanUrl = (u) =>
-  typeof u === "string" && /^https?:\/\/\S+$/i.test(u.trim()) ? u.trim() : null;
+const meridianLink = (s) =>
+  s && s.anchor ? `${MERIDIAN_SITE}/#${String(s.anchor).replace(/^#/, "")}` : MERIDIAN_SITE;
 
-const cleanBrief = (b) => ({
-  headline: clean(b.headline),
-  summary: clean(b.summary),
-  source: clean(b.source),
-  url: cleanUrl(b.url),
-  category: clean(b.category),
-});
-const cleanFeature = (f) => ({
-  title: clean(f.title),
-  body: clean(f.body),
-  tag: clean(f.tag),
-  source: clean(f.source),
-  url: cleanUrl(f.url),
-});
-
-// POST to the Anthropic API, retrying on rate-limit (429) and overloaded
-// (529) responses with the server-suggested wait, so the news and sports
-// calls can tolerate landing in the same tokens-per-minute window.
-async function anthropicFetch(key, body, attempts = 3) {
-  let res;
-  for (let i = 0; i < attempts; i++) {
-    res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify(body),
-    });
-    if ((res.status === 429 || res.status === 529) && i < attempts - 1) {
-      const wait = Math.min(Number(res.headers.get("retry-after")) || 15, 25);
-      await new Promise((r) => setTimeout(r, wait * 1000));
-      continue;
+// Fetch the MERIDIAN feed (light retry) and map desk leads -> features + briefs.
+async function getEdition() {
+  let feed, lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(MERIDIAN_FEED, { cache: "no-store" });
+      if (!res.ok) throw new Error(`MERIDIAN feed ${res.status}`);
+      feed = await res.json();
+      break;
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
     }
-    break;
   }
-  return res;
-}
+  if (!feed) throw lastErr || new Error("MERIDIAN feed unavailable");
 
-async function generateEdition(key, dateStr) {
-  const tools = [
-    {
-      type: "web_search_20250305",
-      name: "web_search",
-      max_uses: 3,
-      allowed_domains: ["uncrate.com", "gearpatrol.com", "gizmodo.com", "engadget.com", "stackedhomes.com"],
-    },
-  ];
-  const messages = [{ role: "user", content: SCHEMA_PROMPT(dateStr) }];
+  const stories = Array.isArray(feed.stories) ? feed.stories.filter((s) => s && s.headline) : [];
+  // Editor's own ranking: cover-teaser picks (featured) lead, then desk order.
+  const ranked = [...stories].sort((a, b) => (b.featured === true) - (a.featured === true));
 
-  // Tolerate code fences despite the prompt forbidding them.
-  const extractText = (d) =>
-    (d.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .replace(/```(?:json)?/gi, "")
-      .trim();
-  const hasJson = (t) => t.indexOf("{") !== -1 && t.lastIndexOf("}") > t.indexOf("{");
+  const features = ranked.slice(0, 3).map((s) => ({
+    title: clean(s.headline),
+    body: clean(s.dek),
+    tag: clean(s.desk),
+    source: `MERIDIAN · ${clean(s.desk)}`,
+    url: meridianLink(s),
+  }));
+  const briefs = ranked.slice(3, 8).map((s) => ({
+    headline: clean(s.headline),
+    summary: clean(s.dek),
+    source: "MERIDIAN",
+    category: clean(s.category || s.desk),
+    url: meridianLink(s),
+  }));
 
-  // Web-search turns can return stop_reason "pause_turn" before the model has
-  // written its final answer. When that happens we feed the partial turn back
-  // (preserving the search-result blocks) and let it resume, up to a few times.
-  let data, text = "", nudges = 0;
-  for (let turn = 0; turn < 8; turn++) {
-    const res = await anthropicFetch(key, { model: MODEL, max_tokens: 6000, messages, tools });
-
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(`Anthropic ${res.status}: ${detail.slice(0, 300)}`);
-    }
-
-    data = await res.json();
-    if (data.stop_reason === "pause_turn" && Array.isArray(data.content)) {
-      messages.push({ role: "assistant", content: data.content });
-      continue;
-    }
-
-    text = extractText(data);
-    // The model occasionally ends its turn having narrated its searches but
-    // without writing the JSON. It already has the material in context, so
-    // ask it to produce the answer rather than failing the whole edition.
-    if (!hasJson(text) && nudges < 2 && Array.isArray(data.content) && data.content.length) {
-      messages.push({ role: "assistant", content: data.content });
-      messages.push({
-        role: "user",
-        content: "Return ONLY the JSON object now, exactly in the shape specified earlier — no commentary, no code fences. Start your reply with { and end with }.",
-      });
-      nudges++;
-      continue;
-    }
-    break;
-  }
-
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
-    // Surfaces in Vercel's function logs for diagnosis.
-    console.error("Edition: no JSON in model output.", "stop:", data?.stop_reason, "text:", text.slice(0, 400));
-    throw new Error(`No JSON found in model output (stop: ${data?.stop_reason || "?"})`);
-  }
-  const parsed = JSON.parse(text.slice(start, end + 1));
-
+  const q = feed.quote;
   return {
-    briefs: Array.isArray(parsed.briefs) ? parsed.briefs.slice(0, 6).map(cleanBrief) : [],
-    features: Array.isArray(parsed.features) ? parsed.features.slice(0, 4).map(cleanFeature) : [],
-    onThisDay: clean(parsed.onThisDay) || null,
-    quote: parsed.quote ? { text: clean(parsed.quote.text), author: clean(parsed.quote.author) } : null,
+    briefs,
+    features,
+    // Provenance line (fills the bottom band); notes which edition these are from.
+    onThisDay: feed.issue
+      ? `Today's stories are drawn from MERIDIAN No. ${feed.issue}${feed.date ? " · " + clean(feed.date) : ""} — read the full twelve-desk edition at dailymag.marktan.ai.`
+      : null,
+    quote: q && q.text ? { text: clean(q.text), author: clean(q.author) } : null,
   };
 }
 
-async function getEdition(dateStr) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return { ...FALLBACK_EDITION, _note: "ANTHROPIC_API_KEY not set — showing sample edition." };
-
-  // One retry: an occasional malformed/truncated answer shouldn't sink the
-  // whole day's edition (this path runs about once per day via cron).
-  let lastErr;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      return await generateEdition(key, dateStr);
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  throw lastErr;
-}
-
+// Shown only if the MERIDIAN feed can't be reached at all (rare — the raw file
+// is always the last good edition). Weather/markets stay live regardless.
 const FALLBACK_EDITION = {
-  briefs: [
-    { headline: "Set ANTHROPIC_API_KEY to go live", summary: "This is sample copy. Once your key is configured in Vercel, real briefs appear here each morning.", source: "marktan.ai", category: "Tech" },
-    { headline: "Built on Vercel serverless", summary: "Your API key stays server-side and is never exposed to visitors. Responses are edge-cached for speed.", source: "Vercel", category: "Tech" },
-    { headline: "Weather and markets are live regardless", summary: "Conditions come from Open-Meteo and quotes from Yahoo, neither of which needs a key.", source: "Open-Meteo", category: "Asia" },
-    { headline: "Add projects in seconds", summary: "Edit the PROJECTS array in index.html to list new Vibe Code experiments at the top of the page.", source: "marktan.ai", category: "World" },
-    { headline: "Refreshes roughly hourly", summary: "Cache-Control headers keep Claude from being called on every visit, controlling cost cleanly.", source: "marktan.ai", category: "Business" },
-  ],
+  briefs: [],
   features: [
-    { title: "The map is not the territory", body: "A reminder that every dashboard is a curated lens, not the whole world. Configure your key and this corner fills with genuinely surprising stories each day.", tag: "Ideas" },
-    { title: "Why mornings feel like fresh starts", body: "Sample feature copy. Real editions surface science, history and culture worth a moment of your attention.", tag: "Science" },
-    { title: "Small sites, big ideas", body: "The web still rewards the personal homepage. This one gathers the day for you in a single glance.", tag: "Culture" },
+    { title: "MERIDIAN edition unavailable", body: "Today's stories come from the MERIDIAN daily edition, which couldn't be reached just now. Weather and markets above are live; stories return on the next refresh.", tag: "Notice", source: "MERIDIAN", url: MERIDIAN_SITE },
   ],
-  onThisDay: "Configure your API key to surface a notable event for today's date.",
-  quote: { text: "We are what we repeatedly do.", author: "Will Durant" },
+  onThisDay: null,
+  quote: null,
 };
 
 export default async function handler(req, res) {
@@ -467,9 +366,9 @@ export default async function handler(req, res) {
 
   let edition;
   try {
-    edition = await getEdition(dateStr);
+    edition = await getEdition();
   } catch (err) {
-    edition = { ...FALLBACK_EDITION, _note: `Edition unavailable: ${err.message}` };
+    edition = { ...FALLBACK_EDITION, _note: `MERIDIAN feed unavailable: ${err.message}` };
     // Never cache a failed edition for the full day — let the next visitor
     // (or the next page load) retry within a few minutes instead.
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");

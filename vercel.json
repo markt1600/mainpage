@@ -11,7 +11,7 @@
   "crons": [
     {
       "path": "/api/dashboard",
-      "schedule": "0 21 * * *"
+      "schedule": "15 23 * * *"
     },
     {
       "path": "/api/sports",
