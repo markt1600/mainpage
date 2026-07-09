@@ -1290,9 +1290,11 @@ async function loadMeridianStatus(){
     const [hh,mm] = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Singapore",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()).split(":").map(Number);
     const sgMins = hh*60 + mm;
     const built = (String(s.builtAt||"").match(/T(\d{2}:\d{2})/)||[])[1] || "";
+    const dur = (m)=> m>=60 ? `${Math.floor(m/60)}h${String(m%60).padStart(2,"0")}m` : `${m}m`; // 49 → "49m", 67 → "1h07m"
+    const took = Number.isFinite(s.buildMinutes) && s.buildMinutes>0 ? ` in ${dur(s.buildMinutes)}` : "";
     const chip = (cls, txt)=>{ el.className = `mstat ${cls}`; el.innerHTML = `<span class="dot2"></span><span>${txt}</span>`; el.style.display = "flex"; };
     if(s.isoDate === sgDate){
-      chip("ok", `MERIDIAN No. ${esc(s.issue)}${built?` · built ${esc(built)}`:""}${s.pages?` · ${esc(s.pages)}pp`:""}${s.qa==="pass"?" · QA clean":""} ↗`);
+      chip("ok", `MERIDIAN No. ${esc(s.issue)}${built?` · built ${esc(built)}`:""}${esc(took)}${s.pages?` · ${esc(s.pages)}pp`:""}${s.qa==="pass"?" · QA clean":""} ↗`);
     } else if(sgMins >= 435){ // 07:15 SGT — the dashboard's own refresh time
       chip("late", `MERIDIAN — today's edition hasn't published · latest No. ${esc(s.issue)} · ${esc(s.date||s.isoDate||"")} ↗`);
     } else {
