@@ -19,8 +19,8 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
-| Birthdays (shown 7 days before → 3 days after) | `BIRTHDAYS` array in `index.html` | No |
-| Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `EVENTS` array in `index.html` | No |
+| Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
+| Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `data/events.json` — edit at **`/admin`** (inline `EVENTS` array in `index.html` is the fallback) | No |
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
 
@@ -33,7 +33,16 @@ Account balances are the one private section: if `DASHBOARD_SECRET` is set they 
 - **`api/sports.js`** — major-event sports results. Its own endpoint (and a cron an hour after the news one) so the two web-search Claude calls never share a rate-limit minute; returns an empty list when nothing major is on, and the section hides itself.
 - **`api/fitness.js`** — Strava summary. Exchanges a long-lived refresh token for an access token on each run; cached ~1h.
 - **`api/balances.js`** — ElevenLabs credits + Claude API 30-day spend. Never cached. Optionally gated: set `DASHBOARD_SECRET` and visit `/?me=<secret>` to see it; without the secret set, it's public.
-- **`vercel.json`** — 60s `maxDuration` for the dashboard function (web search can be slow) and a daily cron that warms the cache.
+- **`api/admin.js`** — backend for the admin editor. Password-gated (`ADMIN_SECRET`, or `DASHBOARD_SECRET` if that's unset). `GET` returns the current lists; `POST` commits an edited list to `data/*.json` via the GitHub Contents API (needs `GITHUB_TOKEN`). Each save is a commit, so git history *is* the audit trail; the current blob `sha` is round-tripped so a concurrent edit 409s instead of silently clobbering.
+- **`data/birthdays.json`, `data/events.json`** — the authoritative Birthdays & Events lists the dashboard fetches. Edited through `/admin`; the inline arrays in `index.html` remain as an offline/local-preview fallback.
+- **`admin.html`** (served at **`/admin`**) — a self-contained CRUD editor for the two lists: add/edit/delete rows in tables, then Save. The password is remembered in `localStorage`; you can also deep-link with `/admin?token=<secret>`. `noindex`.
+- **`vercel.json`** — 60s `maxDuration` for the dashboard/sports functions, 15s for admin, a `/admin → /admin.html` rewrite, and the daily crons that warm the cache.
+
+## Admin (`/admin`)
+
+Editing Birthdays and Events no longer means touching `index.html`. Visit **`/admin`**, enter the password, and edit both lists in a table UI. **Saving commits the JSON to GitHub** (`data/birthdays.json` / `data/events.json`) — which is the version history — and the change goes live once Vercel finishes the redeploy triggered by that commit (~a minute). The dashboard fetches the JSON files at load and only falls back to the inline arrays if the fetch fails, so the committed files always win in production.
+
+Requires two env vars (below): `ADMIN_SECRET` for the password and `GITHUB_TOKEN` (fine-grained, **Contents: Read & Write** on `markt1600/mainpage`) so the function can read and commit. If neither `ADMIN_SECRET` nor `DASHBOARD_SECRET` is set, `/admin` refuses to run — it never opens unprotected.
 
 ## Caching & cost
 
@@ -49,7 +58,9 @@ Set these in Vercel → Settings → Environment Variables:
 | `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN` | `fitness.js` | Refresh token from a one-time OAuth authorization with scope `activity:read_all`. |
 | `ELEVENLABS_API_KEY` | `balances.js` | elevenlabs.io → Profile → API key. |
 | `ANTHROPIC_ADMIN_KEY` | `balances.js` | Admin key (`sk-ant-admin…`) from console → Settings → Organization → Admin keys. Not the same as `ANTHROPIC_API_KEY`. |
-| `DASHBOARD_SECRET` | `balances.js` | Optional. If set, balances only appear when visiting `/?me=<secret>`. |
+| `DASHBOARD_SECRET` | `balances.js`, `admin.js` | Optional. If set, balances only appear when visiting `/?me=<secret>`; also the fallback password for `/admin` when `ADMIN_SECRET` isn't set. |
+| `ADMIN_SECRET` | `admin.js` | Password for the `/admin` editor. Falls back to `DASHBOARD_SECRET`; if neither is set, `/admin` is disabled. |
+| `GITHUB_TOKEN` | `admin.js` | Fine-grained personal access token with **Contents: Read & Write** on `markt1600/mainpage`. Lets `/admin` read and commit `data/*.json`. Server-only. Optional: `GITHUB_REPO` / `GITHUB_BRANCH` override the defaults `markt1600/mainpage` / `main`. |
 
 Keys live only in the serverless functions and are never sent to the browser.
 
@@ -73,8 +84,8 @@ vercel --prod                             # deploy to production
 
 In **`index.html`**:
 - **Projects** — edit the `PROJECTS` array near the top of the `<script>`; each entry is `{ name, url }`.
-- **Birthdays** — edit the `BIRTHDAYS` array; each entry is `{ name, month, day }`.
-- **Events** — edit the `EVENTS` array; each entry is `{ act, kind, date, endDate, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, and `date: null` marks it TBA. Past events disappear automatically.
+- **Birthdays** — edit at **`/admin`** (writes `data/birthdays.json`). Each entry is `{ name, month, day }`. The inline `BIRTHDAYS` array here is only the offline fallback.
+- **Events** — edit at **`/admin`** (writes `data/events.json`). Each entry is `{ act, kind, date, endDate, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, and `date: null` marks it TBA. Past events disappear automatically. The inline `EVENTS` array here is only the offline fallback.
 - **Cost basis** — the `COST_BASIS` map (Yahoo symbol → average buy-in price) draws a green border around a market tile when the live price is at/above your average and a red border when below.
 - **Happy Day** — the `HAPPY_DAY` constant holds the anniversary (`month`, `day`) and `firstYear`. The display reads `<completed years × 365>.<day of the current relationship year>`, with day 1 on the anniversary, resetting each year at midnight Singapore time.
 
