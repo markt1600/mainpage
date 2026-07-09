@@ -334,6 +334,17 @@
   }
   .srclink:hover{color:var(--accent-deep);text-decoration:underline;text-underline-offset:3px}
 
+  /* What It Means — MERIDIAN Macro read */
+  .macro-lead{font-family:"Fraunces",serif;font-style:italic;font-size:18px;color:#322c22;line-height:1.5;margin-bottom:16px}
+  .macro-reads{display:grid;grid-template-columns:1fr 1fr;gap:14px 34px}
+  .macro-read{border-top:1px solid var(--rule);padding-top:9px}
+  .macro-read .lab{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .macro-read p{font-size:16px;color:var(--ink-soft);line-height:1.5}
+  .macro-regime{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .macro-regime .pill{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);border:1px solid var(--rule);border-radius:11px;padding:3px 10px}
+  .macro-foot{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .macro-note{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-faint);letter-spacing:.04em}
+
   /* Bottom band */
   .band{
     margin-top:42px;display:grid;grid-template-columns:1fr 1px 1fr;gap:36px;
@@ -386,6 +397,7 @@
     .w-divide{display:none}
     .w-stats{grid-template-columns:repeat(3,1fr)}
     .grid{grid-template-columns:1fr;gap:30px}
+    .macro-reads{grid-template-columns:1fr}
     .col-rule{display:none}
     .grid .briefs-col{border-top:1px solid var(--rule);padding-top:24px}
     .band{grid-template-columns:1fr;gap:24px}
@@ -438,6 +450,15 @@
         <span class="cnt" id="mktCnt"></span>
       </div>
       <div class="mkt-grid" id="markets"></div>
+    </section>
+
+    <!-- What It Means — MERIDIAN's Macro Desk read on VWRA, global bonds, gold & BTC -->
+    <section class="markets rise" id="macroSec" style="display:none" aria-label="What it means for VWRA, global bonds, gold and BTC">
+      <div class="sec-head">
+        <h2>What It <span class="dot">·</span> Means</h2>
+        <span class="cnt" id="macroCnt"></span>
+      </div>
+      <div id="macro"></div>
     </section>
 
     <!-- Exchange rates -->
@@ -958,6 +979,27 @@ function renderFeatures(features){
   }).join("");
 }
 
+function renderMacro(m){
+  const sec = $("macroSec");
+  if(!m || !Array.isArray(m.reads) || !m.reads.length){ sec.style.display = "none"; return; }
+  sec.style.display = "";
+  $("macroCnt").textContent = `${m.reads.length} reads`;
+  const anchor = m.anchor ? String(m.anchor).replace(/^#/,"") : "";
+  const link = anchor ? `https://dailymag.marktan.ai/#${anchor}` : "https://dailymag.marktan.ai";
+  const reads = m.reads.map(r =>
+    `<div class="macro-read"><div class="lab">${esc(r.label)}</div><p>${esc(r.text)}</p></div>`).join("");
+  const regime = Array.isArray(m.regime) && m.regime.length
+    ? `<div class="macro-regime">${m.regime.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>` : "";
+  $("macro").innerHTML = `
+    <div class="macro-lead">What the same macro forces mean for the portfolio anchors — VWRA &amp; global bonds — and the two store-of-value reads, gold &amp; BTC.</div>
+    <div class="macro-reads">${reads}</div>
+    ${regime}
+    <div class="macro-foot">
+      <span class="macro-note">${esc(m.note||"Market explanation, not advice.")}</span>
+      <a class="srclink" href="${esc(link)}" target="_blank" rel="noopener">The Macro Desk, in MERIDIAN ↗</a>
+    </div>`;
+}
+
 function renderExtras(d){
   $("otd").textContent = d.onThisDay || "—";
   if(d.quote){
@@ -970,6 +1012,7 @@ function renderAll(d){
   $("dateline").innerHTML = `<b>${esc(d.dateStr)}</b> · Daily Edition`;
   renderCities(d.cities);
   renderMarkets(d.markets);
+  renderMacro(d.macro);
   renderFx(d.fx);
   renderHolidays(d.holidays);
   renderBriefs(d.briefs);
