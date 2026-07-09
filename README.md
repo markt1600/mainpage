@@ -22,6 +22,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
 | Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `data/events.json` — edit at **`/admin`** (inline `EVENTS` array in `index.html` is the fallback) | No |
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
+| 🔔 Morning digest push (07:20 SGT: build status, birthdays, event starts) | Web Push via `/api/notify` cron — see **Notifications** below | VAPID keys |
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
 
@@ -38,6 +39,15 @@ Account balances are the one private section: if `DASHBOARD_SECRET` is set they 
 - **`data/birthdays.json`, `data/events.json`** — the authoritative Birthdays & Events lists the dashboard fetches. Edited through `/admin`; the inline arrays in `index.html` remain as an offline/local-preview fallback.
 - **`admin.html`** (served at **`/admin`**) — a self-contained CRUD editor for the two lists: add/edit/delete rows in tables, then Save. The password is remembered in `localStorage`; you can also deep-link with `/admin?token=<secret>`. `noindex`.
 - **`vercel.json`** — 60s `maxDuration` for the dashboard/sports functions, 15s for admin, a `/admin → /admin.html` rewrite, and the daily crons that warm the cache.
+
+## Notifications (PWA + Web Push)
+
+The site is an installable PWA (`manifest.json` + `sw.js`) that can deliver a **07:20 SGT morning digest** to your lock screen with the browser closed: MERIDIAN build status (or a ⚠ if it hasn't published), birthdays today/tomorrow/in a week, and watchlist events starting today or tomorrow.
+
+- **Enable:** tap the 🔔 in the footer and enter the admin password (registration is owner-only — the digest names birthdays). On **iPhone**, first Share → **Add to Home Screen**, then open the installed app and tap the bell (iOS only allows push for home-screen apps). Android/desktop Chrome work from the normal browser.
+- **Pieces:** `api/push.js` (GET = VAPID public key; POST = register/remove a device), `api/notify.js` (composes + sends the digest; cron `20 23 * * *` UTC = 07:20 SGT; `?token=<ADMIN_SECRET>&dry=1` previews without sending), `sw.js` (receives pushes; the `tag` field means re-sends replace rather than stack).
+- **Storage:** device subscriptions live in `data/push-subs.enc.json` — committed to this **public** repo, so they're AES-256-GCM **encrypted at rest** (key derived from `PUSH_STORE_KEY`, falling back to `VAPID_PRIVATE_KEY`); endpoints are private capability URLs and never appear in plaintext.
+- Notifications can't be pushed by anyone else: sending requires the VAPID private key, and `/api/notify` additionally rejects callers without `CRON_SECRET` (sent automatically by Vercel's cron) or the admin token.
 
 ## Admin (`/admin`)
 
@@ -61,7 +71,10 @@ Set these in Vercel → Settings → Environment Variables:
 | `ANTHROPIC_ADMIN_KEY` | `balances.js` | Admin key (`sk-ant-admin…`) from console → Settings → Organization → Admin keys. Not the same as `ANTHROPIC_API_KEY`. |
 | `DASHBOARD_SECRET` | `balances.js`, `admin.js` | Optional. If set, balances only appear when visiting `/?me=<secret>`; also the fallback password for `/admin` when `ADMIN_SECRET` isn't set. |
 | `ADMIN_SECRET` | `admin.js` | Password for the `/admin` editor. Falls back to `DASHBOARD_SECRET`; if neither is set, `/admin` is disabled. |
-| `GITHUB_TOKEN` | `admin.js` | Fine-grained personal access token with **Contents: Read & Write** on `markt1600/mainpage`. Lets `/admin` read and commit `data/*.json`. Server-only. Optional: `GITHUB_REPO` / `GITHUB_BRANCH` override the defaults `markt1600/mainpage` / `main`. |
+| `GITHUB_TOKEN` | `admin.js`, `push.js`, `notify.js` | Fine-grained personal access token with **Contents: Read & Write** on `markt1600/mainpage`. Lets `/admin` and the push endpoints read and commit `data/*.json`. Server-only. Optional: `GITHUB_REPO` / `GITHUB_BRANCH` override the defaults `markt1600/mainpage` / `main`. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | `push.js`, `notify.js` | Web Push signing keypair (`npx web-push generate-vapid-keys`). The public key goes to the browser; the private key signs every send — without it nobody can push to your devices. |
+| `CRON_SECRET` | `notify.js` | Recommended. Vercel sends it as a Bearer header on cron invocations; when set, manual `/api/notify` hits need `?token=<ADMIN_SECRET>` instead. |
+| `PUSH_STORE_KEY` | `_pushstore.js` | Optional. Separate encryption key for the committed subscription file; defaults to `VAPID_PRIVATE_KEY`. |
 
 Keys live only in the serverless functions and are never sent to the browser.
 

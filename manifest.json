@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "The Daily — marktan.ai",
+  "short_name": "The Daily",
+  "description": "A daily almanac — news briefs, weather, markets, and stories worth knowing.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5efe2",
+  "theme_color": "#f5efe2",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

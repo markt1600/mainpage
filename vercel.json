@@ -9,6 +9,9 @@
     },
     "api/admin.js": {
       "maxDuration": 15
+    },
+    "api/notify.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
@@ -22,6 +25,10 @@
     {
       "path": "/api/sports",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/notify",
+      "schedule": "20 23 * * *"
     }
   ]
 }

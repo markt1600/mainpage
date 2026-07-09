@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>The Daily · marktan.ai</title>
 <meta name="description" content="A daily almanac — news briefs, weather, markets, and stories worth knowing. Gathered each morning at marktan.ai." />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#f5efe2" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -600,7 +603,7 @@
 
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
-      <span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
+      <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
     </footer>
   </div>
 
@@ -1351,6 +1354,84 @@ async function loadFitness(){
   finally{ endThinking(); }
 }
 
+/* ============================================================
+   WEB PUSH — the 07:20 SGT digest (build status, birthdays, event
+   starts) delivered to the lock screen. The 🔔 in the footer
+   registers this device: it asks once for the admin password
+   (registration is owner-only since the digest names birthdays),
+   then subscribes via /api/push. sw.js receives the pushes.
+   iOS quirk: Safari only allows push for sites Added to Home
+   Screen — in a plain Safari tab the bell explains that instead.
+   ============================================================ */
+function urlB64ToU8(s){
+  const pad = "=".repeat((4 - s.length % 4) % 4);
+  const b = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(b, c => c.charCodeAt(0));
+}
+function pushToken(){
+  let t = "";
+  try{ t = localStorage.getItem("mt_admin_token") || localStorage.getItem("mt_push_token") || ""; }catch(_){}
+  if(!t){
+    t = (prompt("Admin password — registers this device for the morning digest:") || "").trim();
+    if(t){ try{ localStorage.setItem("mt_push_token", t); }catch(_){} }
+  }
+  return t.trim();
+}
+async function initPush(){
+  if(!("serviceWorker" in navigator)) return;
+  let reg;
+  try{ reg = await navigator.serviceWorker.register("/sw.js"); }catch(e){ return; }
+  const btn = $("pushBtn"), sep = $("pushSep");
+  const iosNoPush = !("PushManager" in window) && /iPhone|iPad|iPod/.test(navigator.userAgent)
+    && !(window.matchMedia("(display-mode: standalone)").matches || navigator.standalone);
+  if(!("PushManager" in window)){
+    if(iosNoPush){ // plain Safari tab: push needs the home-screen app first
+      btn.style.display = ""; sep.style.display = "";
+      btn.textContent = "🔔 get morning alerts";
+      btn.addEventListener("click", (e)=>{ e.preventDefault();
+        alert("iPhone setup: tap Share → Add to Home Screen, then open The Daily from that icon and tap the bell again."); });
+    }
+    return;
+  }
+  btn.style.display = ""; sep.style.display = "";
+  const refresh = async ()=>{
+    const sub = await reg.pushManager.getSubscription();
+    btn.textContent = sub ? "🔔 notifications on" : "🔕 enable notifications";
+    btn.title = sub ? "Tap to turn off the morning digest on this device" : "Morning digest: MERIDIAN status, birthdays, event starts";
+  };
+  await refresh();
+  btn.addEventListener("click", async (e)=>{
+    e.preventDefault();
+    try{
+      const sub = await reg.pushManager.getSubscription();
+      if(sub){
+        const t = pushToken();
+        if(t) await fetch(`/api/push?token=${encodeURIComponent(t)}`, { method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ action:"unsubscribe", subscription: sub.toJSON() }) });
+        await sub.unsubscribe();
+      }else{
+        if(await Notification.requestPermission() !== "granted") return;
+        const t = pushToken();
+        if(!t) return;
+        const cfg = await (await fetch("/api/push")).json();
+        if(!cfg.publicKey){ alert(cfg.error || "Push isn't configured yet."); return; }
+        const s = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlB64ToU8(cfg.publicKey) });
+        const r = await fetch(`/api/push?token=${encodeURIComponent(t)}`, { method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ action:"subscribe", subscription: s.toJSON() }) });
+        if(!r.ok){
+          await s.unsubscribe();
+          const j = await r.json().catch(()=>({}));
+          try{ localStorage.removeItem("mt_push_token"); }catch(_){}
+          alert(r.status === 401 ? "Wrong password." : (j.error || "Could not register this device."));
+        }
+      }
+    }catch(err){ console.warn("push:", err); }
+    await refresh();
+  });
+}
+
 renderProjects();
 load();
 $("regen").addEventListener("click", regenerate);
@@ -1359,6 +1440,7 @@ loadFitness();
 loadSports();
 loadLists();
 loadMeridianStatus(); setInterval(loadMeridianStatus, 10*60*1000); // flips grey → green as the morning build lands
+initPush();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 tick(); setInterval(tick,1000);
 </script>
