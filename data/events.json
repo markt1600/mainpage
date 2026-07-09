@@ -1,9 +1,82 @@
 [
-  { "act": "HONNE", "kind": "Concert", "date": "2026-08-04", "endDate": "2026-08-06", "venue": "Capitol Theatre", "status": "on sale", "note": "10 Year Anniversary Tour", "url": "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre" },
-  { "act": "The Weeknd", "kind": "Concert", "date": "2026-10-02", "endDate": "2026-10-03", "venue": "National Stadium", "status": "on sale", "note": "After Hours Til Dawn Tour", "url": "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025" },
-  { "act": "F1 Singapore GP", "kind": "Motorsport", "date": "2026-10-09", "endDate": "2026-10-11", "venue": "Marina Bay Street Circuit", "status": "on sale", "note": "First Singapore sprint weekend", "url": "https://www.formula1.com/en/racing/2026/singapore" },
-  { "act": "BIGBANG", "kind": "Concert", "date": "2026-10-17", "endDate": null, "venue": "National Stadium", "status": "tickets TBA", "note": "20th anniversary world tour", "url": "https://www.factmagazines.com/singapore/events/bigbang-singapore-concert-2026-national-stadium" },
-  { "act": "AIA HYROX Singapore", "kind": "Fitness", "date": "2026-11-27", "endDate": "2026-11-29", "venue": "Singapore EXPO", "status": "on sale", "note": "Fitness racing weekend", "url": "https://hyrox.com/event/aia-hyrox-singapore/" },
-  { "act": "BYD SG Marathon · 10km", "kind": "Race", "date": "2026-12-04", "endDate": null, "venue": "F1 Pit Building", "status": "registration open", "note": "Standard Chartered 10km — Friday evening", "url": "https://singaporeinternationalmarathon.com/events/standard-chartered-10km/" },
-  { "act": "Jay Chou", "kind": "Concert", "date": "2027-01-08", "endDate": "2027-01-10", "venue": "National Stadium", "status": "on sale", "note": "Carnival II World Tour", "url": "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/" }
+  {
+    "act": "HONNE",
+    "kind": "Concert",
+    "date": "2026-08-04",
+    "endDate": "2026-08-06",
+    "venue": "Capitol Theatre",
+    "status": "on sale",
+    "note": "10 Year Anniversary Tour",
+    "url": "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre"
+  },
+  {
+    "act": "The Weeknd",
+    "kind": "Concert",
+    "date": "2026-10-02",
+    "endDate": "2026-10-03",
+    "venue": "National Stadium",
+    "status": "on sale",
+    "note": "After Hours Til Dawn Tour",
+    "url": "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025"
+  },
+  {
+    "act": "F1 Singapore GP",
+    "kind": "Motorsport",
+    "date": "2026-10-09",
+    "endDate": "2026-10-11",
+    "venue": "Marina Bay Street Circuit",
+    "status": "on sale",
+    "note": "First Singapore sprint weekend",
+    "url": "https://www.formula1.com/en/racing/2026/singapore"
+  },
+  {
+    "act": "BIGBANG",
+    "kind": "Concert",
+    "date": "2026-10-17",
+    "endDate": null,
+    "venue": "National Stadium",
+    "status": "tickets TBA",
+    "note": "20th anniversary world tour",
+    "url": "https://www.factmagazines.com/singapore/events/bigbang-singapore-concert-2026-national-stadium"
+  },
+  {
+    "act": "AIA HYROX Singapore",
+    "kind": "Fitness",
+    "date": "2026-11-27",
+    "endDate": "2026-11-29",
+    "venue": "Singapore EXPO",
+    "status": "on sale",
+    "note": "Fitness racing weekend",
+    "url": "https://hyrox.com/event/aia-hyrox-singapore/"
+  },
+  {
+    "act": "BYD SG Marathon · 10km",
+    "kind": "Race",
+    "date": "2026-12-04",
+    "endDate": null,
+    "venue": "F1 Pit Building",
+    "status": "registration open",
+    "note": "Standard Chartered 10km — Friday evening",
+    "url": "https://singaporeinternationalmarathon.com/events/standard-chartered-10km/"
+  },
+  {
+    "act": "Jay Chou",
+    "kind": "Concert",
+    "date": "2027-01-08",
+    "endDate": "2027-01-10",
+    "venue": "National Stadium",
+    "status": "on sale",
+    "note": "Carnival II World Tour",
+    "url": "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/"
+  },
+  {
+    "act": "Dulwich November Holidays",
+    "kind": "School Holiday",
+    "date": "2026-11-05",
+    "endDate": "2026-11-10",
+    "venue": "Singapore",
+    "status": "pending",
+    "note": "Dulwich November Holidays",
+    "url": "https://singapore.dulwich.org/community/life-at-dulwich/school-calendar"
+  }
 ]
