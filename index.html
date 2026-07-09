@@ -253,8 +253,9 @@
   }
   .happy .txt b{color:var(--ink);font-weight:600}
 
-  /* Birthdays + Holidays (same card row layout) */
-  #birthdays,#holidays{display:flex;flex-wrap:wrap;gap:14px}
+  /* Birthdays + Holidays + Concerts (same card row layout) */
+  #birthdays,#holidays,#concerts{display:flex;flex-wrap:wrap;gap:14px}
+  #concerts .bday-name{font-size:20px}
   .bday{
     background:var(--paper-2);border:1px solid var(--rule-strong);
     border-radius:3px;padding:14px 18px;min-width:190px;
@@ -538,6 +539,16 @@
       <div id="holidays"></div>
     </section>
 
+    <!-- Concerts watchlist: upcoming Singapore dates for followed acts.
+         Edit the CONCERTS array in the script below to add/update shows. -->
+    <section class="markets rise" id="concertsSec" style="display:none" aria-label="Concerts">
+      <div class="sec-head">
+        <h2>Concerts <span class="dot">·</span> Watchlist</h2>
+        <span class="cnt" id="concertCnt"></span>
+      </div>
+      <div id="concerts"></div>
+    </section>
+
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
       <span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
@@ -795,6 +806,64 @@ async function loadSports(){
   }finally{
     endThinking();
   }
+}
+
+/* ============================================================
+   CONCERTS — manually maintained watchlist of upcoming shows.
+   Add/edit entries here: { act, date "YYYY-MM-DD" (or null if TBA),
+   endDate for multi-day events, venue, status, note, url }.
+   Finished events drop off automatically; TBA acts sort last.
+   Dates found via web search on 9 Jul 2026 — verify when booking.
+   ============================================================ */
+const CONCERTS = [
+  { act: "HONNE", date: "2026-08-04", endDate: "2026-08-06", venue: "Capitol Theatre", status: "on sale", note: "10 Year Anniversary Tour", url: "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre" },
+  { act: "The Weeknd", date: "2026-10-02", endDate: "2026-10-03", venue: "National Stadium", status: "on sale", note: "After Hours Til Dawn Tour", url: "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025" },
+  { act: "F1 Singapore GP", date: "2026-10-09", endDate: "2026-10-11", venue: "Marina Bay Street Circuit", status: "on sale", note: "First Singapore sprint weekend", url: "https://www.formula1.com/en/racing/2026/singapore" },
+  { act: "BIGBANG", date: "2026-10-17", endDate: null, venue: "National Stadium", status: "tickets TBA", note: "20th anniversary world tour", url: "https://www.factmagazines.com/singapore/events/bigbang-singapore-concert-2026-national-stadium" },
+  { act: "Jay Chou", date: "2027-01-08", endDate: "2027-01-10", venue: "National Stadium", status: "on sale", note: "Carnival II World Tour", url: "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/" },
+];
+
+/* Concerts watchlist — cards sorted by date, undated acts last. */
+function renderConcerts(){
+  const concerts = (CONCERTS||[]).filter(c=>c && c.act);
+  if(!concerts.length){ $("concertsSec").style.display = "none"; return; }
+
+  const [ty,tm,td] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
+  const todayUTC = Date.UTC(ty, tm-1, td);
+  const dayUTC = (iso) => { const [y,m,d] = iso.split("-").map(Number); return Date.UTC(y, m-1, d); };
+  const niceDay = (iso) => new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}).format(new Date(dayUTC(iso)));
+
+  const list = concerts
+    .map(c=>{
+      const ends = c.endDate || c.date;
+      const delta = c.date ? Math.round((dayUTC(c.date) - todayUTC)/86400000) : null;
+      const over = ends ? dayUTC(ends) < todayUTC : false;
+      return { ...c, delta, over };
+    })
+    .filter(c=>!c.over) // drop events that have already finished
+    .sort((a,b)=>(a.delta ?? 1e9) - (b.delta ?? 1e9));
+  if(!list.length){ $("concertsSec").style.display = "none"; return; }
+
+  $("concertsSec").style.display = "";
+  const dated = list.filter(c=>c.date).length;
+  $("concertCnt").textContent = dated ? `${dated} dated` : "";
+  $("concerts").innerHTML = list.map(c=>{
+    const url = safeUrl(c.url);
+    const today = c.delta != null && c.delta <= 0; // 0 = today; negatives only survive for in-progress multi-day events
+    const when = c.date
+      ? `${niceDay(c.date)}${c.endDate && c.endDate !== c.date ? "–" + niceDay(c.endDate) : ""}`
+      : "TBA";
+    const sub = c.date
+      ? [c.venue, c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
+      : (c.note || "no Singapore date announced yet");
+    return `
+      <div class="bday${today?' today':''}"${c.note && c.date ? ` title="${esc(c.note)}"` : ""}>
+        <div class="bday-date">${esc(c.act)}${today?" 🎫":""}</div>
+        <div class="bday-name">${esc(when)}</div>
+        <div class="bday-when">${esc(sub)}</div>
+        ${url?`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Tickets / info ↗</a>`:""}
+      </div>`;
+  }).join("");
 }
 
 /* FX pairs — same tiles as markets, but rates get 4 decimal places.
@@ -1154,6 +1223,7 @@ $("regen").addEventListener("click", regenerate);
 loadBalances();
 loadFitness();
 loadSports();
+renderConcerts();
 renderBirthdays();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 tick(); setInterval(tick,1000);
