@@ -188,7 +188,7 @@
   .w-stat .v small{font-size:13px;color:var(--ink-soft);font-weight:500}
 
   /* multiple stacked city weather panels (Singapore above Tokyo) */
-  .weather-stack{margin-top:26px;display:flex;flex-direction:column;gap:16px}
+  .weather-stack{display:flex;flex-direction:column;gap:16px}  /* top spacing comes from the section's sec-head */
   .weather-stack .weather{margin-top:0}
 
   /* ---------------- Markets ---------------- */
@@ -490,7 +490,13 @@
     </section>
 
     <!-- Weather (Singapore above Tokyo) -->
-    <div id="cities" class="weather-stack rise" style="animation-delay:.26s" aria-label="Weather"></div>
+    <section class="markets rise" style="animation-delay:.26s" aria-label="Weather">
+      <div class="sec-head">
+        <h2>Weather <span class="dot">·</span> Outlook</h2>
+        <span class="cnt" id="wxCnt"></span>
+      </div>
+      <div id="cities" class="weather-stack"></div>
+    </section>
 
     <!-- Fitness (Strava): hidden until the Strava env vars are set -->
     <section class="markets rise" id="fitnessSec" style="display:none" aria-label="Fitness">
@@ -741,6 +747,7 @@ function cityPanel(w){
 function renderCities(cities){
   cities = (cities||[]).filter(c=>c && !Number.isNaN(c.current));
   if(!cities.length){ $("cities").innerHTML = `<section class="weather"><div class="w-meta"><div class="w-place">Weather</div><div class="w-cond">unavailable</div></div></section>`; return; }
+  $("wxCnt").textContent = `${cities.length} ${cities.length===1?"city":"cities"}`;
   $("cities").innerHTML = cities.map(cityPanel).join("");
 }
 
