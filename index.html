@@ -462,11 +462,8 @@
       </nav>
     </header>
 
-    <!-- Weather (Singapore above Tokyo) -->
-    <div id="cities" class="weather-stack rise" style="animation-delay:.22s" aria-label="Weather"></div>
-
     <!-- Markets -->
-    <section class="markets rise" style="animation-delay:.26s" aria-label="Markets">
+    <section class="markets rise" style="animation-delay:.22s" aria-label="Markets">
       <div class="sec-head">
         <h2>Markets <span class="dot">·</span> Latest</h2>
         <span class="cnt" id="mktCnt"></span>
@@ -491,6 +488,9 @@
       </div>
       <div class="mkt-grid" id="fx"></div>
     </section>
+
+    <!-- Weather (Singapore above Tokyo) -->
+    <div id="cities" class="weather-stack rise" style="animation-delay:.26s" aria-label="Weather"></div>
 
     <!-- Fitness (Strava): hidden until the Strava env vars are set -->
     <section class="markets rise" id="fitnessSec" style="display:none" aria-label="Fitness">
@@ -573,6 +573,16 @@
       <div id="birthdays"></div>
     </section>
 
+    <!-- Events watchlist: upcoming Singapore dates worth booking — concerts,
+         races, fitness events, motorsport. Edit at /admin (data/events.json). -->
+    <section class="markets rise" id="eventsSec" style="display:none" aria-label="Events">
+      <div class="sec-head">
+        <h2>Events <span class="dot">·</span> Watchlist</h2>
+        <span class="cnt" id="eventCnt"></span>
+      </div>
+      <div id="events"></div>
+    </section>
+
     <!-- Public holidays: next one per region -->
     <section class="markets rise" id="holidaysSec" style="display:none" aria-label="Public holidays">
       <div class="sec-head">
@@ -580,16 +590,6 @@
         <span class="cnt" id="holCnt"></span>
       </div>
       <div id="holidays"></div>
-    </section>
-
-    <!-- Events watchlist: upcoming Singapore dates worth booking — concerts,
-         races, fitness events, motorsport. Edit the EVENTS array below. -->
-    <section class="markets rise" id="eventsSec" style="display:none" aria-label="Events">
-      <div class="sec-head">
-        <h2>Events <span class="dot">·</span> Watchlist</h2>
-        <span class="cnt" id="eventCnt"></span>
-      </div>
-      <div id="events"></div>
     </section>
 
     <footer>
