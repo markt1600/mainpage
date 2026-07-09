@@ -20,7 +20,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
 | Birthdays (shown 7 days before → 3 days after) | `BIRTHDAYS` array in `index.html` | No |
-| Concerts watchlist (upcoming Singapore shows; finished events drop off) | `CONCERTS` array in `index.html` | No |
+| Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `EVENTS` array in `index.html` | No |
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
 
@@ -74,7 +74,7 @@ vercel --prod                             # deploy to production
 In **`index.html`**:
 - **Projects** — edit the `PROJECTS` array near the top of the `<script>`; each entry is `{ name, url }`.
 - **Birthdays** — edit the `BIRTHDAYS` array; each entry is `{ name, month, day }`.
-- **Concerts** — edit the `CONCERTS` array; each entry is `{ act, date, endDate, venue, status, note, url }` (`date: null` shows the act as TBA). Past events disappear automatically.
+- **Events** — edit the `EVENTS` array; each entry is `{ act, kind, date, endDate, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, and `date: null` marks it TBA. Past events disappear automatically.
 - **Cost basis** — the `COST_BASIS` map (Yahoo symbol → average buy-in price) draws a green border around a market tile when the live price is at/above your average and a red border when below.
 - **Happy Day** — the `HAPPY_DAY` constant holds the anniversary (`month`, `day`) and `firstYear`. The display reads `<completed years × 365>.<day of the current relationship year>`, with day 1 on the anniversary, resetting each year at midnight Singapore time.
 
