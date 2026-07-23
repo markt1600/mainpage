@@ -1,0 +1,6 @@
+{
+ "votes": [],
+ "notes": [
+  {"ts": "2026-07-23T09:00:00Z", "issue": "50", "text": "Editor directive (standing): de-emphasize Matter in The Connected Home — the reader does not run Matter. Cover standards only when they concretely change a Lutron + Home Assistant household; lead with practical device/HA coverage."}
+ ]
+}
