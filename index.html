@@ -219,10 +219,13 @@
   .mkt-spark.down{color:var(--accent)}
   .mkt-spark.flat{color:var(--ink-faint)}
   .mkt-spark-dates{
-    display:flex;justify-content:space-between;margin-top:4px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:4px;
     font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.06em;
     text-transform:uppercase;color:var(--ink-faint);
   }
+  .mkt-spark-dates .pd.up{color:#2f6b43}
+  .mkt-spark-dates .pd.down{color:var(--accent)}
+  .mkt-spark-dates .pd.flat{color:var(--ink-faint)}
   /* per-currency strengthen/weaken arrows on FX tiles */
   .fx-dir{font-size:8.5px;margin-left:1px}
   .fx-dir.up{color:#2f6b43}
@@ -230,11 +233,15 @@
 
   /* Markets: 8 tiles → 4 × 2 on desktop, 2-up on small screens */
   #markets{grid-template-columns:repeat(4,1fr)}
-  /* FX: 4 pairs side by side */
-  #fx{grid-template-columns:repeat(4,1fr)}
   @media(max-width:880px){
     #markets{grid-template-columns:repeat(2,1fr)}
-    #fx{grid-template-columns:repeat(2,1fr)}
+  }
+  /* FX: standalone cards so any number of pairs wraps cleanly */
+  #fx{display:flex;flex-wrap:wrap;gap:14px;background:none;border:none}
+  #fx .mkt{
+    background:var(--paper-2);
+    border:1px solid var(--rule-strong);
+    border-radius:3px;flex:1 1 205px;min-width:205px;
   }
 
   /* Fitness: 3 windows side by side */
@@ -651,6 +658,7 @@ const DEMO = {
   ],
   fx: [
     { label:"USD → SGD", note:"", price:1.2842, change:-0.0015, pct:-0.12, spark:[1.2910,1.2884,1.2901,1.2857,1.2842], sparkTimes:demoTs },
+    { label:"USD → JPY", note:"", price:148.76, change:0.28, pct:0.19, spark:[147.65,148.02,147.80,148.48,148.76], sparkTimes:demoTs },
     { label:"SGD → JPY", note:"", price:115.83, change:0.39, pct:0.34, spark:[114.92,115.21,115.58,115.44,115.83], sparkTimes:demoTs },
     { label:"SGD → CAD", note:"", price:1.0641, change:0.0008, pct:0.08, spark:[1.0612,1.0629,1.0618,1.0633,1.0641], sparkTimes:demoTs },
     { label:"USD → CAD", note:"", price:1.3667, change:-0.0007, pct:-0.05, spark:[1.3721,1.3694,1.3702,1.3674,1.3667], sparkTimes:demoTs },
@@ -779,9 +787,11 @@ function sparkline(m){
   const cls = last>first ? "up" : last<first ? "down" : "flat";
   const fmtDay = (t)=> t ? new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short"}).format(new Date(t*1000)) : "";
   const d1 = fmtDay(pairs[0].t), d2 = fmtDay(pairs[pairs.length-1].t);
-  const dates = (d1 && d2)
-    ? `<div class="mkt-spark-dates"><span>${esc(d1)}</span><span>${esc(d2)}</span></div>`
-    : "";
+  // Change over the whole graphed period, shown between the period's dates.
+  const periodPct = first ? ((last-first)/first)*100 : null;
+  const pd = periodPct==null ? "" :
+    `<span class="pd ${cls}">${cls==="up"?"▲":cls==="down"?"▼":"▬"} ${periodPct>0?"+":""}${periodPct.toFixed(2)}%</span>`;
+  const dates = `<div class="mkt-spark-dates"><span>${esc(d1)}</span>${pd}<span>${esc(d2)}</span></div>`;
   return `<svg class="mkt-spark ${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
     <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
   </svg>${dates}`;
@@ -808,7 +818,7 @@ function renderMarkets(markets){
       const cls = up?"up":down?"down":"flat";
       const arrow = up?"▲":down?"▼":"▬";
       const sign = up?"+":"";
-      chg = `<div class="mkt-chg ${cls}">${arrow} ${fmtNum(Math.abs(m.change), Math.abs(m.change)>=100?0:2)} (${sign}${(m.pct??0).toFixed(2)}%)</div>`;
+      chg = `<div class="mkt-chg ${cls}">${arrow} ${fmtNum(Math.abs(m.change), Math.abs(m.change)>=100?0:2)} (${sign}${(m.pct??0).toFixed(2)}% 24h)</div>`;
     }
     const basis = COST_BASIS[m.symbol];
     const basisCls = (basis != null && has) ? (m.price >= basis ? " above-basis" : " below-basis") : "";
@@ -946,7 +956,7 @@ function renderFx(fx){
     let chg = `<div class="mkt-chg flat">—</div>`;
     if(m.pct!=null){
       const up = m.pct > 0, down = m.pct < 0;
-      chg = `<div class="mkt-chg ${up?"up":down?"down":"flat"}">${up?"▲":down?"▼":"▬"} ${up?"+":""}${m.pct.toFixed(2)}%</div>`;
+      chg = `<div class="mkt-chg ${up?"up":down?"down":"flat"}">${up?"▲":down?"▼":"▬"} ${up?"+":""}${m.pct.toFixed(2)}% 24h</div>`;
     }
     return `
       <div class="mkt">

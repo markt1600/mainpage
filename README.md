@@ -10,7 +10,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 |---|---|---|
 | Projects bar | `PROJECTS` array in `index.html` | No |
 | Markets (8 quotes, 5-day sparklines with date spans; gold also in S$/kg) | Yahoo Finance chart API | No |
-| Exchange rates (USD→SGD, SGD→JPY, SGD→CAD, USD→CAD) | Yahoo Finance chart API | No |
+| Exchange rates (USD→SGD, USD→JPY, SGD→JPY, SGD→CAD, USD→CAD) | Yahoo Finance chart API | No |
 | Weather (Singapore, Tokyo, Vancouver, Whistler — incl. rain chance & US AQI; Whistler adds a Nov–Apr snow report) | Open-Meteo forecast + air-quality APIs | No |
 | Stories & Briefs (deep-linked to the desk) | The day's **MERIDIAN** edition — `feed.json` from `github.com/markt1600/dailymag` (dailymag.marktan.ai). No web search here. | No |
 | Quote of the Day + edition provenance line | MERIDIAN's "From the Desk" quote (same `feed.json`) | No |
