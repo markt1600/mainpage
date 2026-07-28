@@ -24,6 +24,7 @@ const CITIES = [
 // FX pairs (Yahoo Finance symbols, same keyless endpoint as the markets).
 const FX_PAIRS = [
   { label: "USD → SGD", symbol: "SGD=X", note: "" },
+  { label: "USD → JPY", symbol: "JPY=X", note: "" },
   { label: "SGD → JPY", symbol: "SGDJPY=X", note: "" },
   { label: "SGD → CAD", symbol: "SGDCAD=X", note: "" },
   { label: "USD → CAD", symbol: "CAD=X", note: "" },
