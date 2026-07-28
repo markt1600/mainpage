@@ -88,7 +88,7 @@
     .masthead.thinking em{animation:none;opacity:.7}
   }
   .dateline{
-    display:flex;align-items:center;gap:18px;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
     margin:14px 0 0;
   }
   .dateline .ln{flex:1;height:1px;background:var(--rule-strong)}
@@ -271,14 +271,6 @@
   .sport-body{font-family:"Newsreader",serif;font-size:16px;color:#322c22;line-height:1.55;text-wrap:pretty}
   .sport-scores{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.7;letter-spacing:.02em}
 
-  /* Happy Day */
-  .happy{display:flex;align-items:center;gap:18px;margin-top:30px}
-  .happy .ln{flex:1;height:1px;background:var(--rule)}
-  .happy .txt{
-    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;
-    text-transform:uppercase;color:var(--accent);white-space:nowrap;
-  }
-  .happy .txt b{color:var(--ink);font-weight:600}
 
   /* Birthdays + Holidays + Events (same card row layout) */
   #birthdays,#holidays,#events{display:flex;flex-wrap:wrap;gap:14px}
@@ -450,6 +442,7 @@
       <div class="dateline rise" style="animation-delay:.1s">
         <span class="ln"></span>
         <span class="txt" id="dateline">Loading the edition…</span>
+        <span class="txt" id="happyDay" style="display:none" aria-label="Happy Day"><span style="color:var(--accent)">♥</span> <b id="happyDayTxt"></b></span>
         <span class="ln"></span>
       </div>
 
@@ -525,13 +518,6 @@
       </div>
       <div class="mkt-grid" id="balances"></div>
     </section>
-
-    <!-- Happy Day: relationship day counter (scheme documented in the script) -->
-    <div class="happy rise" id="happyDay" style="display:none" aria-label="Happy Day">
-      <span class="ln"></span>
-      <span class="txt">♥ <b id="happyDayTxt"></b></span>
-      <span class="ln"></span>
-    </div>
 
     <!-- Sports: only appears while a major event is on (World Cup, Grand
          Slams, Tour de France, Olympics, late playoff rounds, F1, ...) -->
