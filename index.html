@@ -98,6 +98,12 @@
     color:var(--ink-soft);white-space:nowrap;
   }
   .dateline .txt b{color:var(--ink);font-weight:600}
+  .happyline{
+    text-align:center;margin-top:9px;
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-soft);
+  }
+  .happyline b{color:var(--ink);font-weight:600}
   .clocks{
     display:flex;justify-content:center;align-items:baseline;gap:14px;
     margin-top:12px;
@@ -442,8 +448,11 @@
       <div class="dateline rise" style="animation-delay:.1s">
         <span class="ln"></span>
         <span class="txt" id="dateline">Loading the edition…</span>
-        <span class="txt" id="happyDay" style="display:none" aria-label="Happy Day"><span style="color:var(--accent)">♥</span> <b id="happyDayTxt"></b></span>
         <span class="ln"></span>
+      </div>
+
+      <div class="happyline rise" id="happyDay" style="display:none;animation-delay:.12s" aria-label="Happy Day">
+        <span style="color:var(--accent)">♥</span> <b id="happyDayTxt"></b>
       </div>
 
       <div class="clocks rise" style="animation-delay:.13s" aria-label="Current time">
