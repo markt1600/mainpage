@@ -1,6 +1,15 @@
 {
  "votes": [],
  "notes": [
-  {"ts": "2026-07-23T09:00:00Z", "issue": "50", "text": "Editor directive (standing): de-emphasize Matter in The Connected Home — the reader does not run Matter. Cover standards only when they concretely change a Lutron + Home Assistant household; lead with practical device/HA coverage."}
+  {
+   "ts": "2026-07-23T09:00:00Z",
+   "issue": "50",
+   "text": "Editor directive (standing): de-emphasize Matter in The Connected Home — the reader does not run Matter. Cover standards only when they concretely change a Lutron + Home Assistant household; lead with practical device/HA coverage."
+  },
+  {
+   "ts": "2026-07-29T12:00:00Z",
+   "issue": "56",
+   "text": "Editor directive (correction, next issue): No. 55's Diary claimed BTS Singapore dates were 'not announced (possibly 2027)' — this was FALSE and contradicted Nos. 37–39's ledger. The four National Stadium nights (17/19/20/22 Dec 2026) are confirmed and now SOLD OUT (Live Nation SG / The Kallang / Time Out). Print a one-line 'Setting the record straight' correction on the Diary, restore BTS to the calendar with sold-out status (resale caution), and re-read the new LEDGER OUTRANKS MEMORY rule before writing the Diary."
+  }
  ]
 }
