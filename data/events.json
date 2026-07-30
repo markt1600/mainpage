@@ -40,6 +40,16 @@
     "url": "https://www.factmagazines.com/singapore/events/bigbang-singapore-concert-2026-national-stadium"
   },
   {
+    "act": "Benson Boone",
+    "kind": "Concert",
+    "date": "2026-11-02",
+    "endDate": null,
+    "venue": "The Star Theatre",
+    "status": "on sale",
+    "note": "Wanted Man World Tour",
+    "url": "https://ticketmaster.sg/ticket/area/26sg_bensonboone/3587"
+  },
+  {
     "act": "AIA HYROX Singapore",
     "kind": "Fitness",
     "date": "2026-11-27",
