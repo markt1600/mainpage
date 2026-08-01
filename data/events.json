@@ -50,6 +50,16 @@
     "url": "https://ticketmaster.sg/ticket/area/26sg_bensonboone/3587"
   },
   {
+    "act": "Joe Hisaishi",
+    "kind": "Concert",
+    "date": "2026-11-12",
+    "endDate": null,
+    "venue": "Esplanade Concert Hall",
+    "status": "on sale",
+    "note": "World Dream Tour with Orchestre de Paris (also plays 13 Nov)",
+    "url": "https://www.sistic.com.sg/events/joe1126"
+  },
+  {
     "act": "AIA HYROX Singapore",
     "kind": "Fitness",
     "date": "2026-11-27",
