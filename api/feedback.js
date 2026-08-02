@@ -47,6 +47,14 @@ async function writeFile(token, data, sha, message) {
 }
 
 async function readBody(req) {
+  // Vercel pre-parses recognized content types (incl. the text/plain the
+  // magazine sends to stay preflight-free) into req.body and CONSUMES the
+  // stream — so check req.body first, exactly like api/admin.js and
+  // api/push.js do. Stream-only reading here silently 400'd every vote.
+  if (req.body && typeof req.body === "object") return req.body;
+  if (typeof req.body === "string" && req.body) {
+    try { return JSON.parse(req.body.slice(0, 4000)); } catch (_) { return {}; }
+  }
   const chunks = [];
   for await (const c of req) chunks.push(c);
   const raw = Buffer.concat(chunks).toString("utf8").slice(0, 4000);
