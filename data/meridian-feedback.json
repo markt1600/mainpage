@@ -1,5 +1,14 @@
 {
- "votes": [],
+ "votes": [
+  {
+   "ts": "2026-08-02T23:30:00Z",
+   "issue": "61",
+   "desk": "The Kit",
+   "topic": "Garmin CIRQA",
+   "vote": -1,
+   "note": "reconstructed — reader's original vote was lost to the readBody bug"
+  }
+ ],
  "notes": [
   {
    "ts": "2026-07-23T09:00:00Z",
@@ -10,6 +19,11 @@
    "ts": "2026-07-29T12:00:00Z",
    "issue": "56",
    "text": "Editor directive (correction, next issue): No. 55's Diary claimed BTS Singapore dates were 'not announced (possibly 2027)' — this was FALSE and contradicted Nos. 37–39's ledger. The four National Stadium nights (17/19/20/22 Dec 2026) are confirmed and now SOLD OUT (Live Nation SG / The Kallang / Time Out). Print a one-line 'Setting the record straight' correction on the Diary, restore BTS to the calendar with sold-out status (resale caution), and re-read the new LEDGER OUTRANKS MEMORY rule before writing the Diary."
+  },
+  {
+   "ts": "2026-08-02T23:30:00Z",
+   "issue": "61",
+   "text": "Editor directive (standing): STOP covering the Garmin CIRQA. The reader has asked for it to not be covered anymore (a thumbs-down was also cast but lost to the feedback-endpoint bug, fixed 3 Aug). No leads, secondaries, or shelf mentions on The Kit or anywhere else — the story is saturated for this reader. Only a genuinely major new peg (recall, discontinuation, a class-defining rival) reopens it, and then as a one-line delta at most."
   }
  ]
 }
