@@ -12,11 +12,16 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: GET /api/feedback
+      - name: Where does each host redirect?
         run: |
-          echo "== GET =="
-          curl -sS -o /tmp/get.json -w "HTTP %{http_code}\n" https://marktan.ai/api/feedback || true
-          cat /tmp/get.json; echo
+          for h in marktan.ai www.marktan.ai; do
+            echo "== $h =="
+            curl -sSI "https://$h/api/feedback" | grep -i "^HTTP\|^location" || true
+          done
+      - name: GET following redirects
+        run: |
+          curl -sSL -o /tmp/get.json -w "final HTTP %{http_code} at %{url_effective}\n" https://marktan.ai/api/feedback || true
+          head -c 300 /tmp/get.json; echo
       - name: POST probe vote (text/plain, like the magazine)
         run: |
           echo "== POST vote =="
