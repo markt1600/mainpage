@@ -7,6 +7,13 @@
    "topic": "Garmin CIRQA",
    "vote": -1,
    "note": "reconstructed — reader's original vote was lost to the readBody bug"
+  },
+  {
+   "ts": "2026-08-03T03:16:14.461Z",
+   "issue": "61",
+   "desk": "probe",
+   "topic": "endpoint probe - safe to ignore",
+   "vote": 1
   }
  ],
  "notes": [
