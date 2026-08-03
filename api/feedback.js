@@ -93,7 +93,9 @@ export default async function handler(req, res) {
       entry.text = str(b.text, 1000);
     } else { res.status(400).json({ error: "bad payload" }); return; }
 
-    // read-modify-write with one retry on sha races
+    // read-modify-write with retries on sha races. GitHub's contents API has
+    // read-after-write lag (~1s), so back-to-back posts (vote then note) can
+    // re-read a stale sha repeatedly — one instant retry wasn't enough.
     for (let attempt = 0; ; attempt++) {
       const { data, sha } = await readFile(token);
       data[kind].push(entry);
@@ -104,7 +106,10 @@ export default async function handler(req, res) {
         res.status(200).json({ ok: true });
         return;
       } catch (e) {
-        if (attempt === 0 && /409|422/.test(String(e.message))) continue;
+        if (attempt < 3 && /409|422/.test(String(e.message))) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          continue;
+        }
         throw e;
       }
     }
