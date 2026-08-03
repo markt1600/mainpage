@@ -14,6 +14,13 @@
    "desk": "probe",
    "topic": "endpoint probe - safe to ignore",
    "vote": 1
+  },
+  {
+   "ts": "2026-08-03T03:44:55.087Z",
+   "issue": "61",
+   "desk": "The Connected Home",
+   "topic": "The Connected Home · Home Assistant",
+   "vote": -1
   }
  ],
  "notes": [
