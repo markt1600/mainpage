@@ -20,7 +20,7 @@ jobs:
           done
       - name: GET following redirects
         run: |
-          curl -sSL -o /tmp/get.json -w "final HTTP %{http_code} at %{url_effective}\n" https://marktan.ai/api/feedback || true
+          curl -sSL -o /tmp/get.json -w "final HTTP %{http_code} at %{url_effective}\n" https://www.marktan.ai/api/feedback || true
           head -c 300 /tmp/get.json; echo
       - name: POST probe vote (text/plain, like the magazine)
         run: |
@@ -29,7 +29,7 @@ jobs:
             -H "Content-Type: text/plain" \
             -H "Origin: https://dailymag.marktan.ai" \
             --data '{"type":"vote","issue":"61","desk":"probe","topic":"endpoint probe - safe to ignore","vote":1}' \
-            https://marktan.ai/api/feedback || true
+            https://www.marktan.ai/api/feedback || true
           cat /tmp/vote.json; echo
       - name: POST probe note
         run: |
@@ -38,10 +38,10 @@ jobs:
             -H "Content-Type: text/plain" \
             -H "Origin: https://dailymag.marktan.ai" \
             --data '{"type":"note","issue":"61","text":"endpoint probe - safe to ignore"}' \
-            https://marktan.ai/api/feedback || true
+            https://www.marktan.ai/api/feedback || true
           cat /tmp/note.json; echo
       - name: GET again (did the probe entries land?)
         run: |
           echo "== GET after =="
-          curl -sS -o /tmp/get2.json -w "HTTP %{http_code}\n" https://marktan.ai/api/feedback || true
+          curl -sS -o /tmp/get2.json -w "HTTP %{http_code}\n" https://www.marktan.ai/api/feedback || true
           cat /tmp/get2.json; echo
