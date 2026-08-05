@@ -84,6 +84,13 @@
    "desk": "The Good Life",
    "topic": "The Good Life · Escapes",
    "vote": 1
+  },
+  {
+   "ts": "2026-08-05T07:10:13.339Z",
+   "issue": "61",
+   "desk": "probe",
+   "topic": "endpoint probe - safe to ignore",
+   "vote": 1
   }
  ],
  "notes": [
