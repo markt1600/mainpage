@@ -91,6 +91,13 @@
    "desk": "probe",
    "topic": "endpoint probe - safe to ignore",
    "vote": 1
+  },
+  {
+   "ts": "2026-08-06T01:19:54.339Z",
+   "issue": "64",
+   "desk": "The Kit",
+   "topic": "The Kit · Home Audio",
+   "vote": -1
   }
  ],
  "notes": [
