@@ -10,6 +10,16 @@
     "url": "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre"
   },
   {
+    "act": "An Evening with Mi",
+    "kind": "Concert",
+    "date": "2026-09-06",
+    "endDate": null,
+    "venue": "MBS Grand Ballroom",
+    "status": "redeem with UNI$",
+    "note": "Sammi Cheng, 8pm — UOB-exclusive; redeem via BookMyShow until 1 Sep",
+    "url": "https://www.uob.com.sg/personal/promotions/cards/deals/an-evening-with-mi.page"
+  },
+  {
     "act": "The Weeknd",
     "kind": "Concert",
     "date": "2026-10-02",
