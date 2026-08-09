@@ -455,6 +455,10 @@
         <span style="color:var(--accent)">♥</span> <b id="happyDayTxt"></b>
       </div>
 
+      <!-- Monthly reminders: only visible on the configured day (SGT).
+           Edit the REMINDERS array in the script below. -->
+      <div class="happyline rise" id="reminders" style="display:none;animation-delay:.14s" aria-label="Reminders"></div>
+
       <div class="clocks rise" style="animation-delay:.13s" aria-label="Current time">
         <span class="clock"><span class="cz">SGT</span> <b id="clockSG">--:--:--</b></span>
         <span class="sep">·</span>
@@ -1193,6 +1197,32 @@ function renderHappyDay(){
 }
 
 /* ============================================================
+   MONTHLY REMINDERS — each shows ONLY on its day of the month
+   (Singapore time). A day of 31 fires on the month's last day in
+   shorter months (30 Apr, 28/29 Feb, …). Edit entries here.
+   ============================================================ */
+const REMINDERS = [
+  { day: 19, text: "Citi SG CC Statement Available" },
+  { day: 23, text: "Citi US CC Statement Available" },
+  { day: 23, text: "UOB CC Statement Available" },
+  { day: 31, text: "Citi SG Bank Statement Available" },
+  { day: 31, text: "Citi US Bank Statement Available" },
+];
+
+function renderReminders(){
+  const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date()).split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate(); // days in current month
+  const due = REMINDERS.filter(r => d === Math.min(r.day, lastDay));
+  const el = $("reminders");
+  if(!due.length){ el.style.display = "none"; return; }
+  el.style.display = "";
+  el.innerHTML = `<span style="color:var(--accent)">🔔</span> ` +
+    due.map(r => `<b>${esc(r.text)}</b>`).join(` <span style="color:var(--ink-faint)">·</span> `);
+}
+
+/* ============================================================
    BIRTHDAYS — shown from 7 days before to 3 days after the date.
    Section hides itself when none fall in that window.
    Add/edit entries here {name, month (1-12), day}.
@@ -1449,6 +1479,7 @@ loadLists();
 loadMeridianStatus(); setInterval(loadMeridianStatus, 10*60*1000); // flips grey → green as the morning build lands
 initPush();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
+renderReminders(); setInterval(renderReminders, 60000); // reminders appear/clear at midnight SGT
 tick(); setInterval(tick,1000);
 </script>
 </body>
