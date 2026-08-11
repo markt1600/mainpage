@@ -44,8 +44,13 @@ export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   if (req.method !== "POST") { res.status(405).json({ error: "method not allowed" }); return; }
 
-  const token = (process.env.GITHUB_TOKEN || "").trim();
-  if (!token) { res.status(503).json({ error: "GITHUB_TOKEN not set" }); return; }
+  // Needs its own token: the standing GITHUB_TOKEN is fine-grained to
+  // markt1600/mainpage (Contents only) and cannot dispatch workflows in the
+  // dailymag repo. MERIDIAN_DELIVER_TOKEN must carry Actions: Read & Write
+  // on markt1600/dailymag. GITHUB_TOKEN is tried as a fallback in case the
+  // owner widens it instead.
+  const token = (process.env.MERIDIAN_DELIVER_TOKEN || process.env.GITHUB_TOKEN || "").trim();
+  if (!token) { res.status(503).json({ error: "MERIDIAN_DELIVER_TOKEN not set" }); return; }
 
   const b = await readBody(req);
   const wf = WORKFLOWS[b.type === "special" ? "special" : "edition"];
