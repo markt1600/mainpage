@@ -252,6 +252,13 @@
    "desk": "The Kit",
    "topic": "The Kit · The Wait Ends",
    "vote": -1
+  },
+  {
+   "ts": "2026-08-11T06:35:34.632Z",
+   "issue": "69",
+   "desk": "Technology",
+   "topic": "Technology · The One That Shipped",
+   "vote": 1
   }
  ],
  "notes": [
