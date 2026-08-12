@@ -1,6 +1,6 @@
 [
   {
-    "act": "HONNE (Mark only)",
+    "act": "HONNE",
     "kind": "Concert",
     "date": "2026-08-04",
     "endDate": "2026-08-06",
@@ -10,7 +10,7 @@
     "url": "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre"
   },
   {
-    "act": "Alex Warren (Hils only)",
+    "act": "Alex Warren",
     "kind": "Concert",
     "date": "2026-08-18",
     "endDate": null,
@@ -20,7 +20,7 @@
     "url": ""
   },
   {
-    "act": "An Evening with Mi (Mark only)",
+    "act": "An Evening with Mi",
     "kind": "Concert",
     "date": "2026-09-06",
     "endDate": null,
@@ -50,7 +50,7 @@
     "url": "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025"
   },
   {
-    "act": "Hans Zimmer (Hils only)",
+    "act": "Hans Zimmer",
     "kind": "Concert",
     "date": "2026-10-07",
     "endDate": null,
@@ -70,7 +70,7 @@
     "url": "https://www.formula1.com/en/racing/2026/singapore"
   },
   {
-    "act": "BIGBANG (Mark only)",
+    "act": "BIGBANG",
     "kind": "Concert",
     "date": "2026-10-17",
     "endDate": null,
@@ -100,7 +100,7 @@
     "url": "https://singapore.dulwich.org/community/life-at-dulwich/school-calendar"
   },
   {
-    "act": "Joe Hisaishi (Mark only)",
+    "act": "Joe Hisaishi",
     "kind": "Concert",
     "date": "2026-11-12",
     "endDate": null,
@@ -110,7 +110,7 @@
     "url": "https://www.sistic.com.sg/events/joe1126"
   },
   {
-    "act": "5 Seconds of Summer (Hils only)",
+    "act": "5 Seconds of Summer",
     "kind": "Concert",
     "date": "2026-11-16",
     "endDate": null,
@@ -140,7 +140,7 @@
     "url": "https://singaporeinternationalmarathon.com/events/standard-chartered-10km/"
   },
   {
-    "act": "BTS (Hils only)",
+    "act": "BTS",
     "kind": "Concert",
     "date": "2026-12-18",
     "endDate": null,
@@ -150,7 +150,7 @@
     "url": ""
   },
   {
-    "act": "Jay Chou (Mark only)",
+    "act": "Jay Chou",
     "kind": "Concert",
     "date": "2027-01-08",
     "endDate": "2027-01-10",
@@ -160,7 +160,7 @@
     "url": "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/"
   },
   {
-    "act": "Westlife (Hils only)",
+    "act": "Westlife",
     "kind": "Concert",
     "date": "2027-01-17",
     "endDate": null,
@@ -170,7 +170,7 @@
     "url": ""
   },
   {
-    "act": "The Script (Hils only)",
+    "act": "The Script",
     "kind": "Concert",
     "date": "2027-03-31",
     "endDate": null,
