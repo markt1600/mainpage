@@ -1060,7 +1060,7 @@ function renderExtras(d){
 }
 
 function renderAll(d){
-  $("dateline").innerHTML = `<b>${esc(d.dateStr)}</b> · Daily Edition`;
+  $("dateline").innerHTML = `<b>${esc(d.dateStr)}</b>`;
   renderCities(d.cities);
   renderMarkets(d.markets);
   renderMacro(d.macro);
