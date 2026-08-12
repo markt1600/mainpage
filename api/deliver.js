@@ -19,7 +19,8 @@ const REPO = (process.env.MERIDIAN_REPO || "markt1600/dailymag").trim();
 const BRANCH = (process.env.MERIDIAN_BRANCH || "main").trim();
 const GH = "https://api.github.com";
 const ORIGINS = ["https://dailymag.marktan.ai", "https://marktan.ai", "https://www.marktan.ai"];
-const WORKFLOWS = { edition: "deliver-remarkable.yml", special: "deliver-special.yml" };
+const WORKFLOWS = { edition: "deliver-remarkable.yml", special: "deliver-special.yml",
+                    podcast: "generate-podcast.yml" };
 
 async function readBody(req) {
   // Vercel pre-parses text/plain bodies (sent to stay preflight-free) into
@@ -53,7 +54,10 @@ export default async function handler(req, res) {
   if (!token) { res.status(503).json({ error: "MERIDIAN_DELIVER_TOKEN not set" }); return; }
 
   const b = await readBody(req);
-  const wf = WORKFLOWS[b.type === "special" ? "special" : "edition"];
+  const kind = WORKFLOWS[b.type] ? b.type : "edition";
+  const wf = WORKFLOWS[kind];
+  const payload = { ref: BRANCH };
+  if (kind === "podcast") payload.inputs = { issue: String(b.issue || "").replace(/\D/g, "").slice(0, 6) };
 
   try {
     const r = await fetch(`${GH}/repos/${REPO}/actions/workflows/${wf}/dispatches`, {
@@ -61,7 +65,7 @@ export default async function handler(req, res) {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
                  "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "marktan-deliver",
                  "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: BRANCH }),
+      body: JSON.stringify(payload),
     });
     if (r.status === 204) { res.status(200).json({ ok: true, workflow: wf }); return; }
     const detail = await r.text().catch(() => "");
