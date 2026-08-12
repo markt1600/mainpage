@@ -1,6 +1,6 @@
 [
   {
-    "act": "HONNE",
+    "act": "HONNE (Mark only)",
     "kind": "Concert",
     "date": "2026-08-04",
     "endDate": "2026-08-06",
@@ -10,7 +10,17 @@
     "url": "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre"
   },
   {
-    "act": "An Evening with Mi",
+    "act": "Alex Warren (Hils only)",
+    "kind": "Concert",
+    "date": "2026-08-18",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
+  },
+  {
+    "act": "An Evening with Mi (Mark only)",
     "kind": "Concert",
     "date": "2026-09-06",
     "endDate": null,
@@ -20,14 +30,34 @@
     "url": "https://www.uob.com.sg/personal/promotions/cards/deals/an-evening-with-mi.page"
   },
   {
+    "act": "Post Malone",
+    "kind": "Concert",
+    "date": "2026-09-25",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
+  },
+  {
     "act": "The Weeknd",
     "kind": "Concert",
-    "date": "2026-10-02",
-    "endDate": "2026-10-03",
+    "date": "2026-10-03",
+    "endDate": null,
     "venue": "National Stadium",
     "status": "on sale",
     "note": "After Hours Til Dawn Tour",
     "url": "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025"
+  },
+  {
+    "act": "Hans Zimmer (Hils only)",
+    "kind": "Concert",
+    "date": "2026-10-07",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
   },
   {
     "act": "F1 Singapore GP",
@@ -40,7 +70,7 @@
     "url": "https://www.formula1.com/en/racing/2026/singapore"
   },
   {
-    "act": "BIGBANG",
+    "act": "BIGBANG (Mark only)",
     "kind": "Concert",
     "date": "2026-10-17",
     "endDate": null,
@@ -60,7 +90,17 @@
     "url": "https://ticketmaster.sg/ticket/area/26sg_bensonboone/3587"
   },
   {
-    "act": "Joe Hisaishi",
+    "act": "Dulwich November Holidays",
+    "kind": "School Holiday",
+    "date": "2026-11-05",
+    "endDate": "2026-11-10",
+    "venue": "Singapore",
+    "status": "pending",
+    "note": "Dulwich November Holidays",
+    "url": "https://singapore.dulwich.org/community/life-at-dulwich/school-calendar"
+  },
+  {
+    "act": "Joe Hisaishi (Mark only)",
     "kind": "Concert",
     "date": "2026-11-12",
     "endDate": null,
@@ -68,6 +108,16 @@
     "status": "on sale",
     "note": "World Dream Tour with Orchestre de Paris (also plays 13 Nov)",
     "url": "https://www.sistic.com.sg/events/joe1126"
+  },
+  {
+    "act": "5 Seconds of Summer (Hils only)",
+    "kind": "Concert",
+    "date": "2026-11-16",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
   },
   {
     "act": "AIA HYROX Singapore",
@@ -90,7 +140,17 @@
     "url": "https://singaporeinternationalmarathon.com/events/standard-chartered-10km/"
   },
   {
-    "act": "Jay Chou",
+    "act": "BTS (Hils only)",
+    "kind": "Concert",
+    "date": "2026-12-18",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
+  },
+  {
+    "act": "Jay Chou (Mark only)",
     "kind": "Concert",
     "date": "2027-01-08",
     "endDate": "2027-01-10",
@@ -100,13 +160,23 @@
     "url": "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/"
   },
   {
-    "act": "Dulwich November Holidays",
-    "kind": "School Holiday",
-    "date": "2026-11-05",
-    "endDate": "2026-11-10",
-    "venue": "Singapore",
-    "status": "pending",
-    "note": "Dulwich November Holidays",
-    "url": "https://singapore.dulwich.org/community/life-at-dulwich/school-calendar"
+    "act": "Westlife (Hils only)",
+    "kind": "Concert",
+    "date": "2027-01-17",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
+  },
+  {
+    "act": "The Script (Hils only)",
+    "kind": "Concert",
+    "date": "2027-03-31",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "",
+    "url": ""
   }
 ]
