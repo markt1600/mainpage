@@ -10,6 +10,16 @@
     "url": "https://www.songkick.com/concerts/43094388-honne-at-capitol-theatre"
   },
   {
+    "act": "PSLE Orals",
+    "kind": "Exam",
+    "date": "2026-08-12",
+    "endDate": "2026-08-13",
+    "venue": "",
+    "status": "",
+    "note": "Oral examinations",
+    "url": ""
+  },
+  {
     "act": "Alex Warren",
     "kind": "Concert",
     "date": "2026-08-18",
@@ -28,6 +38,26 @@
     "status": "redeem with UNI$",
     "note": "Sammi Cheng, 8pm — UOB-exclusive; redeem via BookMyShow until 1 Sep",
     "url": "https://www.uob.com.sg/personal/promotions/cards/deals/an-evening-with-mi.page"
+  },
+  {
+    "act": "PSLE Listening",
+    "kind": "Exam",
+    "date": "2026-09-15",
+    "endDate": null,
+    "venue": "",
+    "status": "",
+    "note": "Listening comprehension",
+    "url": ""
+  },
+  {
+    "act": "PSLE Written Papers",
+    "kind": "Exam",
+    "date": "2026-09-24",
+    "endDate": "2026-09-30",
+    "venue": "",
+    "status": "",
+    "note": "English 24 · Maths 25 · Mother Tongue 28 · Science 29 · Higher MT 30 Sep",
+    "url": ""
   },
   {
     "act": "Post Malone",
@@ -68,6 +98,16 @@
     "status": "on sale",
     "note": "First Singapore sprint weekend",
     "url": "https://www.formula1.com/en/racing/2026/singapore"
+  },
+  {
+    "act": "PSLE Marking Exercise",
+    "kind": "Exam",
+    "date": "2026-10-12",
+    "endDate": "2026-10-14",
+    "venue": "",
+    "status": "",
+    "note": "Marking days",
+    "url": ""
   },
   {
     "act": "BIGBANG",
@@ -117,6 +157,16 @@
     "venue": "",
     "status": "",
     "note": "",
+    "url": ""
+  },
+  {
+    "act": "PSLE Results",
+    "kind": "Exam",
+    "date": "2026-11-24",
+    "endDate": "2026-11-25",
+    "venue": "",
+    "status": "tentative",
+    "note": "Results release window",
     "url": ""
   },
   {
