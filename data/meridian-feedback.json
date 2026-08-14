@@ -373,6 +373,11 @@
    "ts": "2026-08-13T01:24:38.409Z",
    "issue": "71",
    "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Invitation (desk: The Rabbit Hole)"
+  },
+  {
+   "ts": "2026-08-14T01:10:34.000Z",
+   "issue": "71",
+   "text": "SPECIAL EDITION REQUEST: Home cybersecurity — the ultra deep dive for a HOME environment, scoped to a household running Windows 11 desktops, WSL2 Ubuntu on those machines, and macOS laptops (no enterprise fleet, no corporate MDM). DEFENSIVE ONLY — hardening, hygiene and recovery; not offensive tooling. Wanted: the honest threat model for a home user in 2026 (who actually attacks home machines, and how); platform-by-platform hardening that is real and current — Windows 11 (Defender vs paid AV honestly, BitLocker, Smart App Control, standard-vs-admin accounts), the WSL2 seam specifically (what WSL does and does not isolate, Windows/Linux file-permission crossover, Docker Desktop exposure, dev-machine supply-chain risk from npm/pip/VS Code extensions), and macOS (Gatekeeper/XProtect reality, FileVault, TCC permissions); the home NETWORK layer (router firmware, DNS filtering, IoT/VLAN segmentation, Tailscale-style overlays vs port-forwarding); identity as the real perimeter (passkeys vs TOTP vs SMS, password managers compared honestly post-LastPass, phishing that defeats MFA); backups as the last line (3-2-1, ransomware-proof versioning, actually testing restores); the family angle (protecting a household incl. a tween's devices without surveillance theatre); the community read (r/cybersecurity, r/homelab, security YouTube, what practitioners run at home vs what they tell clients); the sceptic desk — which paid security products are theatre for a home user; and the fresh-peg sweep of 2026 home-relevant incidents/CVEs. (desk: reader direct request via Claude session)"
   }
  ]
 }
