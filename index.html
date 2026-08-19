@@ -1206,13 +1206,15 @@ function renderHappyDay(){
    MONTHLY REMINDERS — each shows ONLY on its day of the month
    (Singapore time). A day of 31 fires on the month's last day in
    shorter months (30 Apr, 28/29 Feb, …). Edit entries here.
+   Days are the day the statement actually lands, i.e. one day
+   after the statement date (month-end statements → the 1st).
    ============================================================ */
 const REMINDERS = [
-  { day: 19, text: "Citi SG CC Statement Available" },
-  { day: 23, text: "Citi US CC Statement Available" },
-  { day: 23, text: "UOB CC Statement Available" },
-  { day: 31, text: "Citi SG Bank Statement Available" },
-  { day: 31, text: "Citi US Bank Statement Available" },
+  { day: 20, text: "Citi SG CC Statement Available" },
+  { day: 24, text: "Citi US CC Statement Available" },
+  { day: 24, text: "UOB CC Statement Available" },
+  { day: 1,  text: "Citi SG Bank Statement Available" },
+  { day: 1,  text: "Citi US Bank Statement Available" },
 ];
 
 function renderReminders(){
