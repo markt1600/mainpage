@@ -243,9 +243,9 @@
   @media(max-width:880px){
     #markets{grid-template-columns:repeat(2,1fr)}
   }
-  /* FX: standalone cards so any number of pairs wraps cleanly */
-  #fx{display:flex;flex-wrap:wrap;gap:14px;background:none;border:none}
-  #fx .mkt{
+  /* FX + COE: standalone cards so any tile count wraps cleanly */
+  #fx,#coe{display:flex;flex-wrap:wrap;gap:14px;background:none;border:none}
+  #fx .mkt,#coe .mkt{
     background:var(--paper-2);
     border:1px solid var(--rule-strong);
     border-radius:3px;flex:1 1 205px;min-width:205px;
@@ -524,6 +524,15 @@
       <div class="mkt-grid" id="fitness"></div>
     </section>
 
+    <!-- COE premiums: latest bidding exercise across all five categories -->
+    <section class="markets rise" id="coeSec" style="display:none" aria-label="COE premiums">
+      <div class="sec-head">
+        <h2>COE <span class="dot">·</span> Premiums</h2>
+        <span class="cnt" id="coeCnt"></span>
+      </div>
+      <div class="mkt-grid" id="coe"></div>
+    </section>
+
     <!-- Account: balances + spend -->
     <section class="markets rise" id="accountSec" style="display:none" aria-label="Account">
       <div class="sec-head">
@@ -674,6 +683,16 @@ const DEMO = {
     { event:"Wimbledon", headline:"Sample: semifinal line-ups decided on Centre Court", summary:"This is placeholder copy — with the API live, real results from the past 24 hours appear here whenever a major event is on.", scorelines:["A. Player def. B. Player 6-4 3-6 7-6(4) 6-2"], source:"Sample", url:"" },
     { event:"Tour de France", headline:"Sample: breakaway survives a mountain stage", summary:"Scores, key moments, and standings land in this panel. When no major event is running, the whole section hides itself.", scorelines:["Stage 9: Rider One, +0:42 GC lead"], source:"Sample", url:"" },
   ],
+  coe: {
+    month: "2026-08", round: 1,
+    premiums: [
+      { cls:"Category A", premium:103004, quota:1023 },
+      { cls:"Category B", premium:120123, quota:731 },
+      { cls:"Category C", premium:73890, quota:238 },
+      { cls:"Category D", premium:9509, quota:511 },
+      { cls:"Category E", premium:121501, quota:172 },
+    ],
+  },
   holidays: [
     { region:"Japan", name:"Marine Day", date:"2026-07-20" },
     { region:"Vancouver", name:"British Columbia Day", date:"2026-08-03" },
@@ -1001,6 +1020,37 @@ function renderHolidays(hols){
   }).join("");
 }
 
+/* COE premiums — latest bidding exercise, all five categories. */
+const COE_DESC = {
+  "Category A": "cars ≤1600cc & ≤130bhp",
+  "Category B": "cars >1600cc or >130bhp",
+  "Category C": "goods vehicles & buses",
+  "Category D": "motorcycles",
+  "Category E": "open — all except D",
+};
+
+function renderCoe(coe){
+  const list = (coe && Array.isArray(coe.premiums)) ? coe.premiums.filter(p=>p && p.cls) : [];
+  if(!list.length){ $("coeSec").style.display = "none"; return; }
+  $("coeSec").style.display = "";
+  let when = "";
+  if(coe.month){
+    const [y,m] = coe.month.split("-").map(Number);
+    when = new Intl.DateTimeFormat("en-GB",{month:"short",year:"numeric",timeZone:"UTC"}).format(new Date(Date.UTC(y,(m||1)-1,1)));
+    if(coe.round) when += ` · round ${coe.round}`;
+  }
+  $("coeCnt").textContent = when;
+  $("coe").innerHTML = list.map(p=>{
+    const short = esc(String(p.cls).replace(/^Category\s+/i, "Cat "));
+    return `
+      <div class="mkt">
+        <div class="mkt-lab"><b>${short}</b><span>${esc(COE_DESC[p.cls]||"")}</span></div>
+        <div class="mkt-px">S$${Number(p.premium).toLocaleString("en-US")}</div>
+        ${Number.isFinite(p.quota)?`<div class="mkt-chg flat">quota ${Number(p.quota).toLocaleString("en-US")}</div>`:""}
+      </div>`;
+  }).join("");
+}
+
 function renderBriefs(briefs){
   briefs = briefs||[];
   $("briefCnt").textContent = briefs.length ? `${briefs.length} items` : "";
@@ -1069,6 +1119,7 @@ function renderAll(d){
   renderMarkets(d.markets);
   renderMacro(d.macro);
   renderFx(d.fx);
+  renderCoe(d.coe);
   renderHolidays(d.holidays);
   renderBriefs(d.briefs);
   renderFeatures(d.features);

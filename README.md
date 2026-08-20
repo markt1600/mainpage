@@ -17,6 +17,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | MERIDIAN pipeline tile (header) — green "No. N · built 06:47 · 24pp · QA clean", red past 07:15 SGT if today's issue hasn't landed, grey before that | `status.json` from `github.com/markt1600/dailymag`, committed by each build after its QA gate; re-checked every 10 min | No |
 | Sports · Last 24 Hours (only while a major event is on — World Cup, Grand Slams, Tour de France, Olympics, late playoff rounds, F1…) | Claude + web search (`/api/sports`) | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
+| COE premiums (latest bidding exercise, all 5 categories) | LTA dataset via data.gov.sg API | No |
 | Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
 | Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
