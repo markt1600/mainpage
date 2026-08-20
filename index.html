@@ -250,6 +250,9 @@
     border:1px solid var(--rule-strong);
     border-radius:3px;flex:1 1 205px;min-width:205px;
   }
+  /* equal label-row height (labels wrap to 1 or 2 lines) so the S$ figures
+     start at the same height in every COE card */
+  #coe .mkt-lab{min-height:30px;line-height:1.45}
 
   /* Fitness: 3 windows side by side */
   #fitness{grid-template-columns:repeat(3,1fr)}
@@ -684,13 +687,13 @@ const DEMO = {
     { event:"Tour de France", headline:"Sample: breakaway survives a mountain stage", summary:"Scores, key moments, and standings land in this panel. When no major event is running, the whole section hides itself.", scorelines:["Stage 9: Rider One, +0:42 GC lead"], source:"Sample", url:"" },
   ],
   coe: {
-    month: "2026-08", round: 1,
+    month: "2026-08", round: 2, prev: { month: "2026-08", round: 1 },
     premiums: [
-      { cls:"Category A", premium:103004, quota:1023 },
-      { cls:"Category B", premium:120123, quota:731 },
-      { cls:"Category C", premium:73890, quota:238 },
-      { cls:"Category D", premium:9509, quota:511 },
-      { cls:"Category E", premium:121501, quota:172 },
+      { cls:"Category A", premium:128501, quota:1197, prevPremium:126000 },
+      { cls:"Category B", premium:131001, quota:936, prevPremium:133388 },
+      { cls:"Category C", premium:90002, quota:386, prevPremium:88989 },
+      { cls:"Category D", premium:11301, quota:512, prevPremium:11301 },
+      { cls:"Category E", premium:135000, quota:254, prevPremium:132002 },
     ],
   },
   holidays: [
@@ -1033,20 +1036,38 @@ function renderCoe(coe){
   const list = (coe && Array.isArray(coe.premiums)) ? coe.premiums.filter(p=>p && p.cls) : [];
   if(!list.length){ $("coeSec").style.display = "none"; return; }
   $("coeSec").style.display = "";
+  const monthName = (ym) => {
+    const [y,m] = String(ym).split("-").map(Number);
+    return new Intl.DateTimeFormat("en-GB",{month:"short",year:"numeric",timeZone:"UTC"}).format(new Date(Date.UTC(y,(m||1)-1,1)));
+  };
   let when = "";
   if(coe.month){
-    const [y,m] = coe.month.split("-").map(Number);
-    when = new Intl.DateTimeFormat("en-GB",{month:"short",year:"numeric",timeZone:"UTC"}).format(new Date(Date.UTC(y,(m||1)-1,1)));
+    when = monthName(coe.month);
     if(coe.round) when += ` · round ${coe.round}`;
+    if(coe.prev){
+      when += coe.prev.month === coe.month
+        ? ` · Δ vs round ${coe.prev.round}`
+        : ` · Δ vs ${monthName(coe.prev.month)} round ${coe.prev.round}`;
+    }
   }
   $("coeCnt").textContent = when;
   $("coe").innerHTML = list.map(p=>{
     const short = esc(String(p.cls).replace(/^Category\s+/i, "Cat "));
+    // Change vs the previous bidding round, when we have it.
+    let chg = "";
+    if(p.prevPremium != null && Number.isFinite(p.premium)){
+      const diff = p.premium - p.prevPremium;
+      const up = diff > 0, down = diff < 0;
+      const cls2 = up?"up":down?"down":"flat";
+      const pct = p.prevPremium ? (diff/p.prevPremium)*100 : null;
+      chg = `<div class="mkt-chg ${cls2}" title="vs previous bidding round">${up?"▲":down?"▼":"▬"} ${Math.abs(diff).toLocaleString("en-US")}${pct!=null?` (${up?"+":""}${pct.toFixed(1)}%)`:""}</div>`;
+    }
     return `
       <div class="mkt">
         <div class="mkt-lab"><b>${short}</b><span>${esc(COE_DESC[p.cls]||"")}</span></div>
         <div class="mkt-px">S$${Number(p.premium).toLocaleString("en-US")}</div>
-        ${Number.isFinite(p.quota)?`<div class="mkt-chg flat">quota ${Number(p.quota).toLocaleString("en-US")}</div>`:""}
+        ${chg}
+        ${Number.isFinite(p.quota)?`<div class="mkt-extra">quota ${Number(p.quota).toLocaleString("en-US")}</div>`:""}
       </div>`;
   }).join("");
 }

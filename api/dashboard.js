@@ -274,20 +274,31 @@ async function getCoe() {
   const recs = j?.result?.records || [];
   if (!recs.length) return null;
 
-  // Latest bidding exercise = max (month, bidding round) present.
+  // Latest bidding exercise = max (month, bidding round) present; the one
+  // before it provides the round-over-round change.
   const key = (r) => `${r.month}#${r.bidding_no}`;
-  const latest = recs.reduce((a, r) => (key(r) > key(a) ? r : a), recs[0]);
-  const rows = recs.filter((r) => r.month === latest.month && r.bidding_no === latest.bidding_no);
+  const exercises = [...new Set(recs.map(key))].sort();
+  const latestKey = exercises[exercises.length - 1];
+  const prevKey = exercises.length > 1 ? exercises[exercises.length - 2] : null;
+  const rows = recs.filter((r) => key(r) === latestKey);
+  const prevRows = prevKey ? recs.filter((r) => key(r) === prevKey) : [];
+  const latest = rows[0];
 
   return {
     month: latest.month,                 // e.g. "2026-08"
     round: Number(latest.bidding_no),    // 1 or 2
+    prev: prevRows.length ? { month: prevRows[0].month, round: Number(prevRows[0].bidding_no) } : null,
     premiums: rows
-      .map((r) => ({
-        cls: r.vehicle_class,            // "Category A" … "Category E"
-        premium: Number(r.premium),
-        quota: Number(r.quota),
-      }))
+      .map((r) => {
+        const prev = prevRows.find((p) => p.vehicle_class === r.vehicle_class);
+        const prevPremium = prev ? Number(prev.premium) : null;
+        return {
+          cls: r.vehicle_class,          // "Category A" … "Category E"
+          premium: Number(r.premium),
+          quota: Number(r.quota),
+          prevPremium: Number.isFinite(prevPremium) ? prevPremium : null,
+        };
+      })
       .filter((r) => r.cls && Number.isFinite(r.premium))
       .sort((a, b) => a.cls.localeCompare(b.cls)),
   };
