@@ -252,6 +252,47 @@ async function getRegionHoliday({ code, label, subdivision }) {
   return hit && hit.date && hit.name ? { region: label, name: hit.name, date: hit.date } : null;
 }
 
+// --- COE premiums via data.gov.sg (keyless) ---------------------------------
+// LTA "COE Bidding Results" dataset: one row per category per bidding
+// exercise (month + bidding round), with the quota premium.
+const COE_RESOURCE_ID = "d_69b3380ad7e51aff3a7dcc84eba52b8a";
+
+async function getCoe() {
+  const base =
+    `https://data.gov.sg/api/action/datastore_search?resource_id=${COE_RESOURCE_ID}`;
+
+  // Rows are stored oldest-first, so read the total and take the tail —
+  // robust whether or not the API honors a sort parameter.
+  const headRes = await fetch(`${base}&limit=1`, { headers: { Accept: "application/json" } });
+  if (!headRes.ok) throw new Error(`data.gov.sg ${headRes.status}`);
+  const total = (await headRes.json())?.result?.total;
+  const offset = Number.isFinite(total) ? Math.max(0, total - 15) : 0;
+
+  const res = await fetch(`${base}&offset=${offset}&limit=15`, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`data.gov.sg ${res.status}`);
+  const j = await res.json();
+  const recs = j?.result?.records || [];
+  if (!recs.length) return null;
+
+  // Latest bidding exercise = max (month, bidding round) present.
+  const key = (r) => `${r.month}#${r.bidding_no}`;
+  const latest = recs.reduce((a, r) => (key(r) > key(a) ? r : a), recs[0]);
+  const rows = recs.filter((r) => r.month === latest.month && r.bidding_no === latest.bidding_no);
+
+  return {
+    month: latest.month,                 // e.g. "2026-08"
+    round: Number(latest.bidding_no),    // 1 or 2
+    premiums: rows
+      .map((r) => ({
+        cls: r.vehicle_class,            // "Category A" … "Category E"
+        premium: Number(r.premium),
+        quota: Number(r.quota),
+      }))
+      .filter((r) => r.cls && Number.isFinite(r.premium))
+      .sort((a, b) => a.cls.localeCompare(b.cls)),
+  };
+}
+
 async function getHolidays() {
   const results = await Promise.allSettled(HOLIDAY_REGIONS.map(getRegionHoliday));
   return results
@@ -357,15 +398,16 @@ export default async function handler(req, res) {
     timeZone: "Asia/Singapore",
   }).format(now);
 
-  // Weather, markets, FX, holidays, and the edition run independently so
-  // one failing never blanks the others.
-  const [citiesR, marketsR, fxR, holidaysR] = await Promise.allSettled([
-    getCities(), getMarkets(), getFx(), getHolidays(),
+  // Weather, markets, FX, holidays, COE, and the edition run independently
+  // so one failing never blanks the others.
+  const [citiesR, marketsR, fxR, holidaysR, coeR] = await Promise.allSettled([
+    getCities(), getMarkets(), getFx(), getHolidays(), getCoe(),
   ]);
   const cities = citiesR.status === "fulfilled" ? citiesR.value : [];
   const markets = marketsR.status === "fulfilled" ? marketsR.value : [];
   const fx = fxR.status === "fulfilled" ? fxR.value : [];
   const holidays = holidaysR.status === "fulfilled" ? holidaysR.value : [];
+  const coe = coeR.status === "fulfilled" ? coeR.value : null;
 
   let edition;
   try {
@@ -384,6 +426,7 @@ export default async function handler(req, res) {
     markets,
     fx,
     holidays,
+    coe,
     ...edition,
   });
 }
