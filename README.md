@@ -101,7 +101,7 @@ vercel --prod                             # deploy to production
 In **`index.html`**:
 - **Projects** — edit the `PROJECTS` array near the top of the `<script>`; each entry is `{ name, url }`.
 - **Birthdays** — edit at **`/admin`** (writes `data/birthdays.json`). Each entry is `{ name, month, day }`. The inline `BIRTHDAYS` array here is only the offline fallback.
-- **Events** — edit at **`/admin`** (writes `data/events.json`). Each entry is `{ act, kind, date, endDate, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, and `date: null` marks it TBA. Past events disappear automatically. The inline `EVENTS` array here is only the offline fallback.
+- **Events** — edit at **`/admin`** (writes `data/events.json`). Each entry is `{ act, kind, date, endDate, time, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, `time` is an optional HH:MM (24h) shown on the card and used for the timed calendar download, and `date: null` marks it TBA. Past events disappear automatically. The inline `EVENTS` array here is only the offline fallback.
 - **Cost basis** — the `COST_BASIS` map (Yahoo symbol → average buy-in price) draws a green border around a market tile when the live price is at/above your average and a red border when below.
 - **Happy Day** — the `HAPPY_DAY` constant holds the anniversary (`month`, `day`) and `firstYear`. The display reads `<completed years × 365>.<day of the current relationship year>`, with day 1 on the anniversary, resetting each year at midnight Singapore time.
 

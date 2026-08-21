@@ -102,12 +102,12 @@
       <div class="tablewrap">
         <table id="evTable">
           <thead><tr>
-            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
+            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
           </tr></thead>
           <tbody id="evBody"></tbody>
         </table>
       </div>
-      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Finished events drop off the dashboard automatically.</div>
+      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional) — shown on the card and used for the calendar download. Finished events drop off the dashboard automatically.</div>
       <div class="bar">
         <button class="ghost" id="evAdd">+ Add event</button>
         <button id="evSave">Save events</button>
@@ -203,6 +203,7 @@ function evRow(e){
   tr.appendChild(cell(e.kind, "kind", "Concert"));
   tr.appendChild(cell(e.date, "date", "2026-10-02", "num"));
   tr.appendChild(cell(e.endDate, "endDate", "—", "num"));
+  tr.appendChild(cell(e.time, "time", "19:30", "num"));
   tr.appendChild(cell(e.venue, "venue", "Venue"));
   tr.appendChild(cell(e.status, "status", "on sale"));
   tr.appendChild(cell(e.note, "note", "Note"));
@@ -221,7 +222,7 @@ function collectEvents(){
   return [...$("evBody").children].map(tr=>{
     const g = k => (tr.querySelector(`input[data-key="${k}"]`)||{}).value?.trim() || "";
     return { act:g("act"), kind:g("kind"), date:g("date")||null, endDate:g("endDate")||null,
-             venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
+             time:g("time")||null, venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
   }).filter(e=>e.act);
 }
 $("evAdd").addEventListener("click", ()=>{ $("evBody").appendChild(evRow({})); setDirty("events", true); updateMeta(); });
