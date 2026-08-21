@@ -955,8 +955,20 @@ let EVENTS = [
   { act: "Jay Chou", kind: "Concert", date: "2027-01-08", endDate: "2027-01-10", venue: "National Stadium", status: "on sale", note: "Carnival II World Tour", url: "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/" },
 ];
 
+/* "19:30" → "7.30pm" (or "8pm" on the hour); null for anything unparseable. */
+function fmtEventTime(t){
+  const m = String(t||"").match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return null;
+  let h = Number(m[1]); const min = m[2];
+  const ap = h >= 12 ? "pm" : "am";
+  h = h % 12 || 12;
+  return min === "00" ? `${h}${ap}` : `${h}.${min}${ap}`;
+}
+
 /* Downloadable .ics calendar entry for a dated event — Outlook, Apple, and
-   Google Calendar all accept these. All-day; DTEND is exclusive, hence +1. */
+   Google Calendar all accept these. With a time (single-day events) it's a
+   timed 3-hour entry, written in UTC (SGT is fixed UTC+8, no DST); otherwise
+   an all-day entry — DTEND exclusive, hence +1. */
 function eventIcs(c){
   const pack = (iso, addDays=0) => {
     const [y,m,d] = iso.split("-").map(Number);
@@ -964,9 +976,22 @@ function eventIcs(c){
     return `${t.getUTCFullYear()}${String(t.getUTCMonth()+1).padStart(2,"0")}${String(t.getUTCDate()).padStart(2,"0")}`;
   };
   const escIcs = (s) => String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
-  const stamp = new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+Z/,"Z");
+  const utc = (ms) => new Date(ms).toISOString().replace(/[-:]/g,"").replace(/\.\d+Z/,"Z");
+  const stamp = utc(Date.now());
   const uid = `${c.date}-${String(c.act).toLowerCase().replace(/[^a-z0-9]+/g,"-")}@marktan.ai`;
   const desc = [c.note, c.url].filter(Boolean).join("\n");
+
+  const tm = String(c.time||"").match(/^(\d{1,2}):(\d{2})$/);
+  const multiDay = !!(c.endDate && c.endDate !== c.date);
+  let when;
+  if(tm && !multiDay){
+    const [y,mo,d] = c.date.split("-").map(Number);
+    const start = Date.UTC(y, mo-1, d, Number(tm[1]) - 8, Number(tm[2])); // SGT → UTC
+    when = [`DTSTART:${utc(start)}`, `DTEND:${utc(start + 3*3600*1000)}`];
+  } else {
+    when = [`DTSTART;VALUE=DATE:${pack(c.date)}`, `DTEND;VALUE=DATE:${pack(c.endDate || c.date, 1)}`];
+  }
+
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -974,8 +999,7 @@ function eventIcs(c){
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${stamp}`,
-    `DTSTART;VALUE=DATE:${pack(c.date)}`,
-    `DTEND;VALUE=DATE:${pack(c.endDate || c.date, 1)}`,
+    ...when,
     `SUMMARY:${escIcs(c.act)}`,
     c.venue ? `LOCATION:${escIcs(c.venue)}` : null,
     desc ? `DESCRIPTION:${escIcs(desc)}` : null,
@@ -1016,7 +1040,7 @@ function renderEvents(){
       ? `${niceDay(c.date)}${c.endDate && c.endDate !== c.date ? "–" + niceDay(c.endDate) : ""}`
       : "TBA";
     const sub = c.date
-      ? [c.kind, c.venue, c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
+      ? [c.kind, c.venue, fmtEventTime(c.time), c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
       : [c.kind, (c.note || "no Singapore date announced yet")].filter(Boolean).join(" · ");
     const links = [];
     if(url) links.push(`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Tickets / info ↗</a>`);

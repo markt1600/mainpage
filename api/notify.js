@@ -38,6 +38,15 @@ function sgToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" })
     .format(new Date()); // YYYY-MM-DD
 }
+// "19:30" → "7.30pm" (or "8pm" on the hour); null for anything unparseable
+function fmtEventTime(t) {
+  const m = String(t || "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  let h = Number(m[1]); const min = m[2];
+  const ap = h >= 12 ? "pm" : "am";
+  h = h % 12 || 12;
+  return min === "00" ? `${h}${ap}` : `${h}.${min}${ap}`;
+}
 // whole days from today (SGT) to an ISO date, both taken as calendar dates
 function daysUntil(iso, today) {
   const [y1, m1, d1] = today.split("-").map(Number);
@@ -113,8 +122,9 @@ async function composeDigest() {
   for (const e of Array.isArray(events) ? events : []) {
     if (!e || !e.act || !e.date || !/^\d{4}-\d{2}-\d{2}$/.test(e.date)) continue;
     const delta = daysUntil(e.date, today);
-    if (delta === 0) lines.push(`🎫 ${e.act} starts today${e.venue ? ` · ${e.venue}` : ""}`);
-    else if (delta === 1) lines.push(`🎫 ${e.act} is tomorrow${e.venue ? ` · ${e.venue}` : ""}`);
+    const extra = [e.venue, fmtEventTime(e.time)].filter(Boolean).map((s) => ` · ${s}`).join("");
+    if (delta === 0) lines.push(`🎫 ${e.act} starts today${extra}`);
+    else if (delta === 1) lines.push(`🎫 ${e.act} is tomorrow${extra}`);
   }
 
   const nice = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(new Date());
