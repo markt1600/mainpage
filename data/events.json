@@ -20,16 +20,6 @@
     "url": ""
   },
   {
-    "act": "Alex Warren",
-    "kind": "Concert",
-    "date": "2026-08-18",
-    "endDate": null,
-    "venue": "",
-    "status": "",
-    "note": "",
-    "url": ""
-  },
-  {
     "act": "An Evening with Mi",
     "kind": "Concert",
     "date": "2026-09-06",
@@ -78,16 +68,6 @@
     "status": "on sale",
     "note": "After Hours Til Dawn Tour",
     "url": "https://www.livenation.sg/event/the-weeknd-after-hours-til-dawn-tour-singapore-tickets-edp1672025"
-  },
-  {
-    "act": "Hans Zimmer",
-    "kind": "Concert",
-    "date": "2026-10-07",
-    "endDate": null,
-    "venue": "",
-    "status": "",
-    "note": "",
-    "url": ""
   },
   {
     "act": "F1 Singapore GP",
@@ -150,16 +130,6 @@
     "url": "https://www.sistic.com.sg/events/joe1126"
   },
   {
-    "act": "5 Seconds of Summer",
-    "kind": "Concert",
-    "date": "2026-11-16",
-    "endDate": null,
-    "venue": "",
-    "status": "",
-    "note": "",
-    "url": ""
-  },
-  {
     "act": "PSLE Results",
     "kind": "Exam",
     "date": "2026-11-24",
@@ -190,16 +160,6 @@
     "url": "https://singaporeinternationalmarathon.com/events/standard-chartered-10km/"
   },
   {
-    "act": "BTS",
-    "kind": "Concert",
-    "date": "2026-12-18",
-    "endDate": null,
-    "venue": "",
-    "status": "",
-    "note": "",
-    "url": ""
-  },
-  {
     "act": "Jay Chou",
     "kind": "Concert",
     "date": "2027-01-08",
@@ -208,25 +168,5 @@
     "status": "on sale",
     "note": "Carnival II World Tour",
     "url": "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/"
-  },
-  {
-    "act": "Westlife",
-    "kind": "Concert",
-    "date": "2027-01-17",
-    "endDate": null,
-    "venue": "",
-    "status": "",
-    "note": "",
-    "url": ""
-  },
-  {
-    "act": "The Script",
-    "kind": "Concert",
-    "date": "2027-03-31",
-    "endDate": null,
-    "venue": "",
-    "status": "",
-    "note": "",
-    "url": ""
   }
 ]

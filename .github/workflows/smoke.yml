@@ -1,0 +1,58 @@
+name: smoke
+
+# Catches broken commits before anyone notices a blank section: with two
+# Claude sessions and the /admin editor all committing to main, this is the
+# safety net. Vercel deploys regardless — this is monitoring, not a gate.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax-check serverless functions
+        run: |
+          set -e
+          for f in api/*.js scripts/*.mjs; do node --check "$f"; done
+          echo "all API files parse"
+
+      - name: Validate data + config JSON
+        run: |
+          node -e '
+            const fs = require("fs");
+            for (const f of ["data/events.json", "data/birthdays.json"]) {
+              const d = JSON.parse(fs.readFileSync(f, "utf8"));
+              if (!Array.isArray(d)) throw new Error(f + " is not an array");
+              for (const e of d) if (!e || typeof e !== "object") throw new Error(f + " has a non-object entry");
+              console.log(f, "OK:", d.length, "entries");
+            }
+            JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+            console.log("vercel.json OK");
+          '
+
+      - name: Parse inline page scripts
+        run: |
+          node -e '
+            const html = require("fs").readFileSync("index.html", "utf8");
+            const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+            if (!blocks.length) throw new Error("no inline <script> blocks found");
+            blocks.forEach((b) => new Function(b[1]));
+            console.log(blocks.length, "inline script block(s) parse OK");
+          '
+
+      - name: Headless render
+        run: |
+          npm install --no-save playwright > /dev/null 2>&1
+          npx playwright install --with-deps chromium > /dev/null 2>&1
+          python3 -m http.server 8899 > /dev/null 2>&1 &
+          sleep 1
+          node scripts/ci-render.mjs

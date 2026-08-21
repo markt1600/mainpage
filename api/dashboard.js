@@ -266,9 +266,11 @@ async function getCoe() {
   const headRes = await fetch(`${base}&limit=1`, { headers: { Accept: "application/json" } });
   if (!headRes.ok) throw new Error(`data.gov.sg ${headRes.status}`);
   const total = (await headRes.json())?.result?.total;
-  const offset = Number.isFinite(total) ? Math.max(0, total - 15) : 0;
+  // 35 rows ≈ the last 7 bidding exercises (5 categories each) — enough for
+  // the round-over-round change plus a 6-point trend sparkline.
+  const offset = Number.isFinite(total) ? Math.max(0, total - 35) : 0;
 
-  const res = await fetch(`${base}&offset=${offset}&limit=15`, { headers: { Accept: "application/json" } });
+  const res = await fetch(`${base}&offset=${offset}&limit=35`, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`data.gov.sg ${res.status}`);
   const j = await res.json();
   const recs = j?.result?.records || [];
@@ -284,6 +286,14 @@ async function getCoe() {
   const prevRows = prevKey ? recs.filter((r) => key(r) === prevKey) : [];
   const latest = rows[0];
 
+  // Approximate result date per exercise (1st/3rd Wednesday ≈ 7th/21st) —
+  // only used to label the sparkline's date span.
+  const approxTs = (month, biddingNo) => {
+    const [y, m] = String(month).split("-").map(Number);
+    return Math.floor(Date.UTC(y, (m || 1) - 1, Number(biddingNo) === 1 ? 7 : 21) / 1000);
+  };
+  const historyKeys = exercises.slice(-6);
+
   return {
     month: latest.month,                 // e.g. "2026-08"
     round: Number(latest.bidding_no),    // 1 or 2
@@ -292,11 +302,22 @@ async function getCoe() {
       .map((r) => {
         const prev = prevRows.find((p) => p.vehicle_class === r.vehicle_class);
         const prevPremium = prev ? Number(prev.premium) : null;
+        // Premium trend over the last few exercises, oldest first.
+        const spark = [], sparkTimes = [];
+        for (const k of historyKeys) {
+          const hit = recs.find((h) => key(h) === k && h.vehicle_class === r.vehicle_class);
+          if (hit && Number.isFinite(Number(hit.premium))) {
+            spark.push(Number(hit.premium));
+            sparkTimes.push(approxTs(hit.month, hit.bidding_no));
+          }
+        }
         return {
           cls: r.vehicle_class,          // "Category A" … "Category E"
           premium: Number(r.premium),
           quota: Number(r.quota),
           prevPremium: Number.isFinite(prevPremium) ? prevPremium : null,
+          spark: spark.length >= 2 ? spark : null,
+          sparkTimes: spark.length >= 2 ? sparkTimes : null,
         };
       })
       .filter((r) => r.cls && Number.isFinite(r.premium))

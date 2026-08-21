@@ -4,6 +4,8 @@
 // already publishes and sends it to every registered device:
 //
 //   · MERIDIAN pipeline: built (with issue/time/duration/pages) or MISSING
+//   · the Happy Day counter
+//   · statement reminders due today
 //   · birthdays today / tomorrow / a week out
 //   · watchlist events starting today or tomorrow
 //
@@ -43,6 +45,34 @@ function daysUntil(iso, today) {
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
 
+// Keep both of these in sync with the same-named configs in index.html.
+const HAPPY_DAY = { month: 4, day: 4, firstYear: 2023 };
+const REMINDERS = [
+  { day: 20, text: "Citi SG CC Statement Available" },
+  { day: 24, text: "Citi US CC Statement Available" },
+  { day: 24, text: "UOB CC Statement Available" },
+  { day: 1,  text: "Citi SG Bank Statement Available" },
+  { day: 1,  text: "Citi US Bank Statement Available" },
+];
+
+function happyDayLine(today) {
+  const [y, m, d] = today.split("-").map(Number);
+  const before = m < HAPPY_DAY.month || (m === HAPPY_DAY.month && d < HAPPY_DAY.day);
+  const annivYear = before ? y - 1 : y;
+  const years = annivYear - HAPPY_DAY.firstYear;
+  if (years < 0) return null;
+  const dayNum = Math.round(
+    (Date.UTC(y, m - 1, d) - Date.UTC(annivYear, HAPPY_DAY.month - 1, HAPPY_DAY.day)) / 86400000
+  ) + 1;
+  return `♥ Happy Day ${years * 365}.${dayNum}`;
+}
+
+function reminderLines(today) {
+  const [y, m, d] = today.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // days in this month
+  return REMINDERS.filter((r) => d === Math.min(r.day, lastDay)).map((r) => `🔔 ${r.text}`);
+}
+
 async function composeDigest() {
   const today = sgToday();
   const [status, birthdays, events] = await Promise.all([
@@ -62,6 +92,10 @@ async function composeDigest() {
       lines.push(`⚠ MERIDIAN hasn't published today — latest is No. ${status.issue} (${status.date || status.isoDate})`);
     }
   }
+
+  const hd = happyDayLine(today);
+  if (hd) lines.push(hd);
+  lines.push(...reminderLines(today));
 
   const [ty] = today.split("-").map(Number);
   for (const b of Array.isArray(birthdays) ? birthdays : []) {
