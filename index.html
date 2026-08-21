@@ -197,9 +197,25 @@
   .w-stat .v{font-family:"Fraunces",serif;font-weight:600;font-size:24px;margin-top:3px;line-height:1}
   .w-stat .v small{font-size:13px;color:var(--ink-soft);font-weight:500}
 
-  /* multiple stacked city weather panels (Singapore above Tokyo) */
-  .weather-stack{display:flex;flex-direction:column;gap:16px}  /* top spacing comes from the section's sec-head */
-  .weather-stack .weather{margin-top:0}
+  /* city weather panels: compact 2×2 grid on desktop, stacked on mobile */
+  .weather-stack{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}  /* top spacing comes from the section's sec-head */
+  .weather-stack .weather{
+    margin-top:0;
+    grid-template-columns:1fr;   /* stack the current-conditions row above the stats */
+    gap:16px;
+    padding:20px 24px;
+  }
+  .weather-stack .w-divide{display:none}
+  .weather-stack .w-glyph{font-size:40px}
+  .weather-stack .w-temp{font-size:54px}
+  .weather-stack .w-temp sup{font-size:22px}
+  .weather-stack .w-cond{font-size:16px}
+  .weather-stack .w-stats{grid-template-columns:repeat(3,1fr);gap:10px 14px}
+  .weather-stack .w-stat .v{font-size:18px}
+  .weather-stack .w-stat .v small{font-size:11px}
+  @media(max-width:880px){
+    .weather-stack{grid-template-columns:1fr}
+  }
 
   /* ---------------- Markets ---------------- */
   .markets{margin-top:30px}
@@ -622,6 +638,7 @@
 
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
+      <span id="healthNote" style="display:none;color:var(--accent-deep);letter-spacing:.06em"></span>
       <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
     </footer>
   </div>
@@ -686,16 +703,20 @@ const DEMO = {
     { event:"Wimbledon", headline:"Sample: semifinal line-ups decided on Centre Court", summary:"This is placeholder copy — with the API live, real results from the past 24 hours appear here whenever a major event is on.", scorelines:["A. Player def. B. Player 6-4 3-6 7-6(4) 6-2"], source:"Sample", url:"" },
     { event:"Tour de France", headline:"Sample: breakaway survives a mountain stage", summary:"Scores, key moments, and standings land in this panel. When no major event is running, the whole section hides itself.", scorelines:["Stage 9: Rider One, +0:42 GC lead"], source:"Sample", url:"" },
   ],
-  coe: {
-    month: "2026-08", round: 2, prev: { month: "2026-08", round: 1 },
-    premiums: [
-      { cls:"Category A", premium:128501, quota:1197, prevPremium:126000 },
-      { cls:"Category B", premium:131001, quota:936, prevPremium:133388 },
-      { cls:"Category C", premium:90002, quota:386, prevPremium:88989 },
-      { cls:"Category D", premium:11301, quota:512, prevPremium:11301 },
-      { cls:"Category E", premium:135000, quota:254, prevPremium:132002 },
-    ],
-  },
+  coe: (()=>{
+    const ts = Array.from({length:6},(_,i)=>Math.floor(Date.now()/1000)-(5-i)*14*86400);
+    const hist = (vals)=>({ spark: vals, sparkTimes: ts });
+    return {
+      month: "2026-08", round: 2, prev: { month: "2026-08", round: 1 },
+      premiums: [
+        { cls:"Category A", premium:128501, quota:1197, prevPremium:126000, ...hist([119200,121004,123456,124890,126000,128501]) },
+        { cls:"Category B", premium:131001, quota:936, prevPremium:133388, ...hist([127800,130010,131889,132560,133388,131001]) },
+        { cls:"Category C", premium:90002, quota:386, prevPremium:88989, ...hist([84210,85600,86890,87990,88989,90002]) },
+        { cls:"Category D", premium:11301, quota:512, prevPremium:11301, ...hist([10400,10689,10890,11100,11301,11301]) },
+        { cls:"Category E", premium:135000, quota:254, prevPremium:132002, ...hist([126010,128500,130001,131020,132002,135000]) },
+      ],
+    };
+  })(),
   holidays: [
     { region:"Japan", name:"Marine Day", date:"2026-07-20" },
     { region:"Vancouver", name:"British Columbia Day", date:"2026-08-03" },
@@ -732,6 +753,18 @@ function beginThinking(){
 function endThinking(){
   pendingLoads = Math.max(0, pendingLoads - 1);
   if(!pendingLoads) document.querySelector(".masthead").classList.remove("thinking");
+}
+
+/* Data-source health: sections fail soft by hiding themselves, which can
+   mask a quietly broken feed. Genuine fetch failures (not sections that
+   are simply unconfigured) are collected here and surfaced as a small
+   footer warning. */
+const dataIssues = new Set();
+function noteIssue(name){
+  dataIssues.add(name);
+  const el = $("healthNote");
+  el.style.display = "";
+  el.textContent = `⚠ ${dataIssues.size} data source${dataIssues.size>1?"s":""} unavailable: ${[...dataIssues].join(", ")}`;
 }
 
 function renderProjects(){
@@ -893,6 +926,7 @@ async function loadSports(){
     const d = await res.json();
     renderSports(d.events);
   }catch(e){
+    noteIssue("sports");
     // Live site: stay hidden on failure. Local preview: show sample cards.
     if(location.hostname === "localhost" || location.hostname === "127.0.0.1") renderSports(DEMO.sports);
   }finally{
@@ -1049,6 +1083,8 @@ function renderCoe(coe){
         ? ` · Δ vs round ${coe.prev.round}`
         : ` · Δ vs ${monthName(coe.prev.month)} round ${coe.prev.round}`;
     }
+    const next = nextCoeBidding();
+    if(next) when += ` · next ≈ ${new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}).format(next)}`;
   }
   $("coeCnt").textContent = when;
   $("coe").innerHTML = list.map(p=>{
@@ -1068,8 +1104,24 @@ function renderCoe(coe){
         <div class="mkt-px">S$${Number(p.premium).toLocaleString("en-US")}</div>
         ${chg}
         ${Number.isFinite(p.quota)?`<div class="mkt-extra">quota ${Number(p.quota).toLocaleString("en-US")}</div>`:""}
+        ${sparkline(p)}
       </div>`;
   }).join("");
+}
+
+/* Next COE bidding exercise: results land on the 1st and 3rd Wednesday of
+   each month — find the next one strictly after today (SGT). Approximate,
+   hence the ≈ in the header. */
+function nextCoeBidding(){
+  const [ty,tm,td] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
+  for(let off=1; off<=42; off++){
+    const dt = new Date(Date.UTC(ty, tm-1, td+off));
+    if(dt.getUTCDay() === 3){
+      const nth = Math.ceil(dt.getUTCDate()/7);
+      if(nth === 1 || nth === 3) return dt;
+    }
+  }
+  return null;
 }
 
 function renderBriefs(briefs){
@@ -1160,8 +1212,15 @@ async function load(fresh){
     if(!res.ok) throw new Error(res.status);
     const data = await res.json();
     renderAll(data);
+    // The API responded — any empty sub-feed means its upstream fetch failed.
+    if(!(data.cities||[]).length) noteIssue("weather");
+    if(!(data.markets||[]).length) noteIssue("markets");
+    if(!(data.fx||[]).length) noteIssue("FX");
+    if(data.coe == null) noteIssue("COE");
+    if(!(data.holidays||[]).length) noteIssue("holidays");
     return true;
   }catch(err){
+    noteIssue("news & markets feed");
     if(!fresh) renderAll({ ...DEMO, _note: "Preview mode — showing a sample edition. Deploy to Vercel with ANTHROPIC_API_KEY set to go live." });
     return false;
   }finally{
@@ -1232,7 +1291,10 @@ async function loadBalances(){
   beginThinking();
   try{
     const res = await fetch("/api/balances" + qs, { cache:"no-store" });
-    if(!res.ok) return; // 401 when gated without the right token → stay hidden
+    if(!res.ok){
+      if(res.status !== 401 && res.status !== 404) noteIssue("balances"); // 401 = gated by design
+      return;
+    }
     const d = await res.json();
     renderBalances(d.balances);
   }catch(e){ /* stay hidden on failure */ }
@@ -1390,8 +1452,8 @@ async function loadLists(){
     }catch(e){ return null; }
   };
   const [ev, bd] = await Promise.all([pull("/data/events.json"), pull("/data/birthdays.json")]);
-  if(ev) EVENTS = ev;
-  if(bd) BIRTHDAYS = bd;
+  if(ev) EVENTS = ev; else noteIssue("events list (inline fallback)");
+  if(bd) BIRTHDAYS = bd; else noteIssue("birthdays list (inline fallback)");
   renderEvents();
   renderBirthdays();
 }
@@ -1464,10 +1526,12 @@ async function loadFitness(){
   beginThinking();
   try{
     const res = await fetch("/api/fitness", { cache:"no-store" });
-    if(!res.ok) return;
+    if(!res.ok){ noteIssue("fitness"); return; }
     const d = await res.json();
+    // "env vars not set" is a config-off state, not a failure.
+    if(d.error && !/not set/i.test(d.error)) noteIssue("fitness");
     renderFitness(d);
-  }catch(e){ /* stay hidden on failure */ }
+  }catch(e){ noteIssue("fitness"); }
   finally{ endThinking(); }
 }
 
