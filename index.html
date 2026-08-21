@@ -955,6 +955,36 @@ let EVENTS = [
   { act: "Jay Chou", kind: "Concert", date: "2027-01-08", endDate: "2027-01-10", venue: "National Stadium", status: "on sale", note: "Carnival II World Tour", url: "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/" },
 ];
 
+/* Downloadable .ics calendar entry for a dated event — Outlook, Apple, and
+   Google Calendar all accept these. All-day; DTEND is exclusive, hence +1. */
+function eventIcs(c){
+  const pack = (iso, addDays=0) => {
+    const [y,m,d] = iso.split("-").map(Number);
+    const t = new Date(Date.UTC(y, m-1, d + addDays));
+    return `${t.getUTCFullYear()}${String(t.getUTCMonth()+1).padStart(2,"0")}${String(t.getUTCDate()).padStart(2,"0")}`;
+  };
+  const escIcs = (s) => String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+  const stamp = new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+Z/,"Z");
+  const uid = `${c.date}-${String(c.act).toLowerCase().replace(/[^a-z0-9]+/g,"-")}@marktan.ai`;
+  const desc = [c.note, c.url].filter(Boolean).join("\n");
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//marktan.ai//The Daily//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${pack(c.date)}`,
+    `DTEND;VALUE=DATE:${pack(c.endDate || c.date, 1)}`,
+    `SUMMARY:${escIcs(c.act)}`,
+    c.venue ? `LOCATION:${escIcs(c.venue)}` : null,
+    desc ? `DESCRIPTION:${escIcs(desc)}` : null,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
+  return "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
+}
+
 /* Events watchlist — cards sorted by date, undated entries last. */
 function renderEvents(){
   const events = (EVENTS||[]).filter(c=>c && c.act);
@@ -988,12 +1018,15 @@ function renderEvents(){
     const sub = c.date
       ? [c.kind, c.venue, c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
       : [c.kind, (c.note || "no Singapore date announced yet")].filter(Boolean).join(" · ");
+    const links = [];
+    if(url) links.push(`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Tickets / info ↗</a>`);
+    if(c.date) links.push(`<a class="srclink" href="${eventIcs(c)}" download="${String(c.act).toLowerCase().replace(/[^a-z0-9]+/g,"-")}.ics" title="Download an Outlook / calendar entry">📅 calendar</a>`);
     return `
       <div class="bday${today?' today':''}"${c.note && c.date ? ` title="${esc(c.note)}"` : ""}>
         <div class="bday-date">${esc(c.act)}${today?" 🎫":""}</div>
         <div class="bday-name">${esc(when)}</div>
         <div class="bday-when">${esc(sub)}</div>
-        ${url?`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Tickets / info ↗</a>`:""}
+        ${links.join(`<span class="srclink" style="color:var(--ink-faint)"> · </span>`)}
       </div>`;
   }).join("");
 }
