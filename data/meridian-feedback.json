@@ -1,494 +1,501 @@
 {
-  "votes": [
-    {
-      "ts": "2026-08-02T23:30:00Z",
-      "issue": "61",
-      "desk": "The Kit",
-      "topic": "Garmin CIRQA",
-      "vote": -1,
-      "note": "reconstructed — reader's original vote was lost to the readBody bug"
-    },
-    {
-      "ts": "2026-08-03T03:16:14.461Z",
-      "issue": "61",
-      "desk": "probe",
-      "topic": "endpoint probe - safe to ignore",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-03T03:44:55.087Z",
-      "issue": "61",
-      "desk": "The Connected Home",
-      "topic": "The Connected Home · Home Assistant",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-03T03:46:46.398Z",
-      "issue": "61",
-      "desk": "The Good Life",
-      "topic": "The Good Life · Watches",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-03T03:48:03.183Z",
-      "issue": "61",
-      "desk": "Curiosities",
-      "topic": "Curiosities · Astronomy",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-03T03:48:14.504Z",
-      "issue": "61",
-      "desk": "Love & Life",
-      "topic": "Love & Life · Demography",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-03T03:48:18.843Z",
-      "issue": "61",
-      "desk": "Fitness",
-      "topic": "Fitness · The Science",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-03T03:48:56.738Z",
-      "issue": "61",
-      "desk": "The Long Read",
-      "topic": "The Long Read · The Undercurrent",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-04T02:03:33.284Z",
-      "issue": "62",
-      "desk": "Technology",
-      "topic": "Technology · Open Models",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-04T02:06:23.745Z",
-      "issue": "62",
-      "desk": "The Kit",
-      "topic": "The Kit · Wearables",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-04T02:06:29.285Z",
-      "issue": "62",
-      "desk": "The Connected Home",
-      "topic": "The Connected Home · Lighting",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-04T02:06:33.248Z",
-      "issue": "62",
-      "desk": "The Good Life",
-      "topic": "The Good Life · Escapes",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-05T07:10:13.339Z",
-      "issue": "61",
-      "desk": "probe",
-      "topic": "endpoint probe - safe to ignore",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-06T01:19:54.339Z",
-      "issue": "64",
-      "desk": "The Kit",
-      "topic": "The Kit · Home Audio",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-06T01:20:49.958Z",
-      "issue": "64",
-      "desk": "The Good Life",
-      "topic": "The Good Life · Watches",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-06T01:21:22.194Z",
-      "issue": "64",
-      "desk": "The Rabbit Hole",
-      "topic": "The Rabbit Hole · The Invitation",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-06T23:26:57.764Z",
-      "issue": "65",
-      "desk": "The Kit",
-      "topic": "The Kit · One Body, Everything",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-06T23:27:04.007Z",
-      "issue": "65",
-      "desk": "Technology",
-      "topic": "Technology · The Open Frontier",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-06T23:27:12.136Z",
-      "issue": "65",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Escape",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-06T23:28:48.017Z",
-      "issue": "65",
-      "desk": "The Rabbit Hole",
-      "topic": "The Rabbit Hole · The Invitation",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-08T02:10:06.595Z",
-      "issue": "66",
-      "desk": "The Kit",
-      "topic": "The Kit · One Body, Every Angle",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-08T02:10:08.564Z",
-      "issue": "66",
-      "desk": "Technology",
-      "topic": "Technology · The Home Lab",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-08T02:10:31.798Z",
-      "issue": "66",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Escape",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-08T04:13:09.765Z",
-      "issue": "66",
-      "desk": "The Rabbit Hole",
-      "topic": "The Rabbit Hole · The Invitation",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-08T04:13:28.810Z",
-      "issue": "66",
-      "desk": "The Travel Desk",
-      "topic": "The Travel Desk · The Roundup",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-09T01:04:19.102Z",
-      "issue": "67",
-      "desk": "The World",
-      "topic": "The World · The Strait",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-09T01:04:25.450Z",
-      "issue": "67",
-      "desk": "Singapore",
-      "topic": "Singapore · SG61",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-09T01:04:34.072Z",
-      "issue": "67",
-      "desk": "Property",
-      "topic": "Property · The Two Speeds",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-09T01:04:38.935Z",
-      "issue": "67",
-      "desk": "Technology",
-      "topic": "Technology · The Open Frontier",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-09T01:05:43.176Z",
-      "issue": "67",
-      "desk": "The Kit",
-      "topic": "The Kit · The Pre-Order",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-09T01:05:50.120Z",
-      "issue": "67",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Escape",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-09T01:06:16.457Z",
-      "issue": "67",
-      "desk": "The Macro Desk",
-      "topic": "The Macro Desk · The Setup",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-11T06:34:48.940Z",
-      "issue": "69",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Escape",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-11T06:34:56.289Z",
-      "issue": "69",
-      "desk": "Screen & Sound",
-      "topic": "Screen & Sound · The Album Nobody's Heard",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-11T06:35:00.348Z",
-      "issue": "69",
-      "desk": "The Family Desk",
-      "topic": "The Family Desk · The Ban, Eight Months On",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-11T06:35:31.520Z",
-      "issue": "69",
-      "desk": "The Kit",
-      "topic": "The Kit · The Wait Ends",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-11T06:35:34.632Z",
-      "issue": "69",
-      "desk": "Technology",
-      "topic": "Technology · The One That Shipped",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-12T00:21:54.591Z",
-      "issue": "70",
-      "desk": "The World",
-      "topic": "The World · The Chokepoint",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-12T00:23:31.952Z",
-      "issue": "70",
-      "desk": "The Macro Desk",
-      "topic": "The Macro Desk · The Print Nobody's Seen",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-12T00:24:09.558Z",
-      "issue": "70",
-      "desk": "The Long Read",
-      "topic": "The Long Read · The Undercurrent",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-13T22:39:46.246Z",
-      "issue": "72",
-      "desk": "Property",
-      "topic": "Property · Two Readings, One Number",
-      "vote": -1
-    },
-    {
-      "ts": "2026-08-13T22:40:01.846Z",
-      "issue": "72",
-      "desk": "Technology",
-      "topic": "Technology · The Open Frontier, With a Lock",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-13T22:40:38.014Z",
-      "issue": "72",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Flagship Season Opens",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-14T03:07:42.981Z",
-      "issue": "72",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Flagship Season Opens",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-15T09:17:03.832Z",
-      "issue": "73",
-      "desk": "The Rabbit Hole",
-      "topic": "The Rabbit Hole · The Telescope World",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-15T23:04:51.008Z",
-      "issue": "74",
-      "desk": "The Kit",
-      "topic": "The Kit · The Object You Queue For",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-17T22:37:55.228Z",
-      "issue": "75",
-      "desk": "Atelier Next",
-      "topic": "Chinese woks",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-19T23:22:51.080Z",
-      "issue": "77",
-      "desk": "The Good Life",
-      "topic": "The Good Life · The Turntable",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-20T01:57:31.535Z",
-      "issue": "77",
-      "desk": "Atelier Next",
-      "topic": "Umbrellas",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-20T23:16:55.536Z",
-      "issue": "78",
-      "desk": "The Kit",
-      "topic": "The Kit · The Compact Cinema Camera",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-20T23:17:04.620Z",
-      "issue": "78",
-      "desk": "Screen & Sound",
-      "topic": "Screen & Sound · The Wide Release",
-      "vote": 1
-    },
-    {
-      "ts": "2026-08-23T00:55:44.682Z",
-      "issue": "80",
-      "desk": "The Kit",
-      "topic": "The Kit · The 360 Flagship",
-      "vote": 1
-    }
-  ],
-  "notes": [
-    {
-      "ts": "2026-07-23T09:00:00Z",
-      "issue": "50",
-      "text": "Editor directive (standing): de-emphasize Matter in The Connected Home — the reader does not run Matter. Cover standards only when they concretely change a Lutron + Home Assistant household; lead with practical device/HA coverage."
-    },
-    {
-      "ts": "2026-07-29T12:00:00Z",
-      "issue": "56",
-      "text": "Editor directive (correction, next issue): No. 55's Diary claimed BTS Singapore dates were 'not announced (possibly 2027)' — this was FALSE and contradicted Nos. 37–39's ledger. The four National Stadium nights (17/19/20/22 Dec 2026) are confirmed and now SOLD OUT (Live Nation SG / The Kallang / Time Out). Print a one-line 'Setting the record straight' correction on the Diary, restore BTS to the calendar with sold-out status (resale caution), and re-read the new LEDGER OUTRANKS MEMORY rule before writing the Diary."
-    },
-    {
-      "ts": "2026-08-02T23:30:00Z",
-      "issue": "61",
-      "text": "Editor directive (standing): STOP covering the Garmin CIRQA. The reader has asked for it to not be covered anymore (a thumbs-down was also cast but lost to the feedback-endpoint bug, fixed 3 Aug). No leads, secondaries, or shelf mentions on The Kit or anywhere else — the story is saturated for this reader. Only a genuinely major new peg (recall, discontinuation, a class-defining rival) reopens it, and then as a one-line delta at most."
-    },
-    {
-      "ts": "2026-08-03T03:45:21.028Z",
-      "issue": "61",
-      "text": "There have been too many articles on the latest home assistant upgrade."
-    },
-    {
-      "ts": "2026-08-03T04:05:00Z",
-      "issue": "61",
-      "text": "Editor directive (standing, Macro desk): the reader owns VWRA, global bonds AND bitcoin — the spec's old 'core anchors are VWRA and global bonds' framing was wrong. More importantly: STOP printing the daily holdings recital ('the two you hold stay VWRA and global bonds; gold and BTC are read for sensitivity' and variants). Never restate what the reader owns in the magazine — analyse the four instruments, skip the ownership commentary. Now a hard validate gate from No. 62."
-    },
-    {
-      "ts": "2026-08-04T04:20:09Z",
-      "issue": "62",
-      "text": "SPECIAL EDITION REQUEST: Flight simulator enthusiasts (desk: editor — requested in chat; the home-cockpit world: MSFS/X-Plane/DCS communities, hardware from yoke-and-throttle to full sim rigs, the study-level aircraft culture, VATSIM online ATC, what it costs and what it's like to be deep in it)"
-    },
-    {
-      "ts": "2026-08-05T07:10:14.413Z",
-      "issue": "61",
-      "text": "endpoint probe - safe to ignore"
-    },
-    {
-      "ts": "2026-08-06T03:08:46Z",
-      "issue": "64",
-      "text": "SPECIAL EDITION REQUEST: Kanazawa (desk: editor — requested in chat). A destination ultra deep dive in the spirit of the hobby specials, built around the reader's buy-once-cry-once philosophy: the EXPERIENCES and SHOPPING that are experience-once/buy-once and genuinely worth the splurge — Kanazawa's living crafts at the top end (gold leaf, Kaga yuzen, Ohi and Kutani ware, lacquer — the named workshops and ateliers where you buy directly from makers, real prices, commissioning where possible), the once-worth-it experiences (the definitive kaiseki tables and sushi counters with booking reality, Kenroku-en and the geisha districts done properly, private craft experiences), what to skip as tourist-tier. ACCOMMODATION: the reader is staying ONE NIGHT at Kayotei (Yamanaka Onsen) — cover it properly: what the house is, its story and standing, how to get the most from a single night there (the bath rhythm, the kaiseki, the rooms to know about), and the Yamanaka/Kaga onsen context around it, including the lacquerware town connection. Singapore departure practicalities (routes to Komatsu/via Tokyo-Osaka, the Hokuriku Shinkansen) where they genuinely help."
-    },
-    {
-      "ts": "2026-08-08T04:12:38.418Z",
-      "issue": "66",
-      "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Invitation (desk: The Rabbit Hole)"
-    },
-    {
-      "ts": "2026-08-09T01:05:29.644Z",
-      "issue": "67",
-      "text": "For technology, I don't care what runs on a $300 graphics card. I only care what runs on a 5090 or a system with dual 5090 (in other words, my system)."
-    },
-    {
-      "ts": "2026-08-10T00:41:27Z",
-      "issue": "68",
-      "text": "SPECIAL EDITION REQUEST: Model passenger plane collecting (desk: editor — requested in chat). The diecast model airliner world: brands like Gemini Jets, NG Models, JC Wings, Phoenix, Aviation400, Herpa and peers; the 1:400 and 1:200 scale ecosystems, mould quality wars and brand reputations, the collector communities and forums, the release/preorder economics and aftermarket, display and storage craft, and the Singapore angle where it genuinely exists."
-    },
-    {
-      "ts": "2026-08-12T00:22:22.295Z",
-      "issue": "70",
-      "text": "Althoguh it is major news, there is been coverage of the iran peace deal every day. Please rotate news stories to keep the reading fresh."
-    },
-    {
-      "ts": "2026-08-12T00:23:47.055Z",
-      "issue": "70",
-      "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Wheel (desk: The Rabbit Hole)"
-    },
-    {
-      "ts": "2026-08-13T01:24:38.409Z",
-      "issue": "71",
-      "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Invitation (desk: The Rabbit Hole)"
-    },
-    {
-      "ts": "2026-08-14T01:10:34.000Z",
-      "issue": "71",
-      "text": "SPECIAL EDITION REQUEST: Home cybersecurity — the ultra deep dive for a HOME environment, scoped to a household running Windows 11 desktops, WSL2 Ubuntu on those machines, and macOS laptops (no enterprise fleet, no corporate MDM). DEFENSIVE ONLY — hardening, hygiene and recovery; not offensive tooling. Wanted: the honest threat model for a home user in 2026 (who actually attacks home machines, and how); platform-by-platform hardening that is real and current — Windows 11 (Defender vs paid AV honestly, BitLocker, Smart App Control, standard-vs-admin accounts), the WSL2 seam specifically (what WSL does and does not isolate, Windows/Linux file-permission crossover, Docker Desktop exposure, dev-machine supply-chain risk from npm/pip/VS Code extensions), and macOS (Gatekeeper/XProtect reality, FileVault, TCC permissions); the home NETWORK layer (router firmware, DNS filtering, IoT/VLAN segmentation, Tailscale-style overlays vs port-forwarding); identity as the real perimeter (passkeys vs TOTP vs SMS, password managers compared honestly post-LastPass, phishing that defeats MFA); backups as the last line (3-2-1, ransomware-proof versioning, actually testing restores); the family angle (protecting a household incl. a tween's devices without surveillance theatre); the community read (r/cybersecurity, r/homelab, security YouTube, what practitioners run at home vs what they tell clients); the sceptic desk — which paid security products are theatre for a home user; and the fresh-peg sweep of 2026 home-relevant incidents/CVEs. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-15T08:32:07.000Z",
-      "issue": "73",
-      "text": "SPECIAL EDITION REQUEST: Da Lat, Vietnam — the ultra deep dive. IMPORTANT CONTEXT: today's No. 73 Travel Desk already ran Da Lat as its two-page Grand Tour (reader-pinned) — this special must go DEEPER and COMPLEMENT it, not re-survey: read No. 73's Travel Desk first and build past it. The full 24pp treatment of the Central Highlands hill station: the deep history (the French hill-station founding, Yersin, the Cité-Jardin plan, the villas and their decay/restoration economics, the Bao Dai summer palace era, the wartime neutrality legend); the coffee economy done properly (Vietnam as the world's robusta giant vs Da Lat's arabica exception, Cau Dat's farms, the specialty wave and its farms/roasters/cafes by name with prices, weasel-coffee ethics honestly); the flower-and-farm industrial belt (Hasfarm, the greenhouse sprawl's environmental cost — honest about the plastic-roof landscape and flooding); the railway story (the Cremaillere rack railway, the restored Da Lat–Trai Mat segment, revival plans); food as its own desk (banh trang nuong, artichoke everything, avocado ice cream, the night market, strawberry/dau tay culture, the best actual addresses); where to actually stay (Ana Mandara villas, the colonial-villa hotels, homestay culture, price tiers); itineraries by trip-length ex-Singapore incl. the SGN connection reality and the Lien Khuong airport upgrade status; adventure honestly age-gated (canyoning safety record with the documented fatalities, waterfalls, the alpine coaster); the pop-culture/K-drama and domestic-tourism boom angle (why young Vietnamese and Koreans flock there); climate as the product (the eternal-spring data vs Singapore's heat, wet/dry season honesty for planning); and the sceptic desk — overtourism, greenhouse sprawl, weekend crowds from HCMC, and whether the romance survives the reality. Community read: r/VietnamTravel, TripAdvisor, Vietnam Coracle, Foody, Vietnamese-language sentiment characterised. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-15T14:07:23.000Z",
-      "issue": "73",
-      "text": "SPECIAL EDITION REQUEST: The Slim d'Hermes Neo Brandebourgs Tourbillon — a single-watch ultra deep dive. PRIMARY SUBJECT, exhausted first: everything verifiable about this specific watch — the release (when, where unveiled, which collection cycle), full specifications (case metal/diameter/thickness, dial craft and the Brandebourg motif's meaning in the Hermes design language and its couture/frogging origin), the MOVEMENT (calibre designation, who designed and manufactures it — the Vaucher/Hermes relationship and Hermes's stake, tourbillon architecture, finishing, power reserve), price and production numbers/limitation, availability and waitlist reality, every serious review and hands-on (Hodinkee, Fratello, Revolution, SJX, Monochrome, WatchesbySJX, Deployant — SJX and Deployant are Singapore-based, note it), collector-forum sentiment (WatchUSeek, r/Watches, Instagram watch-community read), auction/secondary-market presence if any, and how it sits against peer haute-horlogerie tourbillons at its price. HONESTY LAW APPLIES HARD: this is a niche subject — hold or drop what cannot be verified, flag single-source claims in print, never invent a spec, price or quote. IF the single watch cannot honestly fill the book, widen in CONCENTRIC RINGS while keeping the Neo Brandebourgs as the spine: ring 2 = the Slim d'Hermes line (Philippe Delhotal's design era, the Philippe Apeloig typeface story, the ultra-thin micro-rotor calibres, the line's other metiers-d'art and complication pieces); ring 3 = Hermes watchmaking whole — La Montre Hermes history, the Vaucher Manufacture Fleurier stake, dial/case/strap ateliers, the playful-complication canon (Le Temps Suspendu, L'Heure De La Lune, Duc Attele minute-repeater tourbillon), and the collector debate 'is Hermes a real watchmaker?' answered with evidence not vibes; the reader is a serious mechanical-watch collector — write to that level, movement architecture and finishing vocabulary welcome. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-18T05:30:13.000Z",
-      "issue": "74",
-      "text": "SPECIAL EDITION REQUEST: The Hermes Kelly bag — the ultra deep dive. AUDIENCE NOTE, load-bearing: this issue is being made to share with a SERIOUS KELLY COLLECTOR (a friend of the reader). Pitch it at collector level — she already knows what a Kelly is; do NOT write a beginner's explainer or a listicle. She should finish it having learned something she did not know, and should not catch a single error. Depth targets: (1) THE OBJECT'S HISTORY done properly — the 1892 Haut a Courroies saddle origin, the 1930s Sac a Depeches, the 1956 Grace Kelly moment and the 1977 renaming, with dates verified not repeated from blogs. (2) HOW IT IS ACTUALLY MADE — one artisan per bag start to finish, the saddle stitch with two needles and waxed linen thread, hours per bag (verify the real figure, do not repeat marketing rounding), the Hermes ecole de maroquinerie and the leather-workers' training pipeline, the ateliers and the production-capacity story. (3) THE LEATHER SCHOOL — Togo, Epsom, Box calf, Chevre Mysore, Barenia, Swift, Clemence: grain, scratch behaviour, structure, patina and which suits which size/style, plus exotics (alligator/croc/lizard, the CITES reality and the lumiere/matte distinction). (4) THE TAXONOMY collectors argue about — Sellier vs Retourne, sizes 25/28/32/35 and the Mini Kelly II 20, Kelly Pochette, Kelly Danse/Elan/Cut/Doll and the special orders (HSS horseshoe stamp), hardware palladium vs gold, stamping/date codes and the 2021 system change. (5) THE ACQUISITION GAME told HONESTLY — the quota-bag reality, pre-spend expectations, SA relationships, why boutiques deny a wishlist exists, and the 2024 US antitrust class action over tying; the resale ecosystem (Privé Porter, Bagista, the SG scene) with real premium ranges. (6) THE MARKET — auction records at Sotheby's/Christie's incl. the 2025 record-setting sales, the Himalaya benchmark, and an HONEST examination of the 'better than gold' appreciation claim (which studies actually say what, what survivorship bias hides). (7) CARE, RESTORATION AND AUTHENTICATION — the Hermes spa service and its wait times/limits, what they will and will not restore, and the authentication tells collectors actually use (stitch angle, stamp fonts, hardware weight) without writing a counterfeiter's manual. (8) THE COMMUNITY read — PurseForum's Hermes sub-forums, r/TheHermesGame, the YouTube/IG collector voices — attributed, never invented. (9) SINGAPORE angle: the Liat Towers boutique, local reseller scene, and humidity/tropical care for leather. (10) THE SCEPTIC, mandatory: the quota game's real cost, whether a Kelly is an investment or a beautiful consumable, and the ethics questions collectors themselves raise (exotics, the artificial-scarcity critique). HONESTY LAW IN FULL: never invent a price, date, hours figure, or quote; flag single-sourced claims in print; hold what cannot be verified. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-18T22:13:28.000Z",
-      "issue": "76",
-      "text": "SPECIAL EDITION REQUEST: Vietnamese women working in Singapore's KTV lounges — a serious social-affairs ultra deep dive. THE SUBJECT IS THE WOMEN AND THE SYSTEM AROUND THEM, reported with dignity: a labour-migration story about money, law, risk and stigma. EDITORIAL GUARDRAILS, non-negotiable (same standard as No. 63's S&M descent: culture-focused, non-explicit): this is NOT a consumer guide — no venue recommendations or 'where to go', no prices for sexual services, no procurement detail, no reproduction of individual women's photos, working names or forum 'reviews' of specific people, nothing titillating. Forums (Sammyboy/SBF, HardwareZone EDMW) are to be mined as DEMAND-SIDE and industry-mechanics EVIDENCE and read critically — they are punter boards, so treat them as an artifact revealing the customers, the market's structure and its attitudes; quote sparingly and analytically, never as endorsement. COVER: (1) THE PIPELINE — recruitment in Vietnam (which provinces, brokers/agents, the fees and debt structure, what women are told vs what they find), and the visa machinery that makes it work: Social Visit Pass cycling, Work Permits, and especially the Performing Artiste Card regime and its history. (2) THE WORK ITSELF — what a KTV hostess job actually is (lady drinks, commission, sitting fees, tips, hours), the tiered venues, and the honest legal grey zone of where it does and does not cross into commercial sex. (3) THE MONEY — earnings ranges (attributed/held, never invented), commission structures, remittances home and what they fund. (4) THE LAW — public entertainment licensing, the Employment of Foreign Manpower Act, immigration offences, vice-raid enforcement patterns, the Prevention of Human Trafficking Act 2014 and its ACTUAL prosecution/conviction record (low — say so plainly), and what happens to women when a place is raided: detention, deportation, and how the victim-versus-offender determination is made. (5) THE JULY 2021 KTV COVID CLUSTER — the national story that exposed the industry's scale, the policy response, and the xenophobic backlash aimed specifically at Vietnamese women; report the backlash as a fact about Singapore, evenhandedly. (6) TRAFFICKING VS AGENCY, the hard part done with real nuance — the spectrum from voluntary economic migration through deception to debt bondage; steel-man BOTH the trafficking framing and the migrant-agency/sex-worker-rights framing (Project X's position that conflating the two harms workers deserves its full weight, as does the evidence of genuine coercion). Sallie Yea's academic work on Vietnamese women in Singapore's entertainment sector is a key source. (7) SUPPORT AND COMMUNITY — HOME, Project X, AWARE, Vietnamese diaspora networks, embassy/consular reality. (8) THE VIETNAM SIDE — Vietnamese-language reporting on recruitment and the sending villages, the returnee experience and stigma at home. (9) THE SCEPTIC — what the data genuinely supports versus moral panic in both directions; numbers here are scarce, contested and often come from advocacy or enforcement sources with incentives, so name the incentive whenever citing one. HONESTY LAW AT MAXIMUM: never invent a statistic, a price, a case or a quotation — and above all DO NOT FABRICATE FIRST-PERSON TESTIMONY from women; if the book quotes a woman, it must be from a published, attributable interview (ST/CNA/Rice Media/academic fieldwork), clearly cited. Flag single-sourced claims; hold what cannot be verified. Sources to work: Straits Times/CNA/TODAY archives, Rice Media, academic literature (Yea et al.), Project X and HOME reports, US State Dept TIP country reports on Singapore, published court judgments, Vietnamese press, and the local forums as critical demand-side artifacts. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-19T00:40:30.000Z",
-      "issue": "77",
-      "text": "SPECIAL EDITION REQUEST: Bangladeshi construction workers in Singapore — a social-affairs ultra deep dive, and the second in the reader's migrant-labour series (after the Vietnamese KTV book). SAME EDITORIAL LAW AS THAT ISSUE: the subject is the MEN AND THE SYSTEM AROUND THEM, reported with dignity and specificity, never as either a pity portrait or a policy brochure. NEVER FABRICATE FIRST-PERSON TESTIMONY — every quotation from a worker must come from a published, attributable source (TWC2 case notes, ST/CNA/TODAY/Rice Media interviews, academic fieldwork, or the workers' OWN published writing) with a citation. Invent no statistic, fee, wage or case; name the incentive behind advocacy, employer or government figures alike; flag single-sourced claims; hold what cannot be verified. THE READER SPECIFICALLY WANTS THE ORIGIN-COUNTRY LENS WORKED HARD — Bangladeshi press and forums are a primary source, not a footnote: Prothom Alo (Bengali), The Daily Star, New Age, Dhaka Tribune, bdnews24, The Business Standard on recruitment abuse, BMET policy and remittance data; Bengali-language Facebook groups and YouTube/TikTok vlogs made BY workers bound for or living in Singapore; and the instructive gap between how the Bangladeshi press covers Singapore and how Singapore covers Bangladeshis. Mark translated material as translated. COVER: (1) THE PIPELINE — the dalal/broker network in the sending districts (Tangail, Comilla, Brahmanbaria, Munshiganj, Narsingdi), BMET registration and the licensed-agency system, the medical and skills-test gauntlet, and above all THE FEE: Bangladeshi workers pay among the world's highest recruitment costs (report the real range with sources), and how families finance it — land sales, mortgages, moneylenders, microloans. (2) THE DEBT ARC — how many months or years to clear it, what happens to a man repatriated before he does, and how that sunk cost quietly disciplines a workforce into accepting conditions. (3) THE WORK — the Work Permit regime and employer-tied status, SEC(K)/skills certification, the construction sector's reliance, wages honestly (basic vs overtime, what actually reaches the bank), and the levy/quota machinery. (4) LIVING — dormitories: the pre-2020 reality, the April 2020 COVID outbreak that put a six-figure workforce into the national story (S11 Punggol; the share of Singapore's cases), the reforms that followed (new dormitory standards, PBD requirements) and an HONEST assessment of what materially changed versus what was announced. (5) INJURY, WAGES AND DEATH — WICA claims, TADM mediation, TWC2's own caseload evidence, the repatriation-before-claim problem, and workplace fatality/injury statistics from MOM with the definitional caveats stated. (6) THE MONEY HOME — remittances as one of Bangladesh's largest foreign-exchange earners, formal channels vs hundi, what the money actually builds in a village, and the social status of the 'probashi'. (7) THE CULTURE, and give it real space — this is the chapter that makes the book sing: Banglar Kantha, the Bengali-language newspaper published in Singapore; the Migrant Worker Poetry Competition and the worker-poet movement (Md Mukul Hossine's 'Me Migrant', Zakir Hossain Khokan's work, One Bag One Book); migrant photography and vlogging; cricket, Little India on a Sunday, the food and phone-shop economy that grew around them. Quote the poets properly and by name — published work, cited. (8) THE 2013 LITTLE INDIA RIOT and its long policy shadow. (9) ADVOCACY AND ITS ARGUMENTS — TWC2, HOME, MWC, ItsRainingRaincoats; where they agree, where they genuinely disagree, and MOM's position given its full steel-man rather than a strawman. (10) THE SCEPTIC, mandatory: what actually improved post-COVID versus what was communications; the recruitment-fee problem Singapore has not solved because the fees are charged in Bangladesh, outside its jurisdiction; and the honest tension between a construction cost base, a housing programme, and what the men are paid. Singapore reader, so make the read-through concrete: the flats and MRT lines this labour built. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-20T03:09:39.000Z",
-      "issue": "78",
-      "text": "SPECIAL EDITION REQUEST: The Hermès Birkin — the ultra deep dive, and the companion to No. 75.5's Kelly book. SAME COLLECTOR-LEVEL AUDIENCE (the reader shares these with a serious Hermès collector), so pitch accordingly: no beginner explainer, she must finish it having learned something and must not catch an error. CRITICAL: READ special-75-5.html (the Kelly special) FIRST and DO NOT REPEAT IT. The leather school, the saddle-stitch construction explainer, the quota-bag mechanics and the general Hermès-house history were covered there — reference them briefly and move past. This book must earn its own 24 pages on what is DISTINCT to the Birkin. THE DISTINCT MATERIAL: (1) THE ORIGIN — the 1984 Jane Birkin/Jean-Louis Dumas aeroplane story, told with the scepticism it deserves: which parts are documented, which are house mythology, and what Birkin herself said about it later (including her 2015 request to remove her name from the croc version over sourcing concerns, and the resolution). Her 2023 death and what happened to prices and discourse after. (2) BIRKIN vs KELLY as a design argument — the working-tote logic against the structured-handbag logic, why the Birkin's proportions, dual handles and open-top design change what it is FOR, and the collector debate over which ages better. (3) THE SIZE AND MATERIAL TAXONOMY specific to it — 25/30/35/40, Birkin Faubourg, Birkin Cargo, Sellier Birkin, the 3-in-1, HAC, and the recent releases; hardware and exotics only where they differ from the Kelly treatment. (4) THE MARKET, which is where the Birkin genuinely diverges: it is the object of the 'better than gold' investment claim, so interrogate that properly — the Baghunter/other appreciation studies and their methodological problems (survivorship bias, index construction, retail-vs-resale basis), what auction data actually shows, and the July 2025 Sotheby's sale of the ORIGINAL Jane Birkin prototype (report the verified hammer/total price and why that object is sui generis rather than a comp for anything). The Himalaya Niloticus benchmark. (5) THE ECONOMICS OF SCARCITY — Hermès's production discipline as a business strategy, what the financials actually show about leather-goods capacity and growth, and the 2024 US antitrust suit's Birkin-specific allegations and current status. (6) COUNTERFEITS AND THE 'SUPERFAKE' PROBLEM as a market-integrity story — the authentication arms race and what it does to resale trust — WITHOUT writing a counterfeiter's manual. (7) THE COMMUNITY — PurseForum/r/TheHermesGame/collector YouTube sentiment, attributed never invented; the 'Birkin is over / Birkin is forever' argument both ways. (8) SINGAPORE angle where distinct from the Kelly book. (9) THE SCEPTIC, mandatory: the investment claim examined honestly, the ethics questions collectors raise themselves (exotics, artificial scarcity), and the case that the Birkin has become a financial instrument that happens to be a bag. HONESTY LAW AT MAXIMUM: never invent a price, date, spec or quote; auction figures must be verified and dated; flag single-sourced claims; hold what cannot be verified. (desk: reader direct request via Claude session)"
-    },
-    {
-      "ts": "2026-08-23T03:45:00.000Z",
-      "note": "SPECIAL EDITION REQUEST: The Asian bakery hot dog bun — the sausage baked inside soft enriched pastry sold in Asian bakeries. NOT the British puff-pastry sausage roll and NOT the Korean battered corn dog. The reader's touchstones: Chez Lui in Tokyo and DONQ in Singapore. Go deep and go MULTILINGUAL — mine Japanese (Tabelog, X, 5ch, note.com), Korean (Naver blogs, DCInside baking gallery), Chinese/Cantonese (Xiaohongshu, Douban, LIHKG, Openrice), Taiwanese (PTT) and Western forums (r/Breadit, The Fresh Loaf) in their own languages. Wanted: the taxonomy across countries (HK cheung zai bao, JP wiener roll/sozai-pan, KR sausage-ppang, TW hot dog roll, laminated vs enriched dough); the origin story (post-war wheat, koppepan, school lunch, the founding bakeries); the dough science (tangzhong/yudane, milk bread, why it is so soft, and where improvers hide); the SAUSAGE itself (arabiki, casing snap, Schau Essen, fish sausage, halal chicken versions); the named makers tiered honestly with the white-label truth; community sentiment attributed from those forums; the economics and the convenience-store scale; the Singapore reality including DONQ; a sceptic on industrial reality and nostalgia premium; and a home-baking first-attempt guide.",
-      "desk": "Special",
-      "issue": "80"
-    },
-    {
-      "ts": "2026-08-23T05:05:00.000Z",
-      "note": "SPECIAL EDITION REQUEST: AI-generated lo-fi and DJ music channels on YouTube — how they are actually made, who runs them, and how the reader can build one at home. THE SCENE: the 24/7 lo-fi radio format (Lofi Girl/ChilledCow, Chillhop, College Music, Cafe Music BGM, The Jazz Hop Cafe and the newer AI-native channels) — history, the 2022 Lofi Girl takedown, why the endless-stream format exists at all, and how much of the current crop is machine-made. Name the major players and, where it can be evidenced, say which ones are AI and which are not, rather than guessing. THE STACK, AUDIO: Suno, Udio, Stable Audio, ElevenLabs Music, Mubert, Soundraw, Beatoven, AIVA, Boomy, Loudly — what each is actually good for, what it costs, what rights each grants (commercial use, ownership, stems), and which tiers permit monetised YouTube use. Cover the open-weights local options too: MusicGen/AudioCraft, Stable Audio Open, ACE-Step, YuE, and what runs well on a dual-5090 bench. THE STACK, VISUAL: the looping image or animation is half the product. Cover ComfyUI workflows, AnimateDiff, Deforum, Wan/Hunyuan/LTX video, and the paid tier (Kling, Runway, Hailuo, Sora) — plus the plain craft of a seamless loop, parallax from a still, and grain/VHS treatment. THE STACK, DELIVERY: how a 24/7 stream is actually run — OBS vs a headless FFmpeg loop on a VPS, YouTube live requirements and bitrate, restart/failover, chapter and playlist mechanics, thumbnail and title conventions, and distribution to Spotify/Apple via DistroKid or Amuse if the tracks are released as well. THE LAW AND THE POLICY, done carefully: the RIAA actions against Suno and Udio and where they now stand; YouTube's rules on AI-generated and 'inauthentic' or mass-produced content and what that means for monetisation; Content ID exposure when AI output resembles training material; and what each service's terms actually say about who owns the output. Print what is unresolved as unresolved. THE ECONOMICS: honest numbers on what these channels earn — RPM for ambient/music content, stream vs upload economics, playlist placement, and the platform-side flood (Deezer and Spotify have both published figures on the AI share of daily uploads — verify them). Is anyone actually making money, or is this a lottery with a low ticket price? THE BUILD, and this is the part that matters most: a concrete, costed, step-by-step home pipeline for a reader who has a dual-RTX-5090 home lab already running MiniMax H3 (the 33B open-weights omni/video model, covered in No. 65.5) and is willing to pay for Suno and similar. Use H3 for the looping visual and the paid services for the audio bed; give the actual ComfyUI graph in outline, the prompt strategy for a coherent lo-fi aesthetic across a long loop, the mastering chain (loudness target for YouTube, around -14 LUFS integrated — verify), the file and encode settings, and a realistic first-month plan. Say plainly which steps are worth doing locally and which are not. THE SCEPTIC, mandatory: the saturation, the slop backlash, the demonetisation risk, whether a channel started today can realistically find an audience, and what the honest alternative is for someone who mainly wants to make music rather than run a content business. SINGAPORE where it applies: local producers and labels in the scene, distribution and payment reality, and the tax treatment of YouTube income here.",
-      "desk": "Special",
-      "issue": "81"
-    },
-    {
-      "ts": "2026-08-23T05:20:00.000Z",
-      "note": "SPECIAL EDITION REQUEST: The soaplands of Tokyo — a social-affairs ultra deep dive, third in the series after No. 76.5 (Vietnamese women in Singapore's KTV trade) and No. 77.5 (Bangladeshi construction workers). EDITOR'S SCHEDULING NOTE: this is queued for TUESDAY 25 AUGUST 2026, as No. 82.5. The AI lo-fi channels request filed before it runs FIRST, on Monday 24 August as No. 81.5. If both are open when a build session starts, build the lo-fi one first and leave this one for the following day. EDITORIAL LAW — BINDING, and identical to the two earlier books in this series. This is reporting, not titillation, and the test is whether it would be publishable in a serious newspaper. NO explicit description of sexual services. NO venue names or addresses, NO prices for services, NO operational or procurement detail, NO reviews, rankings or anything that could function as a guide. NEVER identify or make identifiable any individual worker. First-hand accounts must come only from testimony already published on the subject's own terms — signed interviews, memoirs, documentary, long-form journalism, academic fieldwork, NGO casework — and must be attributed to that source. NEVER invent or composite testimony; where first-hand accounts cannot be sourced, print that as a finding. Treat the people in this book as people. RESEARCH TARGETS. (1) THE LAW AND ITS FICTION: the 1956 Anti-Prostitution Law and its 1958 commencement; how soaplands operate as licensed 特殊浴場 under the 風営法 while the sexual transaction is framed as private 'free love' between individuals; how that fiction is actually policed; and the 2024-26 reforms around host clubs and 売掛金 debt, including the revised law and what it changed. (2) THE PLACE: Yoshiwara's continuity from the Edo licensed quarter to the present district; the 1958 abolition of the red-line zones; and the トルコ風呂-to-'soapland' renaming of 1984 after a Turkish campaign — verify the names, dates and who actually drove it, because this story is often told loosely. (3) THE ECONOMICS: the house-versus-worker split, waiting time, training fees, scouting, transport, and the debt structures; any credible estimate of the sector's size, flagged as an estimate; and the 2020 episode in which sex-industry workers were initially excluded from pandemic income support and then included after public argument. (4) WHO WORKS THERE, AND WHY: the documented pathways in — host-club debt, single motherhood, poverty, care responsibilities, the 大久保公園 street scene, and the 出稼ぎ overseas-working phenomenon; plus the migrant and trafficking dimension, using Japanese government and police data and the US State Department's trafficking assessment of Japan. (5) HEALTH, SAFETY AND RIGHTS: testing practice, the consequences of sex work not being recognised as labour (no workers' compensation, limited recourse after violence), and what support organisations say is missing — 風テラス, ぱっぷす, BOND Project and similar, in their own words. (6) EXIT: stigma, re-employment, welfare access, and what happens after. (7) THE ARGUMENT, steel-manned at full strength on both sides: the sex-worker-rights and labour position (SWASH and others, in Japanese terms, not through a Western frame) against the abolitionist and anti-exploitation position. Do not resolve it cheaply. (8) THE SCEPTIC, mandatory: the industry's own self-presentation, the serious data gaps, the way both camps use the same weak numbers, and the risk of foreign moralising about Japan. (9) THE CLOSING UNDERCURRENT: something genuinely alive and current — the host-club debt reforms and their knock-on effects, or the overseas-working migration, or Okubo Park — mined from Japanese-language reporting rather than English summaries.",
-      "desk": "Special",
-      "issue": "82"
-    }
-  ]
+ "votes": [
+  {
+   "ts": "2026-08-02T23:30:00Z",
+   "issue": "61",
+   "desk": "The Kit",
+   "topic": "Garmin CIRQA",
+   "vote": -1,
+   "note": "reconstructed — reader's original vote was lost to the readBody bug"
+  },
+  {
+   "ts": "2026-08-03T03:16:14.461Z",
+   "issue": "61",
+   "desk": "probe",
+   "topic": "endpoint probe - safe to ignore",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-03T03:44:55.087Z",
+   "issue": "61",
+   "desk": "The Connected Home",
+   "topic": "The Connected Home · Home Assistant",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-03T03:46:46.398Z",
+   "issue": "61",
+   "desk": "The Good Life",
+   "topic": "The Good Life · Watches",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-03T03:48:03.183Z",
+   "issue": "61",
+   "desk": "Curiosities",
+   "topic": "Curiosities · Astronomy",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-03T03:48:14.504Z",
+   "issue": "61",
+   "desk": "Love & Life",
+   "topic": "Love & Life · Demography",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-03T03:48:18.843Z",
+   "issue": "61",
+   "desk": "Fitness",
+   "topic": "Fitness · The Science",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-03T03:48:56.738Z",
+   "issue": "61",
+   "desk": "The Long Read",
+   "topic": "The Long Read · The Undercurrent",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-04T02:03:33.284Z",
+   "issue": "62",
+   "desk": "Technology",
+   "topic": "Technology · Open Models",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-04T02:06:23.745Z",
+   "issue": "62",
+   "desk": "The Kit",
+   "topic": "The Kit · Wearables",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-04T02:06:29.285Z",
+   "issue": "62",
+   "desk": "The Connected Home",
+   "topic": "The Connected Home · Lighting",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-04T02:06:33.248Z",
+   "issue": "62",
+   "desk": "The Good Life",
+   "topic": "The Good Life · Escapes",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-05T07:10:13.339Z",
+   "issue": "61",
+   "desk": "probe",
+   "topic": "endpoint probe - safe to ignore",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-06T01:19:54.339Z",
+   "issue": "64",
+   "desk": "The Kit",
+   "topic": "The Kit · Home Audio",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-06T01:20:49.958Z",
+   "issue": "64",
+   "desk": "The Good Life",
+   "topic": "The Good Life · Watches",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-06T01:21:22.194Z",
+   "issue": "64",
+   "desk": "The Rabbit Hole",
+   "topic": "The Rabbit Hole · The Invitation",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-06T23:26:57.764Z",
+   "issue": "65",
+   "desk": "The Kit",
+   "topic": "The Kit · One Body, Everything",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-06T23:27:04.007Z",
+   "issue": "65",
+   "desk": "Technology",
+   "topic": "Technology · The Open Frontier",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-06T23:27:12.136Z",
+   "issue": "65",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Escape",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-06T23:28:48.017Z",
+   "issue": "65",
+   "desk": "The Rabbit Hole",
+   "topic": "The Rabbit Hole · The Invitation",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-08T02:10:06.595Z",
+   "issue": "66",
+   "desk": "The Kit",
+   "topic": "The Kit · One Body, Every Angle",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-08T02:10:08.564Z",
+   "issue": "66",
+   "desk": "Technology",
+   "topic": "Technology · The Home Lab",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-08T02:10:31.798Z",
+   "issue": "66",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Escape",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-08T04:13:09.765Z",
+   "issue": "66",
+   "desk": "The Rabbit Hole",
+   "topic": "The Rabbit Hole · The Invitation",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-08T04:13:28.810Z",
+   "issue": "66",
+   "desk": "The Travel Desk",
+   "topic": "The Travel Desk · The Roundup",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-09T01:04:19.102Z",
+   "issue": "67",
+   "desk": "The World",
+   "topic": "The World · The Strait",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-09T01:04:25.450Z",
+   "issue": "67",
+   "desk": "Singapore",
+   "topic": "Singapore · SG61",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-09T01:04:34.072Z",
+   "issue": "67",
+   "desk": "Property",
+   "topic": "Property · The Two Speeds",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-09T01:04:38.935Z",
+   "issue": "67",
+   "desk": "Technology",
+   "topic": "Technology · The Open Frontier",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-09T01:05:43.176Z",
+   "issue": "67",
+   "desk": "The Kit",
+   "topic": "The Kit · The Pre-Order",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-09T01:05:50.120Z",
+   "issue": "67",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Escape",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-09T01:06:16.457Z",
+   "issue": "67",
+   "desk": "The Macro Desk",
+   "topic": "The Macro Desk · The Setup",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-11T06:34:48.940Z",
+   "issue": "69",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Escape",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-11T06:34:56.289Z",
+   "issue": "69",
+   "desk": "Screen & Sound",
+   "topic": "Screen & Sound · The Album Nobody's Heard",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-11T06:35:00.348Z",
+   "issue": "69",
+   "desk": "The Family Desk",
+   "topic": "The Family Desk · The Ban, Eight Months On",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-11T06:35:31.520Z",
+   "issue": "69",
+   "desk": "The Kit",
+   "topic": "The Kit · The Wait Ends",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-11T06:35:34.632Z",
+   "issue": "69",
+   "desk": "Technology",
+   "topic": "Technology · The One That Shipped",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-12T00:21:54.591Z",
+   "issue": "70",
+   "desk": "The World",
+   "topic": "The World · The Chokepoint",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-12T00:23:31.952Z",
+   "issue": "70",
+   "desk": "The Macro Desk",
+   "topic": "The Macro Desk · The Print Nobody's Seen",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-12T00:24:09.558Z",
+   "issue": "70",
+   "desk": "The Long Read",
+   "topic": "The Long Read · The Undercurrent",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-13T22:39:46.246Z",
+   "issue": "72",
+   "desk": "Property",
+   "topic": "Property · Two Readings, One Number",
+   "vote": -1
+  },
+  {
+   "ts": "2026-08-13T22:40:01.846Z",
+   "issue": "72",
+   "desk": "Technology",
+   "topic": "Technology · The Open Frontier, With a Lock",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-13T22:40:38.014Z",
+   "issue": "72",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Flagship Season Opens",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-14T03:07:42.981Z",
+   "issue": "72",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Flagship Season Opens",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-15T09:17:03.832Z",
+   "issue": "73",
+   "desk": "The Rabbit Hole",
+   "topic": "The Rabbit Hole · The Telescope World",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-15T23:04:51.008Z",
+   "issue": "74",
+   "desk": "The Kit",
+   "topic": "The Kit · The Object You Queue For",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-17T22:37:55.228Z",
+   "issue": "75",
+   "desk": "Atelier Next",
+   "topic": "Chinese woks",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-19T23:22:51.080Z",
+   "issue": "77",
+   "desk": "The Good Life",
+   "topic": "The Good Life · The Turntable",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-20T01:57:31.535Z",
+   "issue": "77",
+   "desk": "Atelier Next",
+   "topic": "Umbrellas",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-20T23:16:55.536Z",
+   "issue": "78",
+   "desk": "The Kit",
+   "topic": "The Kit · The Compact Cinema Camera",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-20T23:17:04.620Z",
+   "issue": "78",
+   "desk": "Screen & Sound",
+   "topic": "Screen & Sound · The Wide Release",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-23T00:55:44.682Z",
+   "issue": "80",
+   "desk": "The Kit",
+   "topic": "The Kit · The 360 Flagship",
+   "vote": 1
+  },
+  {
+   "ts": "2026-08-23T23:56:45.173Z",
+   "issue": "81",
+   "desk": "Atelier Next",
+   "topic": "Bed linen",
+   "vote": 1
+  }
+ ],
+ "notes": [
+  {
+   "ts": "2026-07-23T09:00:00Z",
+   "issue": "50",
+   "text": "Editor directive (standing): de-emphasize Matter in The Connected Home — the reader does not run Matter. Cover standards only when they concretely change a Lutron + Home Assistant household; lead with practical device/HA coverage."
+  },
+  {
+   "ts": "2026-07-29T12:00:00Z",
+   "issue": "56",
+   "text": "Editor directive (correction, next issue): No. 55's Diary claimed BTS Singapore dates were 'not announced (possibly 2027)' — this was FALSE and contradicted Nos. 37–39's ledger. The four National Stadium nights (17/19/20/22 Dec 2026) are confirmed and now SOLD OUT (Live Nation SG / The Kallang / Time Out). Print a one-line 'Setting the record straight' correction on the Diary, restore BTS to the calendar with sold-out status (resale caution), and re-read the new LEDGER OUTRANKS MEMORY rule before writing the Diary."
+  },
+  {
+   "ts": "2026-08-02T23:30:00Z",
+   "issue": "61",
+   "text": "Editor directive (standing): STOP covering the Garmin CIRQA. The reader has asked for it to not be covered anymore (a thumbs-down was also cast but lost to the feedback-endpoint bug, fixed 3 Aug). No leads, secondaries, or shelf mentions on The Kit or anywhere else — the story is saturated for this reader. Only a genuinely major new peg (recall, discontinuation, a class-defining rival) reopens it, and then as a one-line delta at most."
+  },
+  {
+   "ts": "2026-08-03T03:45:21.028Z",
+   "issue": "61",
+   "text": "There have been too many articles on the latest home assistant upgrade."
+  },
+  {
+   "ts": "2026-08-03T04:05:00Z",
+   "issue": "61",
+   "text": "Editor directive (standing, Macro desk): the reader owns VWRA, global bonds AND bitcoin — the spec's old 'core anchors are VWRA and global bonds' framing was wrong. More importantly: STOP printing the daily holdings recital ('the two you hold stay VWRA and global bonds; gold and BTC are read for sensitivity' and variants). Never restate what the reader owns in the magazine — analyse the four instruments, skip the ownership commentary. Now a hard validate gate from No. 62."
+  },
+  {
+   "ts": "2026-08-04T04:20:09Z",
+   "issue": "62",
+   "text": "SPECIAL EDITION REQUEST: Flight simulator enthusiasts (desk: editor — requested in chat; the home-cockpit world: MSFS/X-Plane/DCS communities, hardware from yoke-and-throttle to full sim rigs, the study-level aircraft culture, VATSIM online ATC, what it costs and what it's like to be deep in it)"
+  },
+  {
+   "ts": "2026-08-05T07:10:14.413Z",
+   "issue": "61",
+   "text": "endpoint probe - safe to ignore"
+  },
+  {
+   "ts": "2026-08-06T03:08:46Z",
+   "issue": "64",
+   "text": "SPECIAL EDITION REQUEST: Kanazawa (desk: editor — requested in chat). A destination ultra deep dive in the spirit of the hobby specials, built around the reader's buy-once-cry-once philosophy: the EXPERIENCES and SHOPPING that are experience-once/buy-once and genuinely worth the splurge — Kanazawa's living crafts at the top end (gold leaf, Kaga yuzen, Ohi and Kutani ware, lacquer — the named workshops and ateliers where you buy directly from makers, real prices, commissioning where possible), the once-worth-it experiences (the definitive kaiseki tables and sushi counters with booking reality, Kenroku-en and the geisha districts done properly, private craft experiences), what to skip as tourist-tier. ACCOMMODATION: the reader is staying ONE NIGHT at Kayotei (Yamanaka Onsen) — cover it properly: what the house is, its story and standing, how to get the most from a single night there (the bath rhythm, the kaiseki, the rooms to know about), and the Yamanaka/Kaga onsen context around it, including the lacquerware town connection. Singapore departure practicalities (routes to Komatsu/via Tokyo-Osaka, the Hokuriku Shinkansen) where they genuinely help."
+  },
+  {
+   "ts": "2026-08-08T04:12:38.418Z",
+   "issue": "66",
+   "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Invitation (desk: The Rabbit Hole)"
+  },
+  {
+   "ts": "2026-08-09T01:05:29.644Z",
+   "issue": "67",
+   "text": "For technology, I don't care what runs on a $300 graphics card. I only care what runs on a 5090 or a system with dual 5090 (in other words, my system)."
+  },
+  {
+   "ts": "2026-08-10T00:41:27Z",
+   "issue": "68",
+   "text": "SPECIAL EDITION REQUEST: Model passenger plane collecting (desk: editor — requested in chat). The diecast model airliner world: brands like Gemini Jets, NG Models, JC Wings, Phoenix, Aviation400, Herpa and peers; the 1:400 and 1:200 scale ecosystems, mould quality wars and brand reputations, the collector communities and forums, the release/preorder economics and aftermarket, display and storage craft, and the Singapore angle where it genuinely exists."
+  },
+  {
+   "ts": "2026-08-12T00:22:22.295Z",
+   "issue": "70",
+   "text": "Althoguh it is major news, there is been coverage of the iran peace deal every day. Please rotate news stories to keep the reading fresh."
+  },
+  {
+   "ts": "2026-08-12T00:23:47.055Z",
+   "issue": "70",
+   "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Wheel (desk: The Rabbit Hole)"
+  },
+  {
+   "ts": "2026-08-13T01:24:38.409Z",
+   "issue": "71",
+   "text": "SPECIAL EDITION REQUEST: The Rabbit Hole · The Invitation (desk: The Rabbit Hole)"
+  },
+  {
+   "ts": "2026-08-14T01:10:34.000Z",
+   "issue": "71",
+   "text": "SPECIAL EDITION REQUEST: Home cybersecurity — the ultra deep dive for a HOME environment, scoped to a household running Windows 11 desktops, WSL2 Ubuntu on those machines, and macOS laptops (no enterprise fleet, no corporate MDM). DEFENSIVE ONLY — hardening, hygiene and recovery; not offensive tooling. Wanted: the honest threat model for a home user in 2026 (who actually attacks home machines, and how); platform-by-platform hardening that is real and current — Windows 11 (Defender vs paid AV honestly, BitLocker, Smart App Control, standard-vs-admin accounts), the WSL2 seam specifically (what WSL does and does not isolate, Windows/Linux file-permission crossover, Docker Desktop exposure, dev-machine supply-chain risk from npm/pip/VS Code extensions), and macOS (Gatekeeper/XProtect reality, FileVault, TCC permissions); the home NETWORK layer (router firmware, DNS filtering, IoT/VLAN segmentation, Tailscale-style overlays vs port-forwarding); identity as the real perimeter (passkeys vs TOTP vs SMS, password managers compared honestly post-LastPass, phishing that defeats MFA); backups as the last line (3-2-1, ransomware-proof versioning, actually testing restores); the family angle (protecting a household incl. a tween's devices without surveillance theatre); the community read (r/cybersecurity, r/homelab, security YouTube, what practitioners run at home vs what they tell clients); the sceptic desk — which paid security products are theatre for a home user; and the fresh-peg sweep of 2026 home-relevant incidents/CVEs. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-15T08:32:07.000Z",
+   "issue": "73",
+   "text": "SPECIAL EDITION REQUEST: Da Lat, Vietnam — the ultra deep dive. IMPORTANT CONTEXT: today's No. 73 Travel Desk already ran Da Lat as its two-page Grand Tour (reader-pinned) — this special must go DEEPER and COMPLEMENT it, not re-survey: read No. 73's Travel Desk first and build past it. The full 24pp treatment of the Central Highlands hill station: the deep history (the French hill-station founding, Yersin, the Cité-Jardin plan, the villas and their decay/restoration economics, the Bao Dai summer palace era, the wartime neutrality legend); the coffee economy done properly (Vietnam as the world's robusta giant vs Da Lat's arabica exception, Cau Dat's farms, the specialty wave and its farms/roasters/cafes by name with prices, weasel-coffee ethics honestly); the flower-and-farm industrial belt (Hasfarm, the greenhouse sprawl's environmental cost — honest about the plastic-roof landscape and flooding); the railway story (the Cremaillere rack railway, the restored Da Lat–Trai Mat segment, revival plans); food as its own desk (banh trang nuong, artichoke everything, avocado ice cream, the night market, strawberry/dau tay culture, the best actual addresses); where to actually stay (Ana Mandara villas, the colonial-villa hotels, homestay culture, price tiers); itineraries by trip-length ex-Singapore incl. the SGN connection reality and the Lien Khuong airport upgrade status; adventure honestly age-gated (canyoning safety record with the documented fatalities, waterfalls, the alpine coaster); the pop-culture/K-drama and domestic-tourism boom angle (why young Vietnamese and Koreans flock there); climate as the product (the eternal-spring data vs Singapore's heat, wet/dry season honesty for planning); and the sceptic desk — overtourism, greenhouse sprawl, weekend crowds from HCMC, and whether the romance survives the reality. Community read: r/VietnamTravel, TripAdvisor, Vietnam Coracle, Foody, Vietnamese-language sentiment characterised. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-15T14:07:23.000Z",
+   "issue": "73",
+   "text": "SPECIAL EDITION REQUEST: The Slim d'Hermes Neo Brandebourgs Tourbillon — a single-watch ultra deep dive. PRIMARY SUBJECT, exhausted first: everything verifiable about this specific watch — the release (when, where unveiled, which collection cycle), full specifications (case metal/diameter/thickness, dial craft and the Brandebourg motif's meaning in the Hermes design language and its couture/frogging origin), the MOVEMENT (calibre designation, who designed and manufactures it — the Vaucher/Hermes relationship and Hermes's stake, tourbillon architecture, finishing, power reserve), price and production numbers/limitation, availability and waitlist reality, every serious review and hands-on (Hodinkee, Fratello, Revolution, SJX, Monochrome, WatchesbySJX, Deployant — SJX and Deployant are Singapore-based, note it), collector-forum sentiment (WatchUSeek, r/Watches, Instagram watch-community read), auction/secondary-market presence if any, and how it sits against peer haute-horlogerie tourbillons at its price. HONESTY LAW APPLIES HARD: this is a niche subject — hold or drop what cannot be verified, flag single-source claims in print, never invent a spec, price or quote. IF the single watch cannot honestly fill the book, widen in CONCENTRIC RINGS while keeping the Neo Brandebourgs as the spine: ring 2 = the Slim d'Hermes line (Philippe Delhotal's design era, the Philippe Apeloig typeface story, the ultra-thin micro-rotor calibres, the line's other metiers-d'art and complication pieces); ring 3 = Hermes watchmaking whole — La Montre Hermes history, the Vaucher Manufacture Fleurier stake, dial/case/strap ateliers, the playful-complication canon (Le Temps Suspendu, L'Heure De La Lune, Duc Attele minute-repeater tourbillon), and the collector debate 'is Hermes a real watchmaker?' answered with evidence not vibes; the reader is a serious mechanical-watch collector — write to that level, movement architecture and finishing vocabulary welcome. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-18T05:30:13.000Z",
+   "issue": "74",
+   "text": "SPECIAL EDITION REQUEST: The Hermes Kelly bag — the ultra deep dive. AUDIENCE NOTE, load-bearing: this issue is being made to share with a SERIOUS KELLY COLLECTOR (a friend of the reader). Pitch it at collector level — she already knows what a Kelly is; do NOT write a beginner's explainer or a listicle. She should finish it having learned something she did not know, and should not catch a single error. Depth targets: (1) THE OBJECT'S HISTORY done properly — the 1892 Haut a Courroies saddle origin, the 1930s Sac a Depeches, the 1956 Grace Kelly moment and the 1977 renaming, with dates verified not repeated from blogs. (2) HOW IT IS ACTUALLY MADE — one artisan per bag start to finish, the saddle stitch with two needles and waxed linen thread, hours per bag (verify the real figure, do not repeat marketing rounding), the Hermes ecole de maroquinerie and the leather-workers' training pipeline, the ateliers and the production-capacity story. (3) THE LEATHER SCHOOL — Togo, Epsom, Box calf, Chevre Mysore, Barenia, Swift, Clemence: grain, scratch behaviour, structure, patina and which suits which size/style, plus exotics (alligator/croc/lizard, the CITES reality and the lumiere/matte distinction). (4) THE TAXONOMY collectors argue about — Sellier vs Retourne, sizes 25/28/32/35 and the Mini Kelly II 20, Kelly Pochette, Kelly Danse/Elan/Cut/Doll and the special orders (HSS horseshoe stamp), hardware palladium vs gold, stamping/date codes and the 2021 system change. (5) THE ACQUISITION GAME told HONESTLY — the quota-bag reality, pre-spend expectations, SA relationships, why boutiques deny a wishlist exists, and the 2024 US antitrust class action over tying; the resale ecosystem (Privé Porter, Bagista, the SG scene) with real premium ranges. (6) THE MARKET — auction records at Sotheby's/Christie's incl. the 2025 record-setting sales, the Himalaya benchmark, and an HONEST examination of the 'better than gold' appreciation claim (which studies actually say what, what survivorship bias hides). (7) CARE, RESTORATION AND AUTHENTICATION — the Hermes spa service and its wait times/limits, what they will and will not restore, and the authentication tells collectors actually use (stitch angle, stamp fonts, hardware weight) without writing a counterfeiter's manual. (8) THE COMMUNITY read — PurseForum's Hermes sub-forums, r/TheHermesGame, the YouTube/IG collector voices — attributed, never invented. (9) SINGAPORE angle: the Liat Towers boutique, local reseller scene, and humidity/tropical care for leather. (10) THE SCEPTIC, mandatory: the quota game's real cost, whether a Kelly is an investment or a beautiful consumable, and the ethics questions collectors themselves raise (exotics, the artificial-scarcity critique). HONESTY LAW IN FULL: never invent a price, date, hours figure, or quote; flag single-sourced claims in print; hold what cannot be verified. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-18T22:13:28.000Z",
+   "issue": "76",
+   "text": "SPECIAL EDITION REQUEST: Vietnamese women working in Singapore's KTV lounges — a serious social-affairs ultra deep dive. THE SUBJECT IS THE WOMEN AND THE SYSTEM AROUND THEM, reported with dignity: a labour-migration story about money, law, risk and stigma. EDITORIAL GUARDRAILS, non-negotiable (same standard as No. 63's S&M descent: culture-focused, non-explicit): this is NOT a consumer guide — no venue recommendations or 'where to go', no prices for sexual services, no procurement detail, no reproduction of individual women's photos, working names or forum 'reviews' of specific people, nothing titillating. Forums (Sammyboy/SBF, HardwareZone EDMW) are to be mined as DEMAND-SIDE and industry-mechanics EVIDENCE and read critically — they are punter boards, so treat them as an artifact revealing the customers, the market's structure and its attitudes; quote sparingly and analytically, never as endorsement. COVER: (1) THE PIPELINE — recruitment in Vietnam (which provinces, brokers/agents, the fees and debt structure, what women are told vs what they find), and the visa machinery that makes it work: Social Visit Pass cycling, Work Permits, and especially the Performing Artiste Card regime and its history. (2) THE WORK ITSELF — what a KTV hostess job actually is (lady drinks, commission, sitting fees, tips, hours), the tiered venues, and the honest legal grey zone of where it does and does not cross into commercial sex. (3) THE MONEY — earnings ranges (attributed/held, never invented), commission structures, remittances home and what they fund. (4) THE LAW — public entertainment licensing, the Employment of Foreign Manpower Act, immigration offences, vice-raid enforcement patterns, the Prevention of Human Trafficking Act 2014 and its ACTUAL prosecution/conviction record (low — say so plainly), and what happens to women when a place is raided: detention, deportation, and how the victim-versus-offender determination is made. (5) THE JULY 2021 KTV COVID CLUSTER — the national story that exposed the industry's scale, the policy response, and the xenophobic backlash aimed specifically at Vietnamese women; report the backlash as a fact about Singapore, evenhandedly. (6) TRAFFICKING VS AGENCY, the hard part done with real nuance — the spectrum from voluntary economic migration through deception to debt bondage; steel-man BOTH the trafficking framing and the migrant-agency/sex-worker-rights framing (Project X's position that conflating the two harms workers deserves its full weight, as does the evidence of genuine coercion). Sallie Yea's academic work on Vietnamese women in Singapore's entertainment sector is a key source. (7) SUPPORT AND COMMUNITY — HOME, Project X, AWARE, Vietnamese diaspora networks, embassy/consular reality. (8) THE VIETNAM SIDE — Vietnamese-language reporting on recruitment and the sending villages, the returnee experience and stigma at home. (9) THE SCEPTIC — what the data genuinely supports versus moral panic in both directions; numbers here are scarce, contested and often come from advocacy or enforcement sources with incentives, so name the incentive whenever citing one. HONESTY LAW AT MAXIMUM: never invent a statistic, a price, a case or a quotation — and above all DO NOT FABRICATE FIRST-PERSON TESTIMONY from women; if the book quotes a woman, it must be from a published, attributable interview (ST/CNA/Rice Media/academic fieldwork), clearly cited. Flag single-sourced claims; hold what cannot be verified. Sources to work: Straits Times/CNA/TODAY archives, Rice Media, academic literature (Yea et al.), Project X and HOME reports, US State Dept TIP country reports on Singapore, published court judgments, Vietnamese press, and the local forums as critical demand-side artifacts. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-19T00:40:30.000Z",
+   "issue": "77",
+   "text": "SPECIAL EDITION REQUEST: Bangladeshi construction workers in Singapore — a social-affairs ultra deep dive, and the second in the reader's migrant-labour series (after the Vietnamese KTV book). SAME EDITORIAL LAW AS THAT ISSUE: the subject is the MEN AND THE SYSTEM AROUND THEM, reported with dignity and specificity, never as either a pity portrait or a policy brochure. NEVER FABRICATE FIRST-PERSON TESTIMONY — every quotation from a worker must come from a published, attributable source (TWC2 case notes, ST/CNA/TODAY/Rice Media interviews, academic fieldwork, or the workers' OWN published writing) with a citation. Invent no statistic, fee, wage or case; name the incentive behind advocacy, employer or government figures alike; flag single-sourced claims; hold what cannot be verified. THE READER SPECIFICALLY WANTS THE ORIGIN-COUNTRY LENS WORKED HARD — Bangladeshi press and forums are a primary source, not a footnote: Prothom Alo (Bengali), The Daily Star, New Age, Dhaka Tribune, bdnews24, The Business Standard on recruitment abuse, BMET policy and remittance data; Bengali-language Facebook groups and YouTube/TikTok vlogs made BY workers bound for or living in Singapore; and the instructive gap between how the Bangladeshi press covers Singapore and how Singapore covers Bangladeshis. Mark translated material as translated. COVER: (1) THE PIPELINE — the dalal/broker network in the sending districts (Tangail, Comilla, Brahmanbaria, Munshiganj, Narsingdi), BMET registration and the licensed-agency system, the medical and skills-test gauntlet, and above all THE FEE: Bangladeshi workers pay among the world's highest recruitment costs (report the real range with sources), and how families finance it — land sales, mortgages, moneylenders, microloans. (2) THE DEBT ARC — how many months or years to clear it, what happens to a man repatriated before he does, and how that sunk cost quietly disciplines a workforce into accepting conditions. (3) THE WORK — the Work Permit regime and employer-tied status, SEC(K)/skills certification, the construction sector's reliance, wages honestly (basic vs overtime, what actually reaches the bank), and the levy/quota machinery. (4) LIVING — dormitories: the pre-2020 reality, the April 2020 COVID outbreak that put a six-figure workforce into the national story (S11 Punggol; the share of Singapore's cases), the reforms that followed (new dormitory standards, PBD requirements) and an HONEST assessment of what materially changed versus what was announced. (5) INJURY, WAGES AND DEATH — WICA claims, TADM mediation, TWC2's own caseload evidence, the repatriation-before-claim problem, and workplace fatality/injury statistics from MOM with the definitional caveats stated. (6) THE MONEY HOME — remittances as one of Bangladesh's largest foreign-exchange earners, formal channels vs hundi, what the money actually builds in a village, and the social status of the 'probashi'. (7) THE CULTURE, and give it real space — this is the chapter that makes the book sing: Banglar Kantha, the Bengali-language newspaper published in Singapore; the Migrant Worker Poetry Competition and the worker-poet movement (Md Mukul Hossine's 'Me Migrant', Zakir Hossain Khokan's work, One Bag One Book); migrant photography and vlogging; cricket, Little India on a Sunday, the food and phone-shop economy that grew around them. Quote the poets properly and by name — published work, cited. (8) THE 2013 LITTLE INDIA RIOT and its long policy shadow. (9) ADVOCACY AND ITS ARGUMENTS — TWC2, HOME, MWC, ItsRainingRaincoats; where they agree, where they genuinely disagree, and MOM's position given its full steel-man rather than a strawman. (10) THE SCEPTIC, mandatory: what actually improved post-COVID versus what was communications; the recruitment-fee problem Singapore has not solved because the fees are charged in Bangladesh, outside its jurisdiction; and the honest tension between a construction cost base, a housing programme, and what the men are paid. Singapore reader, so make the read-through concrete: the flats and MRT lines this labour built. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-20T03:09:39.000Z",
+   "issue": "78",
+   "text": "SPECIAL EDITION REQUEST: The Hermès Birkin — the ultra deep dive, and the companion to No. 75.5's Kelly book. SAME COLLECTOR-LEVEL AUDIENCE (the reader shares these with a serious Hermès collector), so pitch accordingly: no beginner explainer, she must finish it having learned something and must not catch an error. CRITICAL: READ special-75-5.html (the Kelly special) FIRST and DO NOT REPEAT IT. The leather school, the saddle-stitch construction explainer, the quota-bag mechanics and the general Hermès-house history were covered there — reference them briefly and move past. This book must earn its own 24 pages on what is DISTINCT to the Birkin. THE DISTINCT MATERIAL: (1) THE ORIGIN — the 1984 Jane Birkin/Jean-Louis Dumas aeroplane story, told with the scepticism it deserves: which parts are documented, which are house mythology, and what Birkin herself said about it later (including her 2015 request to remove her name from the croc version over sourcing concerns, and the resolution). Her 2023 death and what happened to prices and discourse after. (2) BIRKIN vs KELLY as a design argument — the working-tote logic against the structured-handbag logic, why the Birkin's proportions, dual handles and open-top design change what it is FOR, and the collector debate over which ages better. (3) THE SIZE AND MATERIAL TAXONOMY specific to it — 25/30/35/40, Birkin Faubourg, Birkin Cargo, Sellier Birkin, the 3-in-1, HAC, and the recent releases; hardware and exotics only where they differ from the Kelly treatment. (4) THE MARKET, which is where the Birkin genuinely diverges: it is the object of the 'better than gold' investment claim, so interrogate that properly — the Baghunter/other appreciation studies and their methodological problems (survivorship bias, index construction, retail-vs-resale basis), what auction data actually shows, and the July 2025 Sotheby's sale of the ORIGINAL Jane Birkin prototype (report the verified hammer/total price and why that object is sui generis rather than a comp for anything). The Himalaya Niloticus benchmark. (5) THE ECONOMICS OF SCARCITY — Hermès's production discipline as a business strategy, what the financials actually show about leather-goods capacity and growth, and the 2024 US antitrust suit's Birkin-specific allegations and current status. (6) COUNTERFEITS AND THE 'SUPERFAKE' PROBLEM as a market-integrity story — the authentication arms race and what it does to resale trust — WITHOUT writing a counterfeiter's manual. (7) THE COMMUNITY — PurseForum/r/TheHermesGame/collector YouTube sentiment, attributed never invented; the 'Birkin is over / Birkin is forever' argument both ways. (8) SINGAPORE angle where distinct from the Kelly book. (9) THE SCEPTIC, mandatory: the investment claim examined honestly, the ethics questions collectors raise themselves (exotics, artificial scarcity), and the case that the Birkin has become a financial instrument that happens to be a bag. HONESTY LAW AT MAXIMUM: never invent a price, date, spec or quote; auction figures must be verified and dated; flag single-sourced claims; hold what cannot be verified. (desk: reader direct request via Claude session)"
+  },
+  {
+   "ts": "2026-08-23T03:45:00.000Z",
+   "note": "SPECIAL EDITION REQUEST: The Asian bakery hot dog bun — the sausage baked inside soft enriched pastry sold in Asian bakeries. NOT the British puff-pastry sausage roll and NOT the Korean battered corn dog. The reader's touchstones: Chez Lui in Tokyo and DONQ in Singapore. Go deep and go MULTILINGUAL — mine Japanese (Tabelog, X, 5ch, note.com), Korean (Naver blogs, DCInside baking gallery), Chinese/Cantonese (Xiaohongshu, Douban, LIHKG, Openrice), Taiwanese (PTT) and Western forums (r/Breadit, The Fresh Loaf) in their own languages. Wanted: the taxonomy across countries (HK cheung zai bao, JP wiener roll/sozai-pan, KR sausage-ppang, TW hot dog roll, laminated vs enriched dough); the origin story (post-war wheat, koppepan, school lunch, the founding bakeries); the dough science (tangzhong/yudane, milk bread, why it is so soft, and where improvers hide); the SAUSAGE itself (arabiki, casing snap, Schau Essen, fish sausage, halal chicken versions); the named makers tiered honestly with the white-label truth; community sentiment attributed from those forums; the economics and the convenience-store scale; the Singapore reality including DONQ; a sceptic on industrial reality and nostalgia premium; and a home-baking first-attempt guide.",
+   "desk": "Special",
+   "issue": "80"
+  },
+  {
+   "ts": "2026-08-23T05:05:00.000Z",
+   "note": "SPECIAL EDITION REQUEST: AI-generated lo-fi and DJ music channels on YouTube — how they are actually made, who runs them, and how the reader can build one at home. THE SCENE: the 24/7 lo-fi radio format (Lofi Girl/ChilledCow, Chillhop, College Music, Cafe Music BGM, The Jazz Hop Cafe and the newer AI-native channels) — history, the 2022 Lofi Girl takedown, why the endless-stream format exists at all, and how much of the current crop is machine-made. Name the major players and, where it can be evidenced, say which ones are AI and which are not, rather than guessing. THE STACK, AUDIO: Suno, Udio, Stable Audio, ElevenLabs Music, Mubert, Soundraw, Beatoven, AIVA, Boomy, Loudly — what each is actually good for, what it costs, what rights each grants (commercial use, ownership, stems), and which tiers permit monetised YouTube use. Cover the open-weights local options too: MusicGen/AudioCraft, Stable Audio Open, ACE-Step, YuE, and what runs well on a dual-5090 bench. THE STACK, VISUAL: the looping image or animation is half the product. Cover ComfyUI workflows, AnimateDiff, Deforum, Wan/Hunyuan/LTX video, and the paid tier (Kling, Runway, Hailuo, Sora) — plus the plain craft of a seamless loop, parallax from a still, and grain/VHS treatment. THE STACK, DELIVERY: how a 24/7 stream is actually run — OBS vs a headless FFmpeg loop on a VPS, YouTube live requirements and bitrate, restart/failover, chapter and playlist mechanics, thumbnail and title conventions, and distribution to Spotify/Apple via DistroKid or Amuse if the tracks are released as well. THE LAW AND THE POLICY, done carefully: the RIAA actions against Suno and Udio and where they now stand; YouTube's rules on AI-generated and 'inauthentic' or mass-produced content and what that means for monetisation; Content ID exposure when AI output resembles training material; and what each service's terms actually say about who owns the output. Print what is unresolved as unresolved. THE ECONOMICS: honest numbers on what these channels earn — RPM for ambient/music content, stream vs upload economics, playlist placement, and the platform-side flood (Deezer and Spotify have both published figures on the AI share of daily uploads — verify them). Is anyone actually making money, or is this a lottery with a low ticket price? THE BUILD, and this is the part that matters most: a concrete, costed, step-by-step home pipeline for a reader who has a dual-RTX-5090 home lab already running MiniMax H3 (the 33B open-weights omni/video model, covered in No. 65.5) and is willing to pay for Suno and similar. Use H3 for the looping visual and the paid services for the audio bed; give the actual ComfyUI graph in outline, the prompt strategy for a coherent lo-fi aesthetic across a long loop, the mastering chain (loudness target for YouTube, around -14 LUFS integrated — verify), the file and encode settings, and a realistic first-month plan. Say plainly which steps are worth doing locally and which are not. THE SCEPTIC, mandatory: the saturation, the slop backlash, the demonetisation risk, whether a channel started today can realistically find an audience, and what the honest alternative is for someone who mainly wants to make music rather than run a content business. SINGAPORE where it applies: local producers and labels in the scene, distribution and payment reality, and the tax treatment of YouTube income here.",
+   "desk": "Special",
+   "issue": "81"
+  },
+  {
+   "ts": "2026-08-23T05:20:00.000Z",
+   "note": "SPECIAL EDITION REQUEST: The soaplands of Tokyo — a social-affairs ultra deep dive, third in the series after No. 76.5 (Vietnamese women in Singapore's KTV trade) and No. 77.5 (Bangladeshi construction workers). EDITOR'S SCHEDULING NOTE: this is queued for TUESDAY 25 AUGUST 2026, as No. 82.5. The AI lo-fi channels request filed before it runs FIRST, on Monday 24 August as No. 81.5. If both are open when a build session starts, build the lo-fi one first and leave this one for the following day. EDITORIAL LAW — BINDING, and identical to the two earlier books in this series. This is reporting, not titillation, and the test is whether it would be publishable in a serious newspaper. NO explicit description of sexual services. NO venue names or addresses, NO prices for services, NO operational or procurement detail, NO reviews, rankings or anything that could function as a guide. NEVER identify or make identifiable any individual worker. First-hand accounts must come only from testimony already published on the subject's own terms — signed interviews, memoirs, documentary, long-form journalism, academic fieldwork, NGO casework — and must be attributed to that source. NEVER invent or composite testimony; where first-hand accounts cannot be sourced, print that as a finding. Treat the people in this book as people. RESEARCH TARGETS. (1) THE LAW AND ITS FICTION: the 1956 Anti-Prostitution Law and its 1958 commencement; how soaplands operate as licensed 特殊浴場 under the 風営法 while the sexual transaction is framed as private 'free love' between individuals; how that fiction is actually policed; and the 2024-26 reforms around host clubs and 売掛金 debt, including the revised law and what it changed. (2) THE PLACE: Yoshiwara's continuity from the Edo licensed quarter to the present district; the 1958 abolition of the red-line zones; and the トルコ風呂-to-'soapland' renaming of 1984 after a Turkish campaign — verify the names, dates and who actually drove it, because this story is often told loosely. (3) THE ECONOMICS: the house-versus-worker split, waiting time, training fees, scouting, transport, and the debt structures; any credible estimate of the sector's size, flagged as an estimate; and the 2020 episode in which sex-industry workers were initially excluded from pandemic income support and then included after public argument. (4) WHO WORKS THERE, AND WHY: the documented pathways in — host-club debt, single motherhood, poverty, care responsibilities, the 大久保公園 street scene, and the 出稼ぎ overseas-working phenomenon; plus the migrant and trafficking dimension, using Japanese government and police data and the US State Department's trafficking assessment of Japan. (5) HEALTH, SAFETY AND RIGHTS: testing practice, the consequences of sex work not being recognised as labour (no workers' compensation, limited recourse after violence), and what support organisations say is missing — 風テラス, ぱっぷす, BOND Project and similar, in their own words. (6) EXIT: stigma, re-employment, welfare access, and what happens after. (7) THE ARGUMENT, steel-manned at full strength on both sides: the sex-worker-rights and labour position (SWASH and others, in Japanese terms, not through a Western frame) against the abolitionist and anti-exploitation position. Do not resolve it cheaply. (8) THE SCEPTIC, mandatory: the industry's own self-presentation, the serious data gaps, the way both camps use the same weak numbers, and the risk of foreign moralising about Japan. (9) THE CLOSING UNDERCURRENT: something genuinely alive and current — the host-club debt reforms and their knock-on effects, or the overseas-working migration, or Okubo Park — mined from Japanese-language reporting rather than English summaries.",
+   "desk": "Special",
+   "issue": "82"
+  }
+ ]
 }
