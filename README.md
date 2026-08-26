@@ -22,7 +22,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
 | Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
 | Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `data/events.json` — edit at **`/admin`** (inline `EVENTS` array in `index.html` is the fallback) | No |
-| Personal calendar (owner-only): Outlook-style month/week views, Sunday-first, multi-day events as continuous bars | Public events + the encrypted private list (`/api/private-events`) | Login |
+| Personal calendar (owner-only): Outlook-style month/week views, Sunday-first, multi-day events as continuous bars, recurring events (weekly/monthly/yearly), birthdays as annual dots | Public events + birthdays + the encrypted private list (`/api/private-events`) | Login |
 | Statements · To File (owner-only): statement reminders appear on their day and persist until dismissed | `REMINDERS` config in `index.html`; dismissals in `localStorage` | Login |
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
 | 🔔 Morning digest push (07:20 SGT: build status, birthdays, event starts) | Web Push via `/api/notify` cron — see **Notifications** below | VAPID keys |
@@ -111,8 +111,8 @@ vercel --prod                             # deploy to production
 
 In **`index.html`**:
 - **Projects** — edit the `PROJECTS` array near the top of the `<script>`; each entry is `{ name, url }`.
-- **Birthdays** — edit at **`/admin`** (writes `data/birthdays.json`). Each entry is `{ name, month, day }`. The inline `BIRTHDAYS` array here is only the offline fallback.
-- **Events** — edit at **`/admin`** (writes `data/events.json`). Each entry is `{ act, kind, date, endDate, time, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, `time` is an optional HH:MM (24h) shown on the card and used for the timed calendar download, and `date: null` marks it TBA. Past events disappear automatically. The inline `EVENTS` array here is only the offline fallback.
+- **Birthdays** — edit at **`/admin`** (writes `data/birthdays.json`). Each entry is `{ name, month, day }`. They also appear in the personal calendar as small annual dot items (distinct from event blocks). The inline `BIRTHDAYS` array here is only the offline fallback.
+- **Events** — edit at **`/admin`** (writes `data/events.json`). Each entry is `{ act, kind, date, endDate, time, repeat, venue, status, note, url }` where `kind` is a short type label ("Concert", "Race", "Fitness", "Motorsport", …) shown on the card, `time` is an optional HH:MM (24h) shown on the card and used for the timed calendar download, `repeat` is an optional `"weekly" | "monthly" | "yearly"` that makes the entry recur in the personal calendar (occurrences keep the original's duration; dates that don't exist — the 31st in a short month, Feb 29 — are skipped) and adds an `RRULE` to the calendar download, and `date: null` marks it TBA. Past events disappear automatically. The inline `EVENTS` array here is only the offline fallback.
 - **Cost basis** — the `COST_BASIS` map (Yahoo symbol → average buy-in price) draws a green border around a market tile when the live price is at/above your average and a red border when below.
 - **Happy Day** — the `HAPPY_DAY` constant holds the anniversary (`month`, `day`) and `firstYear`. The display reads `<completed years × 365>.<day of the current relationship year>`, with day 1 on the anniversary, resetting each year at midnight Singapore time.
 
