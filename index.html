@@ -423,6 +423,10 @@
   /* owner-only content: hidden until the owner logs in (footer link) */
   .owner-only{display:none}
   body.owner .owner-only{display:block}
+  .owner-sub{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;
+  }
 
   .note{
     font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent-deep);
@@ -556,15 +560,6 @@
       <div class="mkt-grid" id="coe"></div>
     </section>
 
-    <!-- Account: balances + spend -->
-    <section class="markets rise" id="accountSec" style="display:none" aria-label="Account">
-      <div class="sec-head">
-        <h2>Account <span class="dot">·</span> Balances</h2>
-        <span class="cnt"></span>
-      </div>
-      <div class="mkt-grid" id="balances"></div>
-    </section>
-
     <!-- Sports: only appears while a major event is on (World Cup, Grand
          Slams, Tour de France, Olympics, late playoff rounds, F1, ...) -->
     <section class="markets rise" id="sportsSec" style="display:none" aria-label="Sports">
@@ -649,8 +644,13 @@
         <span class="cnt"></span>
       </div>
       <div id="ownerContent">
-        <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.04em">
-          Private space — content to come. (Anything with class "owner-only" appears only while logged in.)
+        <!-- Account balances + spend (fetches only with the owner session or ?me= link) -->
+        <div id="accountSec" style="display:none">
+          <div class="owner-sub">Account · Balances</div>
+          <div class="mkt-grid" id="balances"></div>
+        </div>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.04em;margin-top:14px">
+          More private content to come. (Anything with class "owner-only" appears only while logged in.)
         </p>
       </div>
     </section>
@@ -1450,6 +1450,11 @@ function renderBalances(balances){
   balances = (balances||[]).filter(Boolean);
   if(!balances.length) return;
   $("accountSec").style.display = "";
+  // Balances now live inside the owner-only section. A valid ?me= link
+  // carries the same trust as the owner login, so reveal the section for
+  // it too (never for the no-secret-configured public case).
+  const q = new URLSearchParams(location.search);
+  if(q.get("me") || q.get("token")) document.body.classList.add("owner");
   const fmt = (n) => n==null ? "—" : Number(n).toLocaleString("en-US");
   const usd = (n) => n==null ? "—" : "$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
   $("balances").innerHTML = balances.map(b=>{
