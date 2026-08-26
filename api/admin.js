@@ -6,10 +6,12 @@
 // which is both the version history and (after Vercel redeploys) the file
 // the live dashboard fetches. There is no database.
 //
-// Auth: every request must carry the shared secret as ?token=<secret>
-//   (ADMIN_SECRET, or DASHBOARD_SECRET if ADMIN_SECRET isn't set). Without
-//   either secret configured the endpoint refuses to run at all, so the
-//   editor is never accidentally left open.
+// Auth: every request must carry ?token=<...> — either the shared secret
+//   (ADMIN_SECRET, or DASHBOARD_SECRET if ADMIN_SECRET isn't set) or a valid
+//   owner session minted by the Google login (api/_session.js), so being
+//   signed in as the owner on the dashboard also unlocks /admin. Without a
+//   secret configured the endpoint refuses to run at all, so the editor is
+//   never accidentally left open.
 //
 // Env vars (Vercel -> Settings -> Environment Variables):
 //   GITHUB_TOKEN   - fine-grained PAT with Contents: Read & Write on
@@ -17,6 +19,8 @@
 //   ADMIN_SECRET   - password for /admin (falls back to DASHBOARD_SECRET).
 //   GITHUB_REPO    - optional; "owner/repo", defaults to markt1600/mainpage.
 //   GITHUB_BRANCH  - optional; defaults to "main".
+
+import { sessionKey, checkSession } from "./_session.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
@@ -148,7 +152,10 @@ export default async function handler(req, res) {
     const u = new URL(req.url, "http://x");
     token = u.searchParams.get("token") || u.searchParams.get("me");
   } catch (_) {}
-  if (token !== secret) {
+  // Accept the shared secret, or a valid owner session from the Google login.
+  const skey = sessionKey();
+  const viaSession = skey && checkSession(token, skey);
+  if (token !== secret && !viaSession) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
