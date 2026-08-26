@@ -18,7 +18,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Sports · Last 24 Hours (only while a major event is on — World Cup, Grand Slams, Tour de France, Olympics, late playoff rounds, F1…) | Claude + web search (`/api/sports`) | `ANTHROPIC_API_KEY` |
 | Fitness (24h / 7d / 30d distance & run pace) | Strava API | Strava env vars |
 | COE premiums (latest bidding exercise, all 5 categories) | LTA dataset via data.gov.sg API | No |
-| Account balances (ElevenLabs credits, Claude API 30-day spend) | ElevenLabs + Anthropic Admin APIs | See below |
+| Account balances (ElevenLabs credits, Claude API 30-day spend) — inside the owner-only **For Mark · Private** section | ElevenLabs + Anthropic Admin APIs | See below |
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
 | Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
 | Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `data/events.json` — edit at **`/admin`** (inline `EVENTS` array in `index.html` is the fallback) | No |
@@ -27,7 +27,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
 
-Account balances are the one private section: if `DASHBOARD_SECRET` is set they only appear when visiting `/?me=<secret>` — or while logged in (below).
+Account balances live inside the owner-only **For Mark · Private** section: they appear while logged in (below), or when visiting with the legacy `/?me=<secret>` link — which reveals the private section too, since it carries the same secret.
 
 **Owner login (Google Sign-In):** the footer has a small `login` link that swaps itself for Google's sign-in button. `api/login.js` verifies the Google ID token (signature/expiry via Google's tokeninfo endpoint, audience must match `GOOGLE_CLIENT_ID`, and the verified email must be the owner's — any other Google account gets 403) and mints a 90-day HMAC session (`api/_session.js`, keyed off `SESSION_SECRET` → `ADMIN_SECRET` → `DASHBOARD_SECRET`). The session lives in `localStorage` and is re-verified server-side on every load. While logged in, the body gets the `owner` class, any element with class `owner-only` becomes visible (there's a "For Mark · Private" placeholder section wired up), and the balances section unlocks without the `?me=` link. `logout` clears the session. Logged-out visitors see the page exactly as before.
 
