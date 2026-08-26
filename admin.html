@@ -25,6 +25,10 @@
   header{padding:26px 0 14px;border-bottom:2px solid var(--rule-strong);margin-bottom:22px}
   .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent-deep)}
   h1{font-size:34px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+  /* the masthead links back to the dashboard */
+  a.homelink{color:inherit;text-decoration:none;display:inline-block}
+  a.homelink:hover h1{color:var(--accent-deep)}
+  a.homelink:hover .eyebrow{text-decoration:underline;text-underline-offset:3px}
   .sub{color:var(--ink-soft);font-size:14px;margin-top:4px}
   .sub code{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-3);padding:1px 5px;border-radius:3px}
 
@@ -71,8 +75,10 @@
 <!-- Secret gate -->
 <div id="gate">
   <div class="card">
-    <div class="eyebrow">marktan.ai</div>
-    <h1 style="font-size:26px;margin:2px 0 4px">Admin</h1>
+    <a class="homelink" href="/" title="Back to The Daily">
+      <div class="eyebrow">marktan.ai</div>
+      <h1 style="font-size:26px;margin:2px 0 4px">Admin</h1>
+    </a>
     <p class="sub" style="margin-bottom:16px">Enter the admin password to edit Birthdays &amp; Events.</p>
     <label for="secret">Password</label>
     <input id="secret" type="password" autocomplete="current-password" placeholder="ADMIN_SECRET" />
@@ -85,9 +91,11 @@
 <div id="app">
   <header>
     <div class="wrap">
-      <div class="eyebrow">marktan.ai · dashboard admin</div>
-      <h1>Birthdays &amp; Events</h1>
-      <p class="sub">Edits commit to <code id="repoLbl">markt1600/mainpage</code> and go live after Vercel redeploys (~1 min). <a href="/" target="_blank">View dashboard ↗</a></p>
+      <a class="homelink" href="/" title="Back to The Daily">
+        <div class="eyebrow">marktan.ai · dashboard admin</div>
+        <h1>Birthdays &amp; Events</h1>
+      </a>
+      <p class="sub">Edits commit to <code id="repoLbl">markt1600/mainpage</code> and go live after Vercel redeploys (~1 min). <a href="/">← Back to the dashboard</a></p>
       <div class="topbar"><button class="ghost" id="lock">Lock</button></div>
     </div>
   </header>
