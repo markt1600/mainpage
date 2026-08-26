@@ -69,11 +69,18 @@
   .hint{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-faint);margin-top:6px}
   #err{color:var(--err);font-family:"JetBrains Mono",monospace;font-size:12px;margin-top:8px}
   .topbar{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin-top:8px}
+  /* Both start hidden: boot shows #app on a successful auto-unlock, the
+     gate only if no stored credential works — no password-page flash. */
+  #gate{display:none}
   #app{display:none}
+  #boot{display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;font-size:13px}
 </style>
 </head>
 <body>
 <div class="accent-bar"></div>
+
+<!-- Boot: shown while checking stored credentials -->
+<div id="boot">unlocking…</div>
 
 <!-- Secret gate -->
 <div id="gate">
@@ -215,7 +222,8 @@ let dirty = { events: false, birthdays: false, private: false };
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* ---------- gate ---------- */
-function showApp(){ $("gate").style.display = "none"; $("app").style.display = "block"; }
+function showApp(){ $("boot").style.display = "none"; $("gate").style.display = "none"; $("app").style.display = "block"; }
+function showGate(){ $("boot").style.display = "none"; $("gate").style.display = "block"; }
 async function tryUnlock(secret, persist = true){
   $("gateErr").textContent = "";
   try{
@@ -668,8 +676,10 @@ $("aiDiscard").addEventListener("click", ()=>{ $("aiResult").style.display = "no
   try{ s = localStorage.getItem("ownerSession") || ""; }catch(_){}
   if(s){
     await tryUnlock(s, false); // don't persist the session as the admin token
-    if($("app").style.display !== "block") $("gateErr").textContent = ""; // stale session — just show the gate quietly
+    if($("app").style.display === "block") return;
+    $("gateErr").textContent = ""; // stale session — just show the gate quietly
   }
+  showGate(); // no working credential — only now reveal the password gate
 })();
 </script>
 </body>
