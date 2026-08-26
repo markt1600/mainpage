@@ -1179,8 +1179,23 @@ function calTodayUTC(){
 }
 function calDayFromISO(iso){ const [y,m,d] = iso.split("-").map(Number); return Date.UTC(y, m-1, d); }
 
+/* Private entries (travel, personal — fetched only while logged in) merge
+   into the calendar alongside the public events list. */
+let PRIVATE_EVENTS = [];
+async function loadPrivateEvents(){
+  const t = privateToken();
+  if(!t){ PRIVATE_EVENTS = []; renderCalendar(); return; }
+  try{
+    const res = await fetch(`/api/private-events?token=${encodeURIComponent(t)}`, { cache:"no-store" });
+    if(!res.ok) return;
+    const d = await res.json();
+    PRIVATE_EVENTS = Array.isArray(d.events) ? d.events : [];
+    renderCalendar();
+  }catch(e){ /* calendar just shows public events */ }
+}
+
 function calEventsList(){
-  return (EVENTS||[])
+  return (EVENTS||[]).concat(PRIVATE_EVENTS||[])
     .filter(e=>e && e.act && e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date))
     .map(e=>{
       const startMs = calDayFromISO(e.date);
@@ -1580,7 +1595,7 @@ async function initOwner(){
     const res = await loginPost({ session: s });
     if(res.ok){
       const d = await res.json();
-      if(d.ok){ ownerUser = d.user; loadBalances(); }
+      if(d.ok){ ownerUser = d.user; loadBalances(); loadPrivateEvents(); }
     }else if(res.status === 401){
       try{ localStorage.removeItem(OWNER_KEY); }catch(e){} // expired/invalid session
     }
@@ -1613,6 +1628,7 @@ async function onGoogleCredential(resp){
       try{ localStorage.setItem(OWNER_KEY, d.session); }catch(e){}
       setOwnerUI();
       loadBalances();
+      loadPrivateEvents();
     }
   }catch(err){ alert("Sign-in failed — try again."); setOwnerUI(); }
 }
@@ -1639,6 +1655,8 @@ function toggleLogin(e){
     ownerUser = null;
     try{ localStorage.removeItem(OWNER_KEY); }catch(e2){}
     try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
+    PRIVATE_EVENTS = [];
+    renderCalendar();
     setOwnerUI();
     return;
   }

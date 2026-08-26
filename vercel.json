@@ -16,6 +16,12 @@
     "api/feedback.js": {
       "maxDuration": 15
     },
+    "api/assist.js": {
+      "maxDuration": 30
+    },
+    "api/private-events.js": {
+      "maxDuration": 15
+    },
     "api/deliver.js": {
       "maxDuration": 15
     }
