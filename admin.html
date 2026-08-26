@@ -36,8 +36,11 @@
   #gate{max-width:420px;margin:14vh auto 0}
   #gate .card{background:var(--paper-2);border:1px solid var(--rule);border-radius:10px;padding:26px}
   label{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px}
-  input,select{width:100%;font-family:"JetBrains Mono",monospace;font-size:13px;padding:8px 9px;border:1px solid var(--rule-strong);border-radius:6px;background:var(--paper);color:var(--ink)}
-  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  input,select,textarea{width:100%;font-family:"JetBrains Mono",monospace;font-size:13px;padding:8px 9px;border:1px solid var(--rule-strong);border-radius:6px;background:var(--paper);color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  textarea{resize:vertical;min-height:84px;line-height:1.5}
+  #aiImgWrap{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);margin-top:8px}
+  #aiAdds input{font-size:12px;padding:5px 6px}
   button{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.06em;padding:9px 16px;border:1px solid var(--accent-deep);background:var(--accent);color:var(--paper);border-radius:6px;cursor:pointer;text-transform:uppercase}
   button:hover{background:var(--accent-deep)}
   button.ghost{background:transparent;color:var(--ink-soft);border-color:var(--rule-strong)}
@@ -101,6 +104,30 @@
   </header>
 
   <div class="wrap">
+    <!-- CALENDAR ASSISTANT (Claude) -->
+    <section class="panel">
+      <div class="phead">
+        <h2>Calendar assistant · Claude</h2>
+        <span class="meta">describe changes, or paste a screenshot (Ctrl/Cmd-V)</span>
+      </div>
+      <textarea id="aiInput" placeholder="e.g. “Flying to Tokyo 12–16 Sep, SQ632 departs 09:25 — block those out as travel”, a pasted list of dates, or just paste a booking/itinerary screenshot…"></textarea>
+      <div id="aiImgWrap" style="display:none">🖼 <span id="aiImgName"></span> · <a href="#" id="aiImgClear">remove image</a></div>
+      <div class="bar">
+        <button id="aiGo">Propose changes</button>
+        <span class="status" id="aiStatus"></span>
+      </div>
+      <div id="aiResult" style="display:none">
+        <p id="aiSummary" class="sub" style="margin-top:10px"></p>
+        <div id="aiAdds"></div>
+        <div id="aiDeletes"></div>
+        <div class="bar">
+          <button id="aiApply">Apply to Events table</button>
+          <button class="ghost" id="aiDiscard">Discard</button>
+          <span class="hint">Applying stages the changes below — press “Save events” to commit.</span>
+        </div>
+      </div>
+    </section>
+
     <!-- EVENTS -->
     <section class="panel">
       <div class="phead">
@@ -120,6 +147,28 @@
         <button class="ghost" id="evAdd">+ Add event</button>
         <button id="evSave">Save events</button>
         <span class="status" id="evStatus"></span>
+      </div>
+    </section>
+
+    <!-- PRIVATE CALENDAR (encrypted; owner-only on the dashboard) -->
+    <section class="panel">
+      <div class="phead">
+        <h2>Private calendar</h2>
+        <span class="meta" id="pvMeta"></span>
+      </div>
+      <div class="tablewrap">
+        <table id="pvTable">
+          <thead><tr>
+            <th>Entry</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
+          </tr></thead>
+          <tbody id="pvBody"></tbody>
+        </table>
+      </div>
+      <div class="hint">Owner-only: travel, flights, personal items — shown only in the For Mark calendar, never in the public events list. Stored <b>encrypted</b> (data/private-events.enc.json), unreadable without the server key even though the repo is public.</div>
+      <div class="bar">
+        <button class="ghost" id="pvAdd">+ Add entry</button>
+        <button id="pvSave">Save private calendar</button>
+        <span class="status" id="pvStatus"></span>
       </div>
     </section>
 
@@ -152,7 +201,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let TOKEN = "";
 let sha = { events: null, birthdays: null };
-let dirty = { events: false, birthdays: false };
+let dirty = { events: false, birthdays: false, private: false };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -169,6 +218,7 @@ async function tryUnlock(secret, persist = true){
     if(persist){ try{ localStorage.setItem("mt_admin_token", secret); }catch(_){} }
     hydrate(d);
     showApp();
+    loadPrivate();
   }catch(e){ $("gateErr").textContent = String(e.message || e); }
 }
 $("enter").addEventListener("click", ()=>tryUnlock($("secret").value.trim()));
@@ -188,23 +238,25 @@ function hydrate(d){
 function updateMeta(){
   $("evMeta").textContent = `${$("evBody").children.length} entries`;
   $("bdMeta").textContent = `${$("bdBody").children.length} entries`;
+  if($("pvMeta")) $("pvMeta").textContent = `${$("pvBody").children.length} entries`;
 }
 function setDirty(kind, v){
   dirty[kind] = v;
-  const el = kind === "events" ? $("evStatus") : $("bdStatus");
+  const el = kind === "events" ? $("evStatus") : kind === "private" ? $("pvStatus") : $("bdStatus");
   if(v){ el.textContent = "unsaved changes"; el.className = "status dirty"; }
   else if(!el.classList.contains("ok") && !el.classList.contains("err")){ el.textContent = ""; }
 }
 
 /* ---------- events table ---------- */
-function evRow(e){
+function evRow(e, dk){
   e = e || {};
+  dk = dk || "events"; // which list's dirty state this row belongs to
   const tr = document.createElement("tr");
   const cell = (val, key, ph, cls) => {
     const td = document.createElement("td"); if(cls) td.className = cls;
     const inp = document.createElement("input");
     inp.value = val == null ? "" : val; inp.placeholder = ph || ""; inp.dataset.key = key;
-    inp.addEventListener("input", ()=>setDirty("events", true));
+    inp.addEventListener("input", ()=>setDirty(dk, true));
     td.appendChild(inp); return td;
   };
   tr.appendChild(cell(e.act, "act", "Event name"));
@@ -218,7 +270,11 @@ function evRow(e){
   tr.appendChild(cell(e.url, "url", "https://…"));
   const del = document.createElement("td"); del.className = "act";
   const b = document.createElement("button"); b.className = "danger"; b.textContent = "✕"; b.title = "Delete";
-  b.addEventListener("click", ()=>{ tr.remove(); setDirty("events", true); updateMeta(); });
+  b.addEventListener("click", ()=>{
+    const name = (tr.querySelector('input[data-key="act"]')||{}).value || "this entry";
+    if(!confirm(`Delete "${name}"? (Takes effect when you press Save.)`)) return;
+    tr.remove(); setDirty(dk, true); updateMeta();
+  });
   del.appendChild(b); tr.appendChild(del);
   return tr;
 }
@@ -226,13 +282,14 @@ function renderEvents(list){
   const body = $("evBody"); body.innerHTML = "";
   list.forEach(e => body.appendChild(evRow(e)));
 }
-function collectEvents(){
-  return [...$("evBody").children].map(tr=>{
+function collectRows(bodyId){
+  return [...$(bodyId).children].map(tr=>{
     const g = k => (tr.querySelector(`input[data-key="${k}"]`)||{}).value?.trim() || "";
     return { act:g("act"), kind:g("kind"), date:g("date")||null, endDate:g("endDate")||null,
              time:g("time")||null, venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
   }).filter(e=>e.act);
 }
+function collectEvents(){ return collectRows("evBody"); }
 $("evAdd").addEventListener("click", ()=>{ $("evBody").appendChild(evRow({})); setDirty("events", true); updateMeta(); });
 
 /* ---------- birthdays table ---------- */
@@ -297,7 +354,156 @@ async function save(kind, data, statusEl, btn){
 $("evSave").addEventListener("click", ()=>{ renderEvents(collectEvents()); updateMeta(); save("events", collectEvents(), $("evStatus"), $("evSave")); });
 $("bdSave").addEventListener("click", ()=>{ renderBirthdays(collectBirthdays()); updateMeta(); save("birthdays", collectBirthdays(), $("bdStatus"), $("bdSave")); });
 
-window.addEventListener("beforeunload", (e)=>{ if(dirty.events||dirty.birthdays){ e.preventDefault(); e.returnValue=""; } });
+window.addEventListener("beforeunload", (e)=>{ if(dirty.events||dirty.birthdays||dirty.private){ e.preventDefault(); e.returnValue=""; } });
+
+/* ---------- private calendar (encrypted store via /api/private-events) ---------- */
+let pvSha = null;
+function renderPrivate(list){
+  const body = $("pvBody"); body.innerHTML = "";
+  list.forEach(e => body.appendChild(evRow(e, "private")));
+  updateMeta();
+}
+async function loadPrivate(){
+  try{
+    const res = await fetch(`/api/private-events?token=${encodeURIComponent(TOKEN)}`, { cache:"no-store" });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){ $("pvStatus").textContent = j.error || `error ${res.status}`; $("pvStatus").className = "status err"; return; }
+    pvSha = j.sha;
+    renderPrivate(j.events || []);
+    setDirty("private", false);
+  }catch(e){ $("pvStatus").textContent = String(e.message || e); $("pvStatus").className = "status err"; }
+}
+$("pvAdd").addEventListener("click", ()=>{ $("pvBody").appendChild(evRow({}, "private")); setDirty("private", true); updateMeta(); });
+$("pvSave").addEventListener("click", async ()=>{
+  const st = $("pvStatus"); st.className = "status"; st.textContent = "saving…"; $("pvSave").disabled = true;
+  try{
+    const res = await fetch(`/api/private-events?token=${encodeURIComponent(TOKEN)}`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ events: collectRows("pvBody"), sha: pvSha }),
+    });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){
+      st.className = "status err";
+      st.textContent = res.status === 409 ? "conflict — reload, the list changed" : (j.error || `error ${res.status}`);
+      return;
+    }
+    pvSha = j.sha; dirty.private = false;
+    st.className = "status ok"; st.textContent = `saved · ${j.count} entries · encrypted`;
+  }catch(e){ st.className = "status err"; st.textContent = String(e.message || e); }
+  finally{ $("pvSave").disabled = false; }
+});
+
+/* ---------- Claude calendar assistant ---------- */
+let aiImage = null;    // {media_type, data(base64)} from a pasted screenshot
+let aiProposal = null; // last /api/assist response
+
+document.addEventListener("paste", (e)=>{
+  if(!e.clipboardData) return;
+  for(const item of e.clipboardData.items){
+    if(item.type && item.type.startsWith("image/")){
+      const f = item.getAsFile();
+      if(!f) continue;
+      if(f.size > 4*1024*1024){ aiStatus("image too large (max ~4 MB)", "err"); return; }
+      const rd = new FileReader();
+      rd.onload = ()=>{
+        aiImage = { media_type: item.type, data: String(rd.result).split(",")[1] };
+        $("aiImgWrap").style.display = "";
+        $("aiImgName").textContent = `${item.type} · ${(f.size/1024).toFixed(0)} KB attached`;
+      };
+      rd.readAsDataURL(f);
+      e.preventDefault();
+      break;
+    }
+  }
+});
+$("aiImgClear").addEventListener("click", (e)=>{ e.preventDefault(); aiImage = null; $("aiImgWrap").style.display = "none"; });
+
+function aiStatus(msg, cls){ const el = $("aiStatus"); el.textContent = msg; el.className = "status" + (cls?" "+cls:""); }
+
+$("aiGo").addEventListener("click", async ()=>{
+  const instruction = $("aiInput").value.trim();
+  if(!instruction && !aiImage){ aiStatus("type something or paste a screenshot first", "err"); return; }
+  aiStatus("asking Claude…");
+  $("aiGo").disabled = true;
+  try{
+    const res = await fetch(`/api/assist?token=${encodeURIComponent(TOKEN)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ instruction, image: aiImage, events: collectEvents(), privateEvents: collectRows("pvBody") }),
+    });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){ aiStatus(j.error || `error ${res.status}`, "err"); return; }
+    aiProposal = j;
+    renderProposal(j);
+    aiStatus("");
+  }catch(err){ aiStatus(String(err.message || err), "err"); }
+  finally{ $("aiGo").disabled = false; }
+});
+
+const AI_COLS = ["act","kind","date","endDate","time","venue","status","note","url"];
+function renderProposal(p){
+  $("aiResult").style.display = "";
+  $("aiSummary").textContent = p.summary || "";
+  $("aiAdds").innerHTML = (p.adds && p.adds.length) ? `
+    <div class="hint" style="margin:8px 0 4px">Proposed additions — edit freely, untick to skip. <b>List</b> = where it goes: <b>private</b> (owner calendar only) or <b>public</b> (site events list).</div>
+    <div class="tablewrap"><table>
+      <thead><tr><th></th><th>List</th><th>Event</th><th>Kind</th><th>Date</th><th>End</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th></tr></thead>
+      <tbody>${p.adds.map((a,i)=>`<tr>
+        <td class="act"><input type="checkbox" checked data-addcb="${i}" style="width:auto"></td>
+        <td><select data-add="${i}" data-k="list">
+          <option value="private"${a.list!=="public"?" selected":""}>private</option>
+          <option value="public"${a.list==="public"?" selected":""}>public</option>
+        </select></td>
+        ${AI_COLS.map(k=>`<td><input value="${esc(a[k]==null?"":a[k])}" data-add="${i}" data-k="${k}"></td>`).join("")}
+      </tr>`).join("")}</tbody>
+    </table></div>` : `<div class="hint" style="margin-top:8px">No additions proposed.</div>`;
+  $("aiDeletes").innerHTML = (p.deletes && p.deletes.length) ? `
+    <div class="hint" style="margin:10px 0 4px;color:var(--err)">Proposed deletions — tick to confirm each:</div>
+    ${p.deletes.map((d,i)=>`<label style="display:block;font-family:'JetBrains Mono',monospace;font-size:12px;margin:3px 0"><input type="checkbox" data-delcb="${i}" style="width:auto"> [${esc(d.list||"public")}] ${esc(d.act)} · ${esc(d.date)}</label>`).join("")}` : "";
+}
+
+$("aiApply").addEventListener("click", ()=>{
+  if(!aiProposal) return;
+  const adds = [];
+  document.querySelectorAll("#aiAdds input[data-addcb]").forEach(cb=>{
+    if(!cb.checked) return;
+    const i = cb.dataset.addcb;
+    const entry = {};
+    document.querySelectorAll(`#aiAdds [data-add="${i}"]`).forEach(inp=>{ if(inp.dataset.k) entry[inp.dataset.k] = inp.value.trim(); });
+    if(entry.act && entry.date) adds.push(entry);
+  });
+  const dels = [];
+  document.querySelectorAll("#aiDeletes input[data-delcb]:checked").forEach(cb=>dels.push(aiProposal.deletes[cb.dataset.delcb]));
+  if(!adds.length && !dels.length){ aiStatus("nothing selected", "err"); return; }
+
+  const msg = [
+    adds.length ? `ADD ${adds.length}: ${adds.map(a=>`${a.act} → ${a.list==="public"?"public":"private"}`).join(", ")}` : null,
+    dels.length ? `DELETE ${dels.length}: ${dels.map(d=>`${d.act} (${d.list||"public"})`).join(", ")}` : null,
+  ].filter(Boolean).join("\n");
+  if(!confirm(msg + "\n\nApply to the tables? (Still needs the relevant Save to commit.)")) return;
+
+  const touched = { events: false, private: false };
+  for(const a of adds){
+    const priv = a.list !== "public";
+    $(priv ? "pvBody" : "evBody").appendChild(evRow(a, priv ? "private" : "events"));
+    touched[priv ? "private" : "events"] = true;
+  }
+  for(const d of dels){
+    const priv = d.list === "private";
+    [...$(priv ? "pvBody" : "evBody").children].forEach(tr=>{
+      const g = k => (tr.querySelector(`input[data-key="${k}"]`)||{}).value?.trim() || "";
+      if(g("act") === d.act && g("date") === d.date) tr.remove();
+    });
+    touched[priv ? "private" : "events"] = true;
+  }
+  if(touched.events) setDirty("events", true);
+  if(touched.private) setDirty("private", true);
+  updateMeta();
+  $("aiResult").style.display = "none"; aiProposal = null;
+  $("aiInput").value = ""; aiImage = null; $("aiImgWrap").style.display = "none";
+  aiStatus("staged below — press “Save events” / “Save private calendar” to commit", "dirty");
+});
+$("aiDiscard").addEventListener("click", ()=>{ $("aiResult").style.display = "none"; aiProposal = null; });
 
 /* ---------- boot: remember token, allow ?token= deep-link, and accept the
    dashboard's Google-login owner session so no separate PIN is needed ---------- */

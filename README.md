@@ -22,6 +22,8 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Happy Day counter (relationship day count, ticks over at midnight SGT) | `HAPPY_DAY` config in `index.html` | No |
 | Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
 | Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `data/events.json` — edit at **`/admin`** (inline `EVENTS` array in `index.html` is the fallback) | No |
+| Personal calendar (owner-only): Outlook-style month/week views, Sunday-first, multi-day events as continuous bars | Public events + the encrypted private list (`/api/private-events`) | Login |
+| Statements · To File (owner-only): statement reminders appear on their day and persist until dismissed | `REMINDERS` config in `index.html`; dismissals in `localStorage` | Login |
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
 | 🔔 Morning digest push (07:20 SGT: build status, birthdays, event starts) | Web Push via `/api/notify` cron — see **Notifications** below | VAPID keys |
 
@@ -42,6 +44,8 @@ Setup (one-time): in Google Cloud Console → APIs & Services → Credentials, c
 - **`api/balances.js`** — ElevenLabs credits + Claude API 30-day spend. Never cached. Gated: with `DASHBOARD_SECRET` set, requests need a valid owner login session (Google Sign-In); without the secret set, it's public.
 - **`api/admin.js`** — backend for the admin editor. Password-gated (`ADMIN_SECRET`, or `DASHBOARD_SECRET` if that's unset). `GET` returns the current lists; `POST` commits an edited list to `data/*.json` via the GitHub Contents API (needs `GITHUB_TOKEN`). Each save is a commit, so git history *is* the audit trail; the current blob `sha` is round-tripped so a concurrent edit 409s instead of silently clobbering.
 - **`data/birthdays.json`, `data/events.json`** — the authoritative Birthdays & Events lists the dashboard fetches. Edited through `/admin`; the inline arrays in `index.html` remain as an offline/local-preview fallback.
+- **`api/assist.js`** — the admin page's Claude calendar assistant: takes free-form text and/or a pasted screenshot plus both event lists, returns proposed adds (routed public/private) and deletions for review. Nothing commits until the owner applies and saves. Uses `ANTHROPIC_API_KEY`.
+- **`api/private-events.js`** — the private calendar list (travel, personal items). Committed as `data/private-events.enc.json`, AES-256-GCM encrypted (key: `PRIVATE_STORE_KEY` → `PUSH_STORE_KEY` → `VAPID_PRIVATE_KEY`) since the repo is public; GET/POST gated by the owner session or admin secret, with sha-guarded writes.
 - **`admin.html`** (served at **`/admin`**) — a self-contained CRUD editor for the two lists: add/edit/delete rows in tables, then Save. The password is remembered in `localStorage`; you can also deep-link with `/admin?token=<secret>`. `noindex`.
 - **`vercel.json`** — 60s `maxDuration` for the dashboard/sports functions, 15s for admin, a `/admin → /admin.html` rewrite, and the daily crons that warm the cache.
 
@@ -82,6 +86,7 @@ Set these in Vercel → Settings → Environment Variables:
 | `CRON_SECRET` | `notify.js` | Recommended. Vercel sends it as a Bearer header on cron invocations; when set, manual `/api/notify` hits need `?token=<ADMIN_SECRET>` instead. |
 | `GOOGLE_CLIENT_ID` | `login.js` | OAuth client ID (Web application) from Google Cloud Console with `https://marktan.ai` as an authorized JavaScript origin. Enables the footer's Google Sign-In owner login. |
 | `SESSION_SECRET` | `_session.js` | Optional. Dedicated HMAC key for owner login sessions; defaults to `ADMIN_SECRET`, then `DASHBOARD_SECRET`. |
+| `PRIVATE_STORE_KEY` | `private-events.js` | Optional. Dedicated encryption key for the private calendar file; defaults to `PUSH_STORE_KEY`, then `VAPID_PRIVATE_KEY`. |
 | `PUSH_STORE_KEY` | `_pushstore.js` | Optional. Separate encryption key for the committed subscription file; defaults to `VAPID_PRIVATE_KEY`. |
 
 Keys live only in the serverless functions and are never sent to the browser.

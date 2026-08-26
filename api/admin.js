@@ -69,6 +69,7 @@ function sanitize(kind, data) {
         kind: str(e && e.kind, 40),
         date: isoDate(e && e.date),
         endDate: isoDate(e && e.endDate),
+        time: /^\d{1,2}:\d{2}$/.test(str(e && e.time, 5)) ? str(e && e.time, 5) : null,
         venue: str(e && e.venue, 120),
         status: str(e && e.status, 60),
         note: str(e && e.note, 200),
