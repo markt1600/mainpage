@@ -658,7 +658,7 @@
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
       <span id="healthNote" style="display:none;color:var(--accent-deep);letter-spacing:.06em"></span>
-      <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a> · <span id="loginWho" style="color:var(--ink-soft)"></span><a id="loginLink" href="#">login</a></span>
+      <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a> · <span id="loginWho" style="color:var(--ink-soft)"></span><a id="loginLink" href="#">login</a><span id="gsiBtn" style="display:none;vertical-align:middle"></span></span>
     </footer>
   </div>
 
@@ -1335,17 +1335,19 @@ function privateToken(){
 }
 
 /* ============================================================
-   OWNER LOGIN — lightweight owner mode via the footer "login" link.
-   The entered password is verified against /api/login (which matches
-   it to ADMIN_SECRET / DASHBOARD_SECRET) and remembered in
-   localStorage; every page load re-verifies before enabling owner
-   mode. While logged in, <body> carries the "owner" class, so any
-   element with class "owner-only" becomes visible — that's the hook
-   for private content. Logging in also unlocks the balances section
-   without needing the ?me= link.
+   OWNER LOGIN — Google Sign-In, owner-only. The footer "login" link
+   swaps itself for Google's sign-in button; the returned ID token is
+   verified server-side by /api/login (audience + verified email must
+   be the owner's), which mints a 90-day session token we keep in
+   localStorage and re-verify on every load. While logged in, <body>
+   carries the "owner" class, so any element with class "owner-only"
+   becomes visible — that's the hook for private content — and the
+   balances section unlocks without the ?me= link.
+   Requires the GOOGLE_CLIENT_ID env var (Vercel) to be set.
    ============================================================ */
-const OWNER_KEY = "ownerToken";
+const OWNER_KEY = "ownerSession";
 let ownerUser = null;
+let gsiLoading = null;
 
 function ownerToken(){ try{ return localStorage.getItem(OWNER_KEY); }catch(e){ return null; } }
 
@@ -1360,56 +1362,89 @@ function setOwnerUI(){
     link.textContent = "login";
     $("loginWho").textContent = "";
   }
+  link.style.display = "";
+  $("gsiBtn").style.display = "none";
 }
 
-/* Returns the owner identity, null when the password is wrong, and
-   throws when the endpoint itself is unreachable. */
-async function verifyOwner(token){
-  const res = await fetch("/api/login", {
+async function loginPost(body){
+  return fetch("/api/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify(body),
   });
-  if(res.status === 401) return null;
-  if(!res.ok) throw new Error(res.status);
-  const d = await res.json();
-  return d && d.ok ? d.user : null;
 }
 
 async function initOwner(){
-  const t = ownerToken();
-  if(!t) return;
+  try{ localStorage.removeItem("ownerToken"); }catch(e){} // pre-Google login leftover
+  const s = ownerToken();
+  if(!s) return;
   try{
-    ownerUser = await verifyOwner(t);
-    if(!ownerUser){ try{ localStorage.removeItem(OWNER_KEY); }catch(e){} } // stale password
-    else loadBalances(); // owner token also unlocks balances
-  }catch(e){ /* endpoint unreachable — stay logged out this load, keep the token */ }
+    const res = await loginPost({ session: s });
+    if(res.ok){
+      const d = await res.json();
+      if(d.ok){ ownerUser = d.user; loadBalances(); }
+    }else if(res.status === 401){
+      try{ localStorage.removeItem(OWNER_KEY); }catch(e){} // expired/invalid session
+    }
+  }catch(e){ /* endpoint unreachable — stay logged out this load, keep the session */ }
   setOwnerUI();
 }
 
-async function toggleLogin(e){
+function loadGsi(){
+  if(window.google?.accounts?.id) return Promise.resolve();
+  if(gsiLoading) return gsiLoading;
+  gsiLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true; s.defer = true;
+    s.onload = resolve;
+    s.onerror = () => { gsiLoading = null; reject(new Error("gsi failed to load")); };
+    document.head.appendChild(s);
+  });
+  return gsiLoading;
+}
+
+async function onGoogleCredential(resp){
+  try{
+    const res = await loginPost({ credential: resp.credential });
+    if(res.status === 403){ alert("That Google account isn't the owner of this page."); setOwnerUI(); return; }
+    if(!res.ok){ alert("Sign-in failed — try again."); setOwnerUI(); return; }
+    const d = await res.json();
+    if(d.ok && d.session){
+      ownerUser = d.user;
+      try{ localStorage.setItem(OWNER_KEY, d.session); }catch(e){}
+      setOwnerUI();
+      loadBalances();
+    }
+  }catch(err){ alert("Sign-in failed — try again."); setOwnerUI(); }
+}
+
+async function beginLogin(){
+  try{
+    const cfg = await fetch("/api/login", { cache:"no-store" }).then(r=>r.json());
+    if(!cfg.clientId){ alert("Google sign-in isn't configured yet — set GOOGLE_CLIENT_ID in Vercel."); return; }
+    await loadGsi();
+    google.accounts.id.initialize({ client_id: cfg.clientId, callback: onGoogleCredential });
+    const slot = $("gsiBtn");
+    slot.innerHTML = "";
+    slot.style.display = "inline-block";
+    $("loginLink").style.display = "none";
+    google.accounts.id.renderButton(slot, { theme: "outline", size: "medium", text: "signin_with" });
+  }catch(err){
+    alert("Google sign-in couldn't load — check your connection and try again.");
+  }
+}
+
+function toggleLogin(e){
   if(e) e.preventDefault();
   if(ownerUser){
     ownerUser = null;
     try{ localStorage.removeItem(OWNER_KEY); }catch(e2){}
+    try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
     setOwnerUI();
     return;
   }
-  const pw = prompt("Owner password:");
-  if(!pw) return;
-  try{
-    const user = await verifyOwner(pw.trim());
-    if(user){
-      ownerUser = user;
-      try{ localStorage.setItem(OWNER_KEY, pw.trim()); }catch(e2){}
-      setOwnerUI();
-      loadBalances();
-    }else{
-      alert("Wrong password.");
-    }
-  }catch(err){
-    alert("Login isn't available right now.");
-  }
+  beginLogin();
 }
 function renderBalances(balances){
   balances = (balances||[]).filter(Boolean);

@@ -29,7 +29,9 @@ Sections whose keys aren't configured simply hide themselves — the page is nev
 
 Account balances are the one private section: if `DASHBOARD_SECRET` is set they only appear when visiting `/?me=<secret>` — or while logged in (below).
 
-**Owner login:** the footer has a small `login` link. Entering the owner password (verified server-side by `api/login.js` against `ADMIN_SECRET`, falling back to `DASHBOARD_SECRET`) switches the page into owner mode: the body gets the `owner` class, any element with class `owner-only` becomes visible (there's a "For Mark · Private" placeholder section wired up), and the balances section unlocks without the `?me=` link. The password is remembered in `localStorage` and re-verified on every load; `logout` clears it. Logged-out visitors see the page exactly as before.
+**Owner login (Google Sign-In):** the footer has a small `login` link that swaps itself for Google's sign-in button. `api/login.js` verifies the Google ID token (signature/expiry via Google's tokeninfo endpoint, audience must match `GOOGLE_CLIENT_ID`, and the verified email must be the owner's — any other Google account gets 403) and mints a 90-day HMAC session (`api/_session.js`, keyed off `SESSION_SECRET` → `ADMIN_SECRET` → `DASHBOARD_SECRET`). The session lives in `localStorage` and is re-verified server-side on every load. While logged in, the body gets the `owner` class, any element with class `owner-only` becomes visible (there's a "For Mark · Private" placeholder section wired up), and the balances section unlocks without the `?me=` link. `logout` clears the session. Logged-out visitors see the page exactly as before.
+
+Setup (one-time): in Google Cloud Console → APIs & Services → Credentials, create an **OAuth client ID** (Web application) with `https://marktan.ai` as an authorized JavaScript origin, then set `GOOGLE_CLIENT_ID` in Vercel. Until it's set, the login link explains it isn't configured yet.
 
 ## Files
 
@@ -78,6 +80,8 @@ Set these in Vercel → Settings → Environment Variables:
 | `MERIDIAN_DELIVER_TOKEN` | `deliver.js` | Fine-grained personal access token with **Actions: Read & Write** on `markt1600/dailymag`. Lets the magazine's "⇥ reMarkable" menu item fire the delivery workflows (`deliver-remarkable.yml` / `deliver-special.yml`) on demand. Until it's set the endpoint 502s and the menu item falls back to opening the GitHub Actions page. Optional: `MERIDIAN_REPO` / `MERIDIAN_BRANCH` override `markt1600/dailymag` / `main`. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | `push.js`, `notify.js` | Web Push signing keypair (`npx web-push generate-vapid-keys`). The public key goes to the browser; the private key signs every send — without it nobody can push to your devices. |
 | `CRON_SECRET` | `notify.js` | Recommended. Vercel sends it as a Bearer header on cron invocations; when set, manual `/api/notify` hits need `?token=<ADMIN_SECRET>` instead. |
+| `GOOGLE_CLIENT_ID` | `login.js` | OAuth client ID (Web application) from Google Cloud Console with `https://marktan.ai` as an authorized JavaScript origin. Enables the footer's Google Sign-In owner login. |
+| `SESSION_SECRET` | `_session.js` | Optional. Dedicated HMAC key for owner login sessions; defaults to `ADMIN_SECRET`, then `DASHBOARD_SECRET`. |
 | `PUSH_STORE_KEY` | `_pushstore.js` | Optional. Separate encryption key for the committed subscription file; defaults to `VAPID_PRIVATE_KEY`. |
 
 Keys live only in the serverless functions and are never sent to the browser.
