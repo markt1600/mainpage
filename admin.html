@@ -144,12 +144,12 @@
       <div class="tablewrap">
         <table id="evTable">
           <thead><tr>
-            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th>Show</th><th class="act"></th>
+            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Repeat</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th>Show</th><th class="act"></th>
           </tr></thead>
           <tbody id="evBody"></tbody>
         </table>
       </div>
-      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional). Show: <b>both</b> = site + your calendar · <b>public</b> = site only · <b>private</b> = only visible while you're logged in (note: this file lives in the public repo — truly private items belong in the Private calendar below). Finished events drop off automatically.</div>
+      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional). Repeat makes the entry recur in the calendar (weekly / monthly / yearly from its date). Show: <b>both</b> = site + your calendar · <b>public</b> = site only · <b>private</b> = only visible while you're logged in (note: this file lives in the public repo — truly private items belong in the Private calendar below). Finished events drop off automatically.</div>
       <div class="bar">
         <button class="ghost" id="evAdd">+ Add event</button>
         <button id="evSave">Save events</button>
@@ -166,7 +166,7 @@
       <div class="tablewrap">
         <table id="pvTable">
           <thead><tr>
-            <th>Entry</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
+            <th>Entry</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Repeat</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
           </tr></thead>
           <tbody id="pvBody"></tbody>
         </table>
@@ -271,6 +271,20 @@ function evRow(e, dk){
   tr.appendChild(cell(e.date, "date", "2026-10-02", "num"));
   tr.appendChild(cell(e.endDate, "endDate", "—", "num"));
   tr.appendChild(cell(e.time, "time", "19:30", "num"));
+  {
+    // Recurrence: the calendar repeats the entry weekly/monthly/yearly from
+    // its date (occurrences that don't exist, e.g. the 31st in a short
+    // month, are skipped).
+    const td = document.createElement("td");
+    const sel = document.createElement("select");
+    sel.dataset.key = "repeat";
+    for(const [v, lbl] of [["","—"],["weekly","weekly"],["monthly","monthly"],["yearly","yearly"]]){
+      const o = document.createElement("option"); o.value = v; o.textContent = lbl; sel.appendChild(o);
+    }
+    sel.value = ["weekly","monthly","yearly"].includes(e.repeat) ? e.repeat : "";
+    sel.addEventListener("change", ()=>setDirty(dk, true));
+    td.appendChild(sel); tr.appendChild(td);
+  }
   tr.appendChild(cell(e.venue, "venue", "Venue"));
   tr.appendChild(cell(e.status, "status", "on sale"));
   tr.appendChild(cell(e.note, "note", "Note"));
@@ -306,7 +320,8 @@ function collectRows(bodyId){
   return [...$(bodyId).children].map(tr=>{
     const g = k => (tr.querySelector(`[data-key="${k}"]`)||{}).value?.trim() || "";
     const o = { act:g("act"), kind:g("kind"), date:g("date")||null, endDate:g("endDate")||null,
-                time:g("time")||null, venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
+                time:g("time")||null, repeat:g("repeat")||null,
+                venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
     const show = g("show");
     if(show) o.show = show; // events table only; private rows have no Show cell
     return o;
@@ -463,14 +478,14 @@ $("aiGo").addEventListener("click", async ()=>{
   finally{ $("aiGo").disabled = false; }
 });
 
-const AI_COLS = ["act","kind","date","endDate","time","venue","status","note","url"];
+const AI_COLS = ["act","kind","date","endDate","time","repeat","venue","status","note","url"];
 function renderProposal(p){
   $("aiResult").style.display = "";
   $("aiSummary").textContent = p.summary || "";
   $("aiAdds").innerHTML = (p.adds && p.adds.length) ? `
     <div class="hint" style="margin:8px 0 4px">Proposed additions — edit freely, untick to skip. <b>List</b> = where it goes: <b>private</b> (owner calendar only) or <b>public</b> (site events list).</div>
     <div class="tablewrap"><table>
-      <thead><tr><th></th><th>List</th><th>Event</th><th>Kind</th><th>Date</th><th>End</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th></tr></thead>
+      <thead><tr><th></th><th>List</th><th>Event</th><th>Kind</th><th>Date</th><th>End</th><th>Time</th><th>Repeat</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th></tr></thead>
       <tbody>${p.adds.map((a,i)=>`<tr>
         <td class="act"><input type="checkbox" checked data-addcb="${i}" style="width:auto"></td>
         <td><select data-add="${i}" data-k="list">

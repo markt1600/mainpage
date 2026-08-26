@@ -70,6 +70,8 @@ function sanitize(kind, data) {
         date: isoDate(e && e.date),
         endDate: isoDate(e && e.endDate),
         time: /^\d{1,2}:\d{2}$/.test(str(e && e.time, 5)) ? str(e && e.time, 5) : null,
+        // Recurrence: the calendar expands this weekly/monthly/yearly from date
+        repeat: ["weekly", "monthly", "yearly"].includes(str(e && e.repeat, 10)) ? str(e && e.repeat, 10) : null,
         // Visibility: both (site + calendar) / public (site only) / private
         // (only rendered for the logged-in owner)
         show: ["public", "private"].includes(str(e && e.show, 10)) ? str(e && e.show, 10) : "both",

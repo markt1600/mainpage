@@ -53,6 +53,7 @@ function sanitize(data) {
       date: isoDate(e && e.date),
       endDate: isoDate(e && e.endDate),
       time: hhmm(e && e.time),
+      repeat: ["weekly", "monthly", "yearly"].includes(str(e && e.repeat, 10)) ? str(e && e.repeat, 10) : null,
       venue: str(e && e.venue, 120),
       status: str(e && e.status, 60),
       note: str(e && e.note, 300),

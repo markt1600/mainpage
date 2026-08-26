@@ -31,7 +31,7 @@ const PROMPT = (events, privateEvents, instruction, target) => `You manage the o
 - "private": the owner-only calendar (travel plans, flights, family/medical/personal appointments) — never shown publicly.
 
 Entries use EXACTLY this JSON shape:
-{"act":"name","kind":"Concert|Travel|Motorsport|Race|Fitness|Exam|School Holiday|Appointment|Personal|...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM 24h or null","venue":"string or empty","status":"string or empty","note":"string or empty","url":"https URL or empty"}
+{"act":"name","kind":"Concert|Travel|Motorsport|Race|Fitness|Exam|School Holiday|Appointment|Personal|...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM 24h or null","repeat":"weekly|monthly|yearly or null (null = one-off; use for recurring items like a weekly class or an anniversary)","venue":"string or empty","status":"string or empty","note":"string or empty","url":"https URL or empty"}
 
 CURRENT PUBLIC EVENTS:
 ${JSON.stringify(events)}
@@ -134,6 +134,7 @@ export default async function handler(req, res) {
         date: isoDate(a.date),
         endDate: isoDate(a.endDate),
         time: hhmm(a.time),
+        repeat: ["weekly", "monthly", "yearly"].includes(str(a.repeat, 10)) ? str(a.repeat, 10) : null,
         venue: str(a.venue, 120),
         status: str(a.status, 60),
         note: str(a.note, 200),
