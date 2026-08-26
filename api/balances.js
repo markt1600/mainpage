@@ -2,8 +2,9 @@
 // Personal account panel: ElevenLabs credit balance + Claude API 30-day spend.
 //
 // Gating is OPTIONAL:
-//   - If DASHBOARD_SECRET is set, the request must include ?token=<that secret>
-//     (visit /?me=<secret>) or it returns 401. Use this to keep it private.
+//   - If DASHBOARD_SECRET is set, the request must carry a valid owner login
+//     session as ?token=<session> (minted by api/login.js after Google
+//     Sign-In) or it returns 401. Use this to keep it private.
 //   - If DASHBOARD_SECRET is NOT set, the data is returned to anyone. That's
 //     fine for a low-traffic personal page if you don't mind it being public.
 //
@@ -86,12 +87,11 @@ export default async function handler(req, res) {
     let token = null;
     try {
       const u = new URL(req.url, "http://x");
-      token = u.searchParams.get("token") || u.searchParams.get("me");
+      token = u.searchParams.get("token");
     } catch (_) {}
-    // Accept the raw secret (?me= links) or a valid owner login session.
+    // Only a valid owner login session (Google Sign-In) unlocks balances.
     const key = sessionKey();
-    const viaSession = key && checkSession(token, key);
-    if (token !== secret && !viaSession) {
+    if (!key || !checkSession(token, key)) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }

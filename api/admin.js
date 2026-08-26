@@ -150,7 +150,7 @@ export default async function handler(req, res) {
   let token = null;
   try {
     const u = new URL(req.url, "http://x");
-    token = u.searchParams.get("token") || u.searchParams.get("me");
+    token = u.searchParams.get("token");
   } catch (_) {}
   // Accept the shared secret, or a valid owner session from the Google login.
   const skey = sessionKey();
