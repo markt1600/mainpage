@@ -144,12 +144,12 @@
       <div class="tablewrap">
         <table id="evTable">
           <thead><tr>
-            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th class="act"></th>
+            <th>Event</th><th>Kind</th><th>Date</th><th>End date</th><th>Time</th><th>Venue</th><th>Status</th><th>Note</th><th>URL</th><th>Show</th><th class="act"></th>
           </tr></thead>
           <tbody id="evBody"></tbody>
         </table>
       </div>
-      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional) — shown on the card and used for the calendar download. Finished events drop off the dashboard automatically.</div>
+      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional). Show: <b>both</b> = site + your calendar · <b>public</b> = site only · <b>private</b> = only visible while you're logged in (note: this file lives in the public repo — truly private items belong in the Private calendar below). Finished events drop off automatically.</div>
       <div class="bar">
         <button class="ghost" id="evAdd">+ Add event</button>
         <button id="evSave">Save events</button>
@@ -275,6 +275,19 @@ function evRow(e, dk){
   tr.appendChild(cell(e.status, "status", "on sale"));
   tr.appendChild(cell(e.note, "note", "Note"));
   tr.appendChild(cell(e.url, "url", "https://…"));
+  if(dk === "events"){
+    // Visibility: both = site + calendar · public = site only ·
+    // private = only visible to the logged-in owner
+    const td = document.createElement("td");
+    const sel = document.createElement("select");
+    sel.dataset.key = "show";
+    for(const v of ["both","public","private"]){
+      const o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o);
+    }
+    sel.value = (e.show === "public" || e.show === "private") ? e.show : "both";
+    sel.addEventListener("change", ()=>setDirty(dk, true));
+    td.appendChild(sel); tr.appendChild(td);
+  }
   const del = document.createElement("td"); del.className = "act";
   const b = document.createElement("button"); b.className = "danger"; b.textContent = "✕"; b.title = "Delete";
   b.addEventListener("click", ()=>{
@@ -291,9 +304,12 @@ function renderEvents(list){
 }
 function collectRows(bodyId){
   return [...$(bodyId).children].map(tr=>{
-    const g = k => (tr.querySelector(`input[data-key="${k}"]`)||{}).value?.trim() || "";
-    return { act:g("act"), kind:g("kind"), date:g("date")||null, endDate:g("endDate")||null,
-             time:g("time")||null, venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
+    const g = k => (tr.querySelector(`[data-key="${k}"]`)||{}).value?.trim() || "";
+    const o = { act:g("act"), kind:g("kind"), date:g("date")||null, endDate:g("endDate")||null,
+                time:g("time")||null, venue:g("venue"), status:g("status"), note:g("note"), url:g("url") };
+    const show = g("show");
+    if(show) o.show = show; // events table only; private rows have no Show cell
+    return o;
   }).filter(e=>e.act);
 }
 function collectEvents(){ return collectRows("evBody"); }

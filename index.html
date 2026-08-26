@@ -1118,7 +1118,12 @@ function eventIcs(c){
 
 /* Events watchlist — cards sorted by date, undated entries last. */
 function renderEvents(){
-  const events = (EVENTS||[]).filter(c=>c && c.act);
+  // Visibility: show = "both" (default — site + calendar), "public" (site
+  // only), "private" (only while logged in). Private-list entries join the
+  // cards only while logged in, marked with a lock.
+  const events = (EVENTS||[])
+    .filter(c=>c && c.act && (c.show !== "private" || ownerUser))
+    .concat(ownerUser ? (PRIVATE_EVENTS||[]).filter(c=>c && c.act).map(c=>({ ...c, _priv:true })) : []);
   if(!events.length){ $("eventsSec").style.display = "none"; return; }
 
   const [ty,tm,td] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
@@ -1146,9 +1151,10 @@ function renderEvents(){
     const when = c.date
       ? `${niceDay(c.date)}${c.endDate && c.endDate !== c.date ? "–" + niceDay(c.endDate) : ""}`
       : "TBA";
+    const kindLbl = (c._priv || c.show === "private") ? `🔒 ${c.kind||"Private"}` : c.kind;
     const sub = c.date
-      ? [c.kind, c.venue, fmtEventTime(c.time), c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
-      : [c.kind, (c.note || "no Singapore date announced yet")].filter(Boolean).join(" · ");
+      ? [kindLbl, c.venue, fmtEventTime(c.time), c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
+      : [kindLbl, (c.note || "no Singapore date announced yet")].filter(Boolean).join(" · ");
     const links = [];
     if(url) links.push(`<a class="srclink" href="${esc(url)}" target="_blank" rel="noopener">Tickets / info ↗</a>`);
     if(c.date) links.push(`<a class="srclink" href="${eventIcs(c)}" download="${String(c.act).toLowerCase().replace(/[^a-z0-9]+/g,"-")}.ics" title="Download an Outlook / calendar entry">📅 calendar</a>`);
@@ -1184,18 +1190,21 @@ function calDayFromISO(iso){ const [y,m,d] = iso.split("-").map(Number); return 
 let PRIVATE_EVENTS = [];
 async function loadPrivateEvents(){
   const t = privateToken();
-  if(!t){ PRIVATE_EVENTS = []; renderCalendar(); return; }
+  if(!t){ PRIVATE_EVENTS = []; renderCalendar(); renderEvents(); return; }
+  renderEvents(); // owner-only public entries become visible right away
   try{
     const res = await fetch(`/api/private-events?token=${encodeURIComponent(t)}`, { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     PRIVATE_EVENTS = Array.isArray(d.events) ? d.events : [];
     renderCalendar();
+    renderEvents(); // private + owner-only entries join the cards
   }catch(e){ /* calendar just shows public events */ }
 }
 
 function calEventsList(){
-  return (EVENTS||[]).concat(PRIVATE_EVENTS||[])
+  // show:"public" = site-only tracking — keep it off the personal calendar.
+  return (EVENTS||[]).filter(e=>e && e.show !== "public").concat(PRIVATE_EVENTS||[])
     .filter(e=>e && e.act && e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date))
     .map(e=>{
       const startMs = calDayFromISO(e.date);
@@ -1657,6 +1666,7 @@ function toggleLogin(e){
     try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
     PRIVATE_EVENTS = [];
     renderCalendar();
+    renderEvents();
     setOwnerUI();
     return;
   }
