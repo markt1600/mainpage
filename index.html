@@ -420,6 +420,10 @@
   footer .updated b{color:var(--ink-soft)}
   footer a{color:var(--accent);text-decoration:none}
 
+  /* owner-only content: hidden until the owner logs in (footer link) */
+  .owner-only{display:none}
+  body.owner .owner-only{display:block}
+
   .note{
     font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent-deep);
     background:rgba(187,59,34,.07);border:1px dashed rgba(187,59,34,.4);
@@ -636,10 +640,25 @@
       <div id="holidays"></div>
     </section>
 
+    <!-- Owner-only content: hidden until the owner logs in via the footer
+         link. Add more private blocks anywhere by giving any element the
+         class "owner-only" — they all show/hide with the login state. -->
+    <section class="markets rise owner-only" aria-label="Owner">
+      <div class="sec-head">
+        <h2>For Mark <span class="dot">·</span> Private</h2>
+        <span class="cnt"></span>
+      </div>
+      <div id="ownerContent">
+        <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.04em">
+          Private space — content to come. (Anything with class "owner-only" appears only while logged in.)
+        </p>
+      </div>
+    </section>
+
     <footer>
       <span class="updated">Edition refreshed <b id="updated">—</b></span>
       <span id="healthNote" style="display:none;color:var(--accent-deep);letter-spacing:.06em"></span>
-      <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a></span>
+      <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a> · <span id="loginWho" style="color:var(--ink-soft)"></span><a id="loginLink" href="#">login</a></span>
     </footer>
   </div>
 
@@ -1312,7 +1331,85 @@ function tick(){
    so public visitors never see them. */
 function privateToken(){
   const p = new URLSearchParams(location.search);
-  return p.get("me") || p.get("token");
+  return p.get("me") || p.get("token") || (ownerUser ? ownerToken() : null);
+}
+
+/* ============================================================
+   OWNER LOGIN — lightweight owner mode via the footer "login" link.
+   The entered password is verified against /api/login (which matches
+   it to ADMIN_SECRET / DASHBOARD_SECRET) and remembered in
+   localStorage; every page load re-verifies before enabling owner
+   mode. While logged in, <body> carries the "owner" class, so any
+   element with class "owner-only" becomes visible — that's the hook
+   for private content. Logging in also unlocks the balances section
+   without needing the ?me= link.
+   ============================================================ */
+const OWNER_KEY = "ownerToken";
+let ownerUser = null;
+
+function ownerToken(){ try{ return localStorage.getItem(OWNER_KEY); }catch(e){ return null; } }
+
+function setOwnerUI(){
+  const link = $("loginLink");
+  if(ownerUser){
+    document.body.classList.add("owner");
+    link.textContent = "logout";
+    $("loginWho").textContent = ownerUser + " · ";
+  }else{
+    document.body.classList.remove("owner");
+    link.textContent = "login";
+    $("loginWho").textContent = "";
+  }
+}
+
+/* Returns the owner identity, null when the password is wrong, and
+   throws when the endpoint itself is unreachable. */
+async function verifyOwner(token){
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if(res.status === 401) return null;
+  if(!res.ok) throw new Error(res.status);
+  const d = await res.json();
+  return d && d.ok ? d.user : null;
+}
+
+async function initOwner(){
+  const t = ownerToken();
+  if(!t) return;
+  try{
+    ownerUser = await verifyOwner(t);
+    if(!ownerUser){ try{ localStorage.removeItem(OWNER_KEY); }catch(e){} } // stale password
+    else loadBalances(); // owner token also unlocks balances
+  }catch(e){ /* endpoint unreachable — stay logged out this load, keep the token */ }
+  setOwnerUI();
+}
+
+async function toggleLogin(e){
+  if(e) e.preventDefault();
+  if(ownerUser){
+    ownerUser = null;
+    try{ localStorage.removeItem(OWNER_KEY); }catch(e2){}
+    setOwnerUI();
+    return;
+  }
+  const pw = prompt("Owner password:");
+  if(!pw) return;
+  try{
+    const user = await verifyOwner(pw.trim());
+    if(user){
+      ownerUser = user;
+      try{ localStorage.setItem(OWNER_KEY, pw.trim()); }catch(e2){}
+      setOwnerUI();
+      loadBalances();
+    }else{
+      alert("Wrong password.");
+    }
+  }catch(err){
+    alert("Login isn't available right now.");
+  }
 }
 function renderBalances(balances){
   balances = (balances||[]).filter(Boolean);
@@ -1682,6 +1779,8 @@ initPush();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
 renderReminders(); setInterval(renderReminders, 60000); // reminders appear/clear at midnight SGT
 tick(); setInterval(tick,1000);
+$("loginLink").addEventListener("click", toggleLogin);
+initOwner();
 </script>
 </body>
 </html>
