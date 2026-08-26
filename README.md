@@ -56,7 +56,7 @@ The site is an installable PWA (`manifest.json` + `sw.js`) that can deliver a **
 
 ## Admin (`/admin`)
 
-Editing Birthdays and Events no longer means touching `index.html`. Visit **`/admin`**, enter the password, and edit both lists in a table UI. **Saving commits the JSON to GitHub** (`data/birthdays.json` / `data/events.json`) — which is the version history — and the change goes live once Vercel finishes the redeploy triggered by that commit (~a minute). The dashboard fetches the JSON files at load and only falls back to the inline arrays if the fetch fails, so the committed files always win in production.
+Editing Birthdays and Events no longer means touching `index.html`. Visit **`/admin`** — if you're signed in on the dashboard (Google owner login) it opens straight into the editor, no separate password; otherwise enter the admin password. Edit both lists in a table UI. There's also a direct link in the **For Mark · Private** section. **Saving commits the JSON to GitHub** (`data/birthdays.json` / `data/events.json`) — which is the version history — and the change goes live once Vercel finishes the redeploy triggered by that commit (~a minute). The dashboard fetches the JSON files at load and only falls back to the inline arrays if the fetch fails, so the committed files always win in production.
 
 Requires two env vars (below): `ADMIN_SECRET` for the password and `GITHUB_TOKEN` (fine-grained, **Contents: Read & Write** on `markt1600/mainpage`) so the function can read and commit. If neither `ADMIN_SECRET` nor `DASHBOARD_SECRET` is set, `/admin` refuses to run — it never opens unprotected.
 
