@@ -428,6 +428,69 @@
     text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;
   }
 
+  /* ---- statement reminders (owner section) ---- */
+  .stmt{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.04em;
+    color:var(--ink-soft);padding:7px 0;border-bottom:1px solid var(--rule);
+    display:flex;align-items:center;gap:7px;
+  }
+  .stmt:last-child{border-bottom:none}
+  .stmt b{color:var(--ink);font-weight:600}
+  .stmt-date{color:var(--ink-faint)}
+  .stmt-x{
+    margin-left:auto;color:var(--accent);text-decoration:none;
+    border:1px solid var(--rule-strong);border-radius:2px;padding:1px 7px;
+  }
+  .stmt-x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+
+  /* ---- personal calendar (owner section) ---- */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 10px;flex-wrap:wrap}
+  .cal-nav{display:flex;align-items:center;gap:6px}
+  .cal-nav button,.cal-views button{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;
+    background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:2px;
+    padding:4px 10px;cursor:pointer;color:var(--ink-soft);
+  }
+  .cal-nav button:hover,.cal-views button:hover{border-color:var(--ink);color:var(--ink)}
+  .cal-views button.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .cal-title{font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin-left:8px}
+  .cal-dow{
+    display:grid;grid-template-columns:repeat(7,1fr);border-bottom:2px solid var(--ink);
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-faint);padding-bottom:5px;
+  }
+  .cal-dow div{padding-left:6px}
+  .cal-week{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    border-bottom:1px solid var(--rule);
+    background-image:linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+    background-size:calc(100%/7) 100%;background-position:-1px 0;
+    min-height:88px;gap:2px 0;padding:2px 0 6px;
+  }
+  .cal-week.wk{min-height:240px}
+  .cal-num{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);padding:3px 6px}
+  .cal-num.out{color:var(--rule-strong)}
+  .cal-num .today{background:var(--accent);color:var(--paper);border-radius:50%;padding:2px 5px;font-weight:600}
+  .cal-bar{
+    background:var(--accent);color:var(--paper);
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.02em;
+    padding:2px 7px;border-radius:3px;margin:0 3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  }
+  .cal-bar.travel{background:var(--accent-deep)}
+  .cal-bar.contl{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}
+  .cal-bar.contr{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+  .cal-chip{
+    background:var(--paper-2);border:1px solid var(--rule-strong);border-left:3px solid var(--accent);
+    color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:10px;
+    padding:2px 6px;border-radius:2px;margin:0 3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  }
+  @media(max-width:700px){
+    .cal-bar,.cal-chip{font-size:8.5px;padding:2px 3px}
+    .cal-week{min-height:70px}
+  }
+
   .note{
     font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent-deep);
     background:rgba(187,59,34,.07);border:1px dashed rgba(187,59,34,.4);
@@ -482,10 +545,6 @@
       <div class="happyline rise" id="happyDay" style="display:none;animation-delay:.12s" aria-label="Happy Day">
         <span style="color:var(--accent)">♥</span> <b id="happyDayTxt"></b>
       </div>
-
-      <!-- Monthly reminders: only visible on the configured day (SGT).
-           Edit the REMINDERS array in the script below. -->
-      <div class="happyline rise" id="reminders" style="display:none;animation-delay:.14s" aria-label="Reminders"></div>
 
       <div class="clocks rise" style="animation-delay:.13s" aria-label="Current time">
         <span class="clock"><span class="cz">SGT</span> <b id="clockSG">--:--:--</b></span>
@@ -644,11 +703,38 @@
         <span class="cnt"></span>
       </div>
       <div id="ownerContent">
+        <!-- Statement reminders: appear on their due day and PERSIST until
+             dismissed with ✕ (dismissals live in localStorage, per firing,
+             so next month's statement reappears). -->
+        <div id="statementsBlock" style="display:none;margin-bottom:20px">
+          <div class="owner-sub">Statements · To File</div>
+          <div id="statements"></div>
+        </div>
+
         <!-- Account balances + spend (fetches only with the owner session or ?me= link) -->
         <div id="accountSec" style="display:none">
           <div class="owner-sub">Account · Balances</div>
           <div class="mkt-grid" id="balances"></div>
         </div>
+        <!-- Personal calendar: Outlook-style month/week views, fed from the
+             events list (multi-day events render as continuous bars). -->
+        <div id="calendarBlock" style="margin-top:20px">
+          <div class="owner-sub">Calendar</div>
+          <div class="cal-head">
+            <div class="cal-nav">
+              <button id="calPrev" title="Previous">‹</button>
+              <button id="calToday">Today</button>
+              <button id="calNext" title="Next">›</button>
+              <span class="cal-title" id="calTitle"></span>
+            </div>
+            <div class="cal-views">
+              <button data-v="month">Month</button>
+              <button data-v="week">Week</button>
+            </div>
+          </div>
+          <div id="calGrid"></div>
+        </div>
+
         <!-- Admin editor: the owner session unlocks it, no separate password -->
         <a class="srclink" href="/admin" target="_blank" rel="noopener" style="margin-top:16px">✎ Edit birthdays &amp; events (admin) ↗</a>
         <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);letter-spacing:.04em;margin-top:14px">
@@ -1074,6 +1160,117 @@ function renderEvents(){
         ${links.join(`<span class="srclink" style="color:var(--ink-faint)"> · </span>`)}
       </div>`;
   }).join("");
+}
+
+/* ============================================================
+   PERSONAL CALENDAR — Outlook-style month/week views inside the
+   private section, fed from the EVENTS list. Weeks start Sunday.
+   Multi-day events (travel, race weekends, holidays) render as a
+   continuous bar across their dates — Travel gets the darkest
+   tint; single-day events render as chips in their day.
+   ============================================================ */
+const CAL_DAY = 86400000;
+let calView = "month";
+let calAnchor = null; // UTC-midnight ms of the visible month/week
+
+function calTodayUTC(){
+  const [y,m,d] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
+  return Date.UTC(y, m-1, d);
+}
+function calDayFromISO(iso){ const [y,m,d] = iso.split("-").map(Number); return Date.UTC(y, m-1, d); }
+
+function calEventsList(){
+  return (EVENTS||[])
+    .filter(e=>e && e.act && e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date))
+    .map(e=>{
+      const startMs = calDayFromISO(e.date);
+      const endMs = (e.endDate && /^\d{4}-\d{2}-\d{2}$/.test(e.endDate)) ? Math.max(startMs, calDayFromISO(e.endDate)) : startMs;
+      return { ...e, startMs, endMs };
+    });
+}
+
+function renderCalendar(){
+  const grid = $("calGrid");
+  if(!grid) return;
+  if(calAnchor == null) calAnchor = calTodayUTC();
+  const today = calTodayUTC();
+  const evs = calEventsList();
+
+  // Visible range: weeks always run Sunday → Saturday.
+  let start, weeks;
+  const a = new Date(calAnchor);
+  if(calView === "month"){
+    const first = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1);
+    start = first - new Date(first).getUTCDay()*CAL_DAY;
+    const last = Date.UTC(a.getUTCFullYear(), a.getUTCMonth()+1, 0);
+    weeks = Math.ceil(((last - start)/CAL_DAY + 1)/7);
+  }else{
+    start = calAnchor - a.getUTCDay()*CAL_DAY;
+    weeks = 1;
+  }
+
+  // Title + active view button
+  if(calView === "month"){
+    $("calTitle").textContent = new Intl.DateTimeFormat("en-GB",{month:"long",year:"numeric",timeZone:"UTC"})
+      .format(new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1)));
+  }else{
+    const f = (ms)=>new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}).format(new Date(ms));
+    $("calTitle").textContent = `${f(start)} – ${f(start+6*CAL_DAY)} ${new Date(start+6*CAL_DAY).getUTCFullYear()}`;
+  }
+  document.querySelectorAll(".cal-views button").forEach(b=>b.classList.toggle("active", b.dataset.v === calView));
+
+  const monthOf = calView === "month" ? a.getUTCMonth() : null;
+  let html = `<div class="cal-dow">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div>${d}</div>`).join("")}</div>`;
+
+  for(let w=0; w<weeks; w++){
+    const ws = start + w*7*CAL_DAY, we = ws + 6*CAL_DAY;
+
+    // Clip events to this week; longest spans claim the top lanes (Outlook-style).
+    const segs = evs
+      .filter(ev=>ev.startMs <= we && ev.endMs >= ws)
+      .map(ev=>{
+        const s = Math.max(ev.startMs, ws), e2 = Math.min(ev.endMs, we);
+        return { ev, c1:(s-ws)/CAL_DAY, c2:(e2-ws)/CAL_DAY, multi: ev.endMs > ev.startMs, contL: ev.startMs < ws, contR: ev.endMs > we };
+      })
+      .sort((x,y)=>(y.c2-y.c1)-(x.c2-x.c1) || x.c1-y.c1);
+
+    // Greedy lane assignment: first lane with no column overlap.
+    const lanes = [];
+    for(const sg of segs){
+      let L = 0;
+      while(lanes[L] && lanes[L].some(r=>!(sg.c2 < r[0] || sg.c1 > r[1]))) L++;
+      (lanes[L] = lanes[L] || []).push([sg.c1, sg.c2]);
+      sg.lane = L;
+    }
+
+    let cells = "";
+    for(let c=0;c<7;c++){
+      const ms = ws + c*CAL_DAY, d = new Date(ms);
+      const out = monthOf != null && d.getUTCMonth() !== monthOf;
+      cells += `<div class="cal-num${out?" out":""}" style="grid-column:${c+1};grid-row:1"><span class="${ms===today?"today":""}">${d.getUTCDate()}</span></div>`;
+    }
+    let items = "";
+    for(const sg of segs){
+      const ev = sg.ev;
+      const label = calView === "week"
+        ? [fmtEventTime(ev.time), ev.act, ev.venue].filter(Boolean).join(" · ")
+        : [fmtEventTime(ev.time), ev.act].filter(Boolean).join(" ");
+      const cls = sg.multi
+        ? `cal-bar${/travel/i.test(ev.kind||"")?" travel":""}${sg.contL?" contl":""}${sg.contR?" contr":""}`
+        : "cal-chip";
+      const tip = [ev.act, ev.kind, ev.venue, fmtEventTime(ev.time), ev.note].filter(Boolean).join(" · ");
+      items += `<div class="${cls}" style="grid-column:${sg.c1+1}/span ${sg.c2-sg.c1+1};grid-row:${sg.lane+2}" title="${esc(tip)}">${esc(label)}</div>`;
+    }
+    html += `<div class="cal-week${calView==="week"?" wk":""}" style="grid-template-rows:22px repeat(${lanes.length||1},min-content) 1fr">${cells}${items}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function calNav(dir){
+  if(calAnchor == null) calAnchor = calTodayUTC();
+  const a = new Date(calAnchor);
+  calAnchor = calView === "month" ? Date.UTC(a.getUTCFullYear(), a.getUTCMonth()+dir, 1) : calAnchor + dir*7*CAL_DAY;
+  renderCalendar();
 }
 
 /* FX pairs — same tiles as markets, but rates get 4 decimal places.
@@ -1528,11 +1725,12 @@ function renderHappyDay(){
 }
 
 /* ============================================================
-   MONTHLY REMINDERS — each shows ONLY on its day of the month
-   (Singapore time). A day of 31 fires on the month's last day in
-   shorter months (30 Apr, 28/29 Feb, …). Edit entries here.
-   Days are the day the statement actually lands, i.e. one day
-   after the statement date (month-end statements → the 1st).
+   STATEMENT REMINDERS — each fires on its day of the month (SGT;
+   the day the statement lands, i.e. one day after the statement
+   date — month-end statements → the 1st), then PERSISTS in the
+   private section until dismissed with ✕. Dismissals are stored
+   per firing in localStorage, so next month's statement shows
+   again. Keep the config in sync with api/notify.js.
    ============================================================ */
 const REMINDERS = [
   { day: 20, text: "Citi SG CC Statement Available" },
@@ -1541,18 +1739,51 @@ const REMINDERS = [
   { day: 1,  text: "Citi SG Bank Statement Available" },
   { day: 1,  text: "Citi US Bank Statement Available" },
 ];
+const REM_CLEAR_KEY = "clearedReminders";
 
-function renderReminders(){
+function remCleared(){ try{ return JSON.parse(localStorage.getItem(REM_CLEAR_KEY) || "{}"); }catch(e){ return {}; } }
+
+/* Most recent firing (ISO date) of a reminder on or before today. */
+function remLastFire(r, y, m, d){
+  const dim = (yy, mm) => new Date(Date.UTC(yy, mm, 0)).getUTCDate(); // days in month mm (1-12)
+  let fy = y, fm = m, fd = Math.min(r.day, dim(y, m));
+  if(fd > d){
+    fm = m - 1;
+    if(fm < 1){ fm = 12; fy = y - 1; }
+    fd = Math.min(r.day, dim(fy, fm));
+  }
+  return `${fy}-${String(fm).padStart(2,"0")}-${String(fd).padStart(2,"0")}`;
+}
+
+function renderStatements(){
+  const el = $("statements");
+  if(!el) return;
   const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date()).split("-").map(Number);
-  const lastDay = new Date(y, m, 0).getDate(); // days in current month
-  const due = REMINDERS.filter(r => d === Math.min(r.day, lastDay));
-  const el = $("reminders");
-  if(!due.length){ el.style.display = "none"; return; }
-  el.style.display = "";
-  el.innerHTML = `<span style="color:var(--accent)">🔔</span> ` +
-    due.map(r => `<b>${esc(r.text)}</b>`).join(` <span style="color:var(--ink-faint)">·</span> `);
+  const cleared = remCleared();
+  const due = REMINDERS
+    .map(r => ({ ...r, fired: remLastFire(r, y, m, d) }))
+    .filter(r => !(cleared[r.text] && cleared[r.text] >= r.fired));
+
+  $("statementsBlock").style.display = due.length ? "" : "none";
+  el.innerHTML = due.map(r => {
+    const [fy, fm, fd] = r.fired.split("-").map(Number);
+    const nice = new Intl.DateTimeFormat("en-GB", { day:"numeric", month:"short", timeZone:"UTC" }).format(new Date(Date.UTC(fy, fm-1, fd)));
+    return `
+      <div class="stmt">
+        <span style="color:var(--accent)">🔔</span> <b>${esc(r.text)}</b>
+        <span class="stmt-date">· ${esc(nice)}</span>
+        <a href="#" class="stmt-x" data-t="${esc(r.text)}" data-f="${r.fired}" title="Clear — filed to budget">✕</a>
+      </div>`;
+  }).join("");
+  el.querySelectorAll(".stmt-x").forEach(a => a.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    const c = remCleared();
+    c[a.dataset.t] = a.dataset.f;
+    try{ localStorage.setItem(REM_CLEAR_KEY, JSON.stringify(c)); }catch(e){}
+    renderStatements();
+  }));
 }
 
 /* ============================================================
@@ -1647,6 +1878,7 @@ async function loadLists(){
   if(bd) BIRTHDAYS = bd; else noteIssue("birthdays list (inline fallback)");
   renderEvents();
   renderBirthdays();
+  renderCalendar();
 }
 
 /* ============================================================
@@ -1814,10 +2046,15 @@ loadLists();
 loadMeridianStatus(); setInterval(loadMeridianStatus, 10*60*1000); // flips grey → green as the morning build lands
 initPush();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
-renderReminders(); setInterval(renderReminders, 60000); // reminders appear/clear at midnight SGT
+renderStatements(); setInterval(renderStatements, 60000); // new firings appear at midnight SGT
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
 initOwner();
+$("calPrev").addEventListener("click", ()=>calNav(-1));
+$("calNext").addEventListener("click", ()=>calNav(1));
+$("calToday").addEventListener("click", ()=>{ calAnchor = calTodayUTC(); renderCalendar(); });
+document.querySelectorAll(".cal-views button").forEach(b=>b.addEventListener("click", ()=>{ calView = b.dataset.v; renderCalendar(); }));
+renderCalendar();
 </script>
 </body>
 </html>
