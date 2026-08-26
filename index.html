@@ -1773,12 +1773,31 @@ function remLastFire(r, y, m, d){
   return `${fy}-${String(fm).padStart(2,"0")}-${String(fd).padStart(2,"0")}`;
 }
 
+/* A reminder must FIRST appear on its firing day — never retroactively
+   (feature launch, a new browser, or a newly added reminder must not
+   surface old firings). Any reminder this browser hasn't tracked yet is
+   baselined as cleared-through-yesterday, so only firings from today
+   onward show, and then persist until ✕. */
+function remBaseline(y, m, d){
+  try{
+    const c = remCleared();
+    const yd = new Date(Date.UTC(y, m-1, d-1)); // yesterday (SGT calendar)
+    const iso = `${yd.getUTCFullYear()}-${String(yd.getUTCMonth()+1).padStart(2,"0")}-${String(yd.getUTCDate()).padStart(2,"0")}`;
+    let changed = false;
+    for(const r of REMINDERS){
+      if(!(r.text in c)){ c[r.text] = iso; changed = true; }
+    }
+    if(changed) localStorage.setItem(REM_CLEAR_KEY, JSON.stringify(c));
+  }catch(e){}
+}
+
 function renderStatements(){
   const el = $("statements");
   if(!el) return;
   const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date()).split("-").map(Number);
+  remBaseline(y, m, d);
   const cleared = remCleared();
   const due = REMINDERS
     .map(r => ({ ...r, fired: remLastFire(r, y, m, d) }))
