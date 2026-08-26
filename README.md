@@ -27,7 +27,9 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 
 Sections whose keys aren't configured simply hide themselves — the page is never empty.
 
-Account balances are the one private section: if `DASHBOARD_SECRET` is set they only appear when visiting `/?me=<secret>`.
+Account balances are the one private section: if `DASHBOARD_SECRET` is set they only appear when visiting `/?me=<secret>` — or while logged in (below).
+
+**Owner login:** the footer has a small `login` link. Entering the owner password (verified server-side by `api/login.js` against `ADMIN_SECRET`, falling back to `DASHBOARD_SECRET`) switches the page into owner mode: the body gets the `owner` class, any element with class `owner-only` becomes visible (there's a "For Mark · Private" placeholder section wired up), and the balances section unlocks without the `?me=` link. The password is remembered in `localStorage` and re-verified on every load; `logout` clears it. Logged-out visitors see the page exactly as before.
 
 ## Files
 
