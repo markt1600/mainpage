@@ -82,7 +82,7 @@
       <div class="eyebrow">marktan.ai</div>
       <h1 style="font-size:26px;margin:2px 0 4px">Admin</h1>
     </a>
-    <p class="sub" style="margin-bottom:16px">Enter the admin password to edit Birthdays &amp; Events.</p>
+    <p class="sub" style="margin-bottom:16px">Enter the admin password to open the editor.</p>
     <label for="secret">Password</label>
     <input id="secret" type="password" autocomplete="current-password" placeholder="ADMIN_SECRET" />
     <div style="margin-top:14px"><button id="enter">Unlock</button></div>
@@ -96,7 +96,7 @@
     <div class="wrap">
       <a class="homelink" href="/" title="Back to The Daily">
         <div class="eyebrow">marktan.ai · dashboard admin</div>
-        <h1>Birthdays &amp; Events</h1>
+        <h1>Admin Editor</h1>
       </a>
       <p class="sub">Edits commit to <code id="repoLbl">markt1600/mainpage</code> and go live after Vercel redeploys (~1 min). <a href="/">← Back to the dashboard</a></p>
       <div class="topbar"><button class="ghost" id="lock">Lock</button></div>
@@ -113,6 +113,13 @@
       <textarea id="aiInput" placeholder="e.g. “Flying to Tokyo 12–16 Sep, SQ632 departs 09:25 — block those out as travel”, a pasted list of dates, or just paste a booking/itinerary screenshot…"></textarea>
       <div id="aiImgWrap" style="display:none">🖼 <span id="aiImgName"></span> · <a href="#" id="aiImgClear">remove image</a></div>
       <div class="bar">
+        <label style="display:flex;align-items:center;gap:8px;margin:0;white-space:nowrap">Applies to
+          <select id="aiTarget" style="width:auto">
+            <option value="both">Both — let Claude route</option>
+            <option value="private">Private calendar only</option>
+            <option value="public">Public events only</option>
+          </select>
+        </label>
         <button id="aiGo">Propose changes</button>
         <span class="status" id="aiStatus"></span>
       </div>
@@ -429,7 +436,7 @@ $("aiGo").addEventListener("click", async ()=>{
     const res = await fetch(`/api/assist?token=${encodeURIComponent(TOKEN)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ instruction, image: aiImage, events: collectEvents(), privateEvents: collectRows("pvBody") }),
+      body: JSON.stringify({ instruction, image: aiImage, target: $("aiTarget").value, events: collectEvents(), privateEvents: collectRows("pvBody") }),
     });
     const j = await res.json().catch(()=>({}));
     if(!res.ok){ aiStatus(j.error || `error ${res.status}`, "err"); return; }
