@@ -16,6 +16,8 @@
 //
 // Never cached (personal data).
 
+import { sessionKey, checkSession } from "./_session.js";
+
 // Anthropic cost_report amounts are documented as USD in lowest units (cents).
 // If the spend figure looks 100x off vs your console, flip this to false.
 const ANTHROPIC_AMOUNT_IS_CENTS = true;
@@ -86,7 +88,10 @@ export default async function handler(req, res) {
       const u = new URL(req.url, "http://x");
       token = u.searchParams.get("token") || u.searchParams.get("me");
     } catch (_) {}
-    if (token !== secret) {
+    // Accept the raw secret (?me= links) or a valid owner login session.
+    const key = sessionKey();
+    const viaSession = key && checkSession(token, key);
+    if (token !== secret && !viaSession) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }
