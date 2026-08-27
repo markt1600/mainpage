@@ -493,10 +493,42 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   }
   .cal-dot::before{content:"●";color:var(--accent);font-size:7px;vertical-align:2px;margin-right:5px}
+  .cal-bar[data-ref],.cal-chip[data-ref]{cursor:pointer}
+  .cal-bar[data-ref]:hover,.cal-chip[data-ref]:hover{filter:brightness(1.12)}
   @media(max-width:700px){
     .cal-bar,.cal-chip{font-size:8.5px;padding:2px 3px}
     .cal-week{min-height:70px}
   }
+
+  /* ---- calendar entry editor (click an item to open) ---- */
+  #ceOverlay{position:fixed;inset:0;background:rgba(20,16,10,.45);z-index:60;align-items:center;justify-content:center;padding:16px}
+  #ceCard{
+    background:var(--paper);border:1px solid var(--rule-strong);border-top:3px solid var(--accent);
+    border-radius:3px;max-width:600px;width:100%;max-height:92vh;overflow:auto;
+    padding:18px 20px;box-shadow:0 18px 50px rgba(0,0,0,.3);
+  }
+  #ceHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  #ceList{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+  #ceClose{background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink-soft);padding:2px 6px}
+  #ceClose:hover{color:var(--accent)}
+  .ce-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .ce-grid label{display:flex;flex-direction:column;gap:4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .ce-grid .ce-wide{grid-column:1/-1}
+  .ce-grid input,.ce-grid select{
+    font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink);
+    background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:2px;padding:6px 8px;min-width:0;
+  }
+  .ce-grid input:focus,.ce-grid select:focus{outline:none;border-color:var(--ink)}
+  .ce-bar{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
+  .ce-bar button{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;border-radius:2px;
+    padding:6px 14px;cursor:pointer;border:1px solid var(--rule-strong);background:var(--paper-2);color:var(--ink-soft);
+  }
+  .ce-bar button:disabled{opacity:.5;cursor:default}
+  .ce-bar #ceSave{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .ce-bar #ceDelete{color:var(--accent-deep);border-color:var(--accent-deep)}
+  #ceStatus{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft)}
+  @media(max-width:560px){.ce-grid{grid-template-columns:1fr}}
 
   .note{
     font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--accent-deep);
@@ -756,6 +788,35 @@
       <span><a id="pushBtn" href="#" style="display:none">🔕 notifications</a><span id="pushSep" style="display:none"> · </span><a id="regen" href="#">↻ new stories</a> · marktan.ai · <a href="https://marktan.ai">home</a> · <span id="loginWho" style="color:var(--ink-soft)"></span><a id="loginLink" href="#">login</a><span id="gsiBtn" style="display:none;vertical-align:middle"></span></span>
     </footer>
   </div>
+
+<!-- Calendar click-to-edit modal: opens when a calendar entry is clicked;
+     saves/deletes commit straight through the admin APIs. Lives at body
+     level — inside a section, the entrance animation's transform would
+     hijack position:fixed. -->
+<div id="ceOverlay" style="display:none">
+  <div id="ceCard">
+    <div id="ceHead"><span id="ceList"></span><button id="ceClose" title="Close">✕</button></div>
+    <div class="ce-grid">
+      <label class="ce-wide">Event<input id="ceAct"></label>
+      <label>Kind<input id="ceKind" placeholder="Concert"></label>
+      <label id="ceShowWrap">Show<select id="ceShow"><option value="both">both — site + calendar</option><option value="public">public — site only</option><option value="private">private — owner only</option></select></label>
+      <label>Date<input id="ceDate" placeholder="2026-10-02"></label>
+      <label>End date<input id="ceEnd" placeholder="— (multi-day only)"></label>
+      <label>Time<input id="ceTime" placeholder="19:30"></label>
+      <label>Repeat<select id="ceRepeat"><option value="">— one-off</option><option value="weekly">weekly</option><option value="monthly">monthly</option><option value="yearly">yearly</option></select></label>
+      <label>Venue<input id="ceVenue"></label>
+      <label>Status<input id="ceStat" placeholder="on sale"></label>
+      <label class="ce-wide">Note<input id="ceNote"></label>
+      <label class="ce-wide">URL<input id="ceUrl" placeholder="https://…"></label>
+    </div>
+    <div class="ce-bar">
+      <button id="ceSave">Save</button>
+      <button id="ceDelete">Delete…</button>
+      <button id="ceCancel">Cancel</button>
+      <span id="ceStatus"></span>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -1218,7 +1279,11 @@ async function loadPrivateEvents(){
 function calEventsList(rangeStart, rangeEnd){
   const out = [];
   const push = (e, s, en) => { if(s <= rangeEnd && en >= rangeStart) out.push({ ...e, startMs: s, endMs: en }); };
-  const src = (EVENTS||[]).filter(e=>e && e.show !== "public").concat(PRIVATE_EVENTS||[]);
+  // _ref ("e:<idx>" / "p:<idx>") identifies the source list + position so a
+  // rendered item can be clicked open in the edit modal.
+  const src = (EVENTS||[]).map((e,i)=>(e && e.show !== "public") ? { ...e, _ref: "e:" + i } : null)
+    .concat((PRIVATE_EVENTS||[]).map((e,i)=>e ? { ...e, _ref: "p:" + i } : null))
+    .filter(Boolean);
 
   for(const e of src){
     if(!(e && e.act && e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date))) continue;
@@ -1334,8 +1399,10 @@ function renderCalendar(){
         : sg.multi
           ? `cal-bar${/travel/i.test(ev.kind||"")?" travel":""}${sg.contL?" contl":""}${sg.contR?" contr":""}`
           : "cal-chip";
-      const tip = [ev.act, ev.kind, ev.venue, fmtEventTime(ev.time), ev.note].filter(Boolean).join(" · ");
-      items += `<div class="${cls}" style="grid-column:${sg.c1+1}/span ${sg.c2-sg.c1+1};grid-row:${sg.lane+2}" title="${esc(tip)}">${esc(label)}</div>`;
+      const editable = ev._ref && !ev.dot;
+      const tip = [ev.act, ev.kind, ev.venue, fmtEventTime(ev.time), ev.note].filter(Boolean).join(" · ")
+        + (editable ? " — click to edit" : "");
+      items += `<div class="${cls}"${editable?` data-ref="${ev._ref}"`:""} style="grid-column:${sg.c1+1}/span ${sg.c2-sg.c1+1};grid-row:${sg.lane+2}" title="${esc(tip)}">${esc(label)}</div>`;
     }
     html += `<div class="cal-week${calView==="week"?" wk":""}" style="grid-template-rows:22px repeat(${lanes.length||1},min-content) 1fr">${cells}${items}</div>`;
   }
@@ -2154,6 +2221,105 @@ $("calNext").addEventListener("click", ()=>calNav(1));
 $("calToday").addEventListener("click", ()=>{ calAnchor = calTodayUTC(); renderCalendar(); });
 document.querySelectorAll(".cal-views button").forEach(b=>b.addEventListener("click", ()=>{ calView = b.dataset.v; renderCalendar(); }));
 renderCalendar();
+
+/* ============================================================
+   CALENDAR CLICK-TO-EDIT — clicking an entry opens a modal to edit
+   every field or delete it. Saves round-trip through the same APIs
+   as /admin (owner session as the token): the current list is
+   re-fetched with its sha first, so a concurrent edit elsewhere
+   conflicts instead of being clobbered. Birthday dots are managed
+   in /admin and aren't clickable.
+   ============================================================ */
+let ceRef = null, ceOrig = null; // source ref + identity of the entry being edited
+
+function ceMsg(t, err){ const el = $("ceStatus"); el.textContent = t; el.style.color = err ? "var(--accent-deep)" : "var(--ink-soft)"; }
+
+function openCalEdit(ref){
+  const m = /^([ep]):(\d+)$/.exec(ref); if(!m) return;
+  const entry = (m[1] === "e" ? EVENTS : PRIVATE_EVENTS || [])[+m[2]];
+  if(!entry) return;
+  ceRef = ref; ceOrig = { act: entry.act, date: entry.date || null };
+  $("ceList").textContent = m[1] === "e" ? "Public events list" : "Private calendar 🔒";
+  $("ceAct").value = entry.act || "";
+  $("ceKind").value = entry.kind || "";
+  $("ceDate").value = entry.date || "";
+  $("ceEnd").value = entry.endDate || "";
+  $("ceTime").value = entry.time || "";
+  $("ceRepeat").value = ["weekly","monthly","yearly"].includes(entry.repeat) ? entry.repeat : "";
+  $("ceVenue").value = entry.venue || "";
+  $("ceStat").value = entry.status || "";
+  $("ceNote").value = entry.note || "";
+  $("ceUrl").value = entry.url || "";
+  $("ceShowWrap").style.display = m[1] === "e" ? "" : "none";
+  $("ceShow").value = ["public","private"].includes(entry.show) ? entry.show : "both";
+  ceMsg("");
+  $("ceOverlay").style.display = "flex";
+}
+function closeCalEdit(){ $("ceOverlay").style.display = "none"; ceRef = null; ceOrig = null; }
+
+async function ceCommit(del){
+  if(!ceRef || !ceOrig) return;
+  const token = privateToken();
+  if(!token){ ceMsg("login expired — reload the page", true); return; }
+  const priv = ceRef.startsWith("p:");
+  const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+  const upd = {
+    act: $("ceAct").value.trim(),
+    kind: $("ceKind").value.trim(),
+    date: iso($("ceDate").value.trim()),
+    endDate: iso($("ceEnd").value.trim()),
+    time: /^\d{1,2}:\d{2}$/.test($("ceTime").value.trim()) ? $("ceTime").value.trim() : null,
+    repeat: $("ceRepeat").value || null,
+    venue: $("ceVenue").value.trim(),
+    status: $("ceStat").value.trim(),
+    note: $("ceNote").value.trim(),
+    url: $("ceUrl").value.trim(),
+  };
+  if(!priv) upd.show = $("ceShow").value;
+  if(del){
+    if(!confirm(`Delete "${ceOrig.act}"? This saves immediately.`)) return;
+  }else{
+    if(!upd.act){ ceMsg("name is required", true); return; }
+    if($("ceDate").value.trim() && !upd.date){ ceMsg("date must be YYYY-MM-DD", true); return; }
+    if($("ceTime").value.trim() && !upd.time){ ceMsg("time must be HH:MM (24h)", true); return; }
+    if(priv && !upd.date){ ceMsg("private entries need a date", true); return; }
+    if(upd.url && !/^https?:\/\//i.test(upd.url)){ ceMsg("URL must start with http(s)://", true); return; }
+  }
+  ceMsg(del ? "deleting…" : "saving…");
+  ["ceSave","ceDelete"].forEach(id=>$(id).disabled = true);
+  try{
+    const base = priv ? `/api/private-events?token=${encodeURIComponent(token)}` : `/api/admin?token=${encodeURIComponent(token)}`;
+    const cur = await fetch(base, { cache: "no-store" });
+    if(!cur.ok) throw new Error(cur.status === 401 ? "login expired — reload the page" : `couldn't load the list (${cur.status})`);
+    const j = await cur.json();
+    const list = priv ? (j.events || []) : ((j.events && j.events.list) || []);
+    const sha = priv ? j.sha : (j.events && j.events.sha);
+    const i = list.findIndex(e => e && e.act === ceOrig.act && (e.date || null) === ceOrig.date);
+    if(i === -1) throw new Error("entry not found — it changed elsewhere; reload the page");
+    if(del) list.splice(i, 1); else list[i] = { ...list[i], ...upd };
+    const res = await fetch(base, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify(priv ? { events: list, sha } : { type: "events", data: list, sha }),
+    });
+    const rj = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(res.status === 409 ? "conflict — someone else saved; try again" : (rj.error || `save failed (${res.status})`));
+    if(priv) PRIVATE_EVENTS = list; else EVENTS = list;
+    renderCalendar(); renderEvents();
+    closeCalEdit();
+  }catch(e){ ceMsg(String(e.message || e), true); }
+  finally{ ["ceSave","ceDelete"].forEach(id=>$(id).disabled = false); }
+}
+
+$("calGrid").addEventListener("click", (e)=>{
+  const el = e.target.closest("[data-ref]");
+  if(el) openCalEdit(el.dataset.ref);
+});
+$("ceSave").addEventListener("click", ()=>ceCommit(false));
+$("ceDelete").addEventListener("click", ()=>ceCommit(true));
+$("ceCancel").addEventListener("click", closeCalEdit);
+$("ceClose").addEventListener("click", closeCalEdit);
+$("ceOverlay").addEventListener("click", (e)=>{ if(e.target === $("ceOverlay")) closeCalEdit(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && $("ceOverlay").style.display !== "none") closeCalEdit(); });
 </script>
 </body>
 </html>
