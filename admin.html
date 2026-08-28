@@ -502,27 +502,35 @@ const nwFmt = (n) => Number.isFinite(n) ? Math.round(n).toLocaleString("en-US") 
 
 function nwRecalc(){
   if(!nwFx) return;
-  let sgd = 0, pending = false;
+  // Subtotals go by SIGN, not by which section a row sits in — a component
+  // edited negative counts as a liability immediately, even before a reload
+  // moves it into the liabilities section.
+  let assets = 0, liabs = 0, pending = false;
   [...$("nwBody").children].forEach(tr=>{
+    if(!tr.dataset.kind) return; // section header / subtotal rows
     const usdCell = tr.querySelector('[data-cell="USD"]'), sgdCell = tr.querySelector('[data-cell="SGD"]');
+    let inSgd = 0;
     if(tr.dataset.kind === "market"){
       const qty = parseFloat((tr.querySelector('[data-key="qty"]')||{}).value) || 0;
       const px = parseFloat(tr.dataset.px);
       if(!Number.isFinite(px)){ pending = true; usdCell.value = "—"; sgdCell.value = "—"; return; }
       const native = qty * px;
-      const inSgd = tr.dataset.pxccy === "SGD" ? native : native * nwFx;
-      sgd += inSgd;
+      inSgd = tr.dataset.pxccy === "SGD" ? native : native * nwFx;
       usdCell.value = nwFmt(inSgd / nwFx); sgdCell.value = nwFmt(inSgd);
     }else{
       const src = tr.dataset.src === "USD" ? "USD" : "SGD";
       const cell = src === "USD" ? usdCell : sgdCell, other = src === "USD" ? sgdCell : usdCell;
       const v = parseFloat(String(cell.value).replace(/,/g, "")) || 0;
-      const inSgd = src === "USD" ? v * nwFx : v;
-      sgd += inSgd;
+      inSgd = src === "USD" ? v * nwFx : v;
       other.value = nwFmt(src === "USD" ? inSgd : inSgd / nwFx);
       cell.classList.remove("conv"); other.classList.add("conv");
     }
+    if(inSgd >= 0) assets += inSgd; else liabs += inSgd;
   });
+  const sub = (id, v) => { const el = $(id); if(el) el.textContent = (v < 0 ? "−" : "") + nwFmt(Math.abs(v)); };
+  sub("nwSubAU", assets / nwFx); sub("nwSubAS", assets);
+  sub("nwSubLU", liabs / nwFx);  sub("nwSubLS", liabs);
+  const sgd = assets + liabs;
   $("nwTotSgd").textContent = "S$" + nwFmt(sgd);
   $("nwTotUsd").textContent = "$" + nwFmt(sgd / nwFx) + (pending ? " (+ unpriced rows — Save to fetch)" : "");
 }
@@ -581,11 +589,34 @@ function nwRow(c, forceMarket){
   return tr;
 }
 
+function nwSecRow(txt){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td colspan="4" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;color:#8a8064;padding-top:12px">${txt}</td>`;
+  return tr;
+}
+function nwSubRow(label, idU, idS){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a8064">${label}</td>`
+    + `<td class="num" id="${idU}" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;text-align:right">—</td>`
+    + `<td class="num" id="${idS}" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;text-align:right">—</td><td class="act"></td>`;
+  return tr;
+}
 function nwRender(j){
   nwSha = j.sha; nwFx = j.totals.fx;
   $("nwFxLbl").textContent = `USD/SGD ${nwFx.toFixed(4)}`;
   const body = $("nwBody"); body.innerHTML = "";
-  (j.components||[]).forEach(c=>body.appendChild(nwRow(c)));
+  // Assets first (market rows are always assets), then liabilities, each
+  // with a live subtotal; the NET WORTH row in the footer sums both.
+  const comps = j.components || [];
+  const assets = comps.filter(c=>c.symbol || (c.amount||0) >= 0);
+  const liabs = comps.filter(c=>!c.symbol && (c.amount||0) < 0);
+  body.appendChild(nwSecRow("ASSETS"));
+  assets.forEach(c=>body.appendChild(nwRow(c)));
+  body.appendChild(nwSubRow("Assets subtotal", "nwSubAU", "nwSubAS"));
+  const liabHead = nwSecRow("LIABILITIES"); liabHead.id = "nwLiabHead";
+  body.appendChild(liabHead);
+  liabs.forEach(c=>body.appendChild(nwRow(c)));
+  body.appendChild(nwSubRow("Liabilities subtotal", "nwSubLU", "nwSubLS"));
   $("nwBk").value = j.breakeven ? j.breakeven.breakeven : "";
   $("nwBkCcy").value = j.breakeven ? j.breakeven.breakevenCcy : "SGD";
   $("nwBkRate").value = (j.breakeven && j.breakeven.withdrawalRate != null) ? j.breakeven.withdrawalRate : "";
@@ -602,8 +633,16 @@ async function loadNetworth(){
     setDirty("networth", false);
   }catch(e){ $("nwStatus").textContent = String(e.message||e); $("nwStatus").className = "status err"; }
 }
-$("nwAdd").addEventListener("click", ()=>{ $("nwBody").appendChild(nwRow({})); setDirty("networth", true); nwRecalc(); });
-$("nwAddMkt").addEventListener("click", ()=>{ $("nwBody").appendChild(nwRow({}, true)); setDirty("networth", true); nwRecalc(); });
+// New rows land at the end of the assets section (an amount typed negative
+// still counts into the liabilities subtotal immediately — see nwRecalc).
+function nwInsert(row){
+  const anchor = $("nwLiabHead");
+  if(anchor) $("nwBody").insertBefore(row, anchor.previousElementSibling); // before the assets subtotal
+  else $("nwBody").appendChild(row);
+  setDirty("networth", true); nwRecalc();
+}
+$("nwAdd").addEventListener("click", ()=>nwInsert(nwRow({})));
+$("nwAddMkt").addEventListener("click", ()=>nwInsert(nwRow({}, true)));
 $("nwSave").addEventListener("click", async ()=>{
   const st = $("nwStatus"); st.className = "status"; st.textContent = "saving…"; $("nwSave").disabled = true;
   const components = [...$("nwBody").children].map(tr=>{
