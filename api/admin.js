@@ -73,7 +73,7 @@ function sanitize(kind, data) {
         // Recurrence: the calendar expands this weekly/monthly/yearly from date
         repeat: ["weekly", "monthly", "yearly"].includes(str(e && e.repeat, 10)) ? str(e && e.repeat, 10) : null,
         // Visibility: both (site + calendar) / public (site only) / private
-        // (only rendered for the logged-in owner)
+        // (owner calendar only — never the public watchlist cards)
         show: ["public", "private"].includes(str(e && e.show, 10)) ? str(e && e.show, 10) : "both",
         venue: str(e && e.venue, 120),
         status: str(e && e.status, 60),
