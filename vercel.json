@@ -27,12 +27,22 @@
     },
     "api/special.js": {
       "maxDuration": 15
+    },
+    "api/todos.js": {
+      "maxDuration": 15
+    },
+    "api/transcribe.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/admin",
       "destination": "/admin.html"
+    },
+    {
+      "source": "/todo",
+      "destination": "/todo.html"
     }
   ],
   "crons": [

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>To-Do · The Daily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ede0; --paper-2:#ede4d3; --ink:#1c1812; --ink-soft:#5a5142;
+    --rule:#d8cdb8; --rule-strong:#b8ab90; --accent:#bb3b22; --accent-deep:#8a2b18;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:Georgia,serif;min-height:100vh}
+  .bar{height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-deep))}
+  .wrap{max-width:640px;margin:0 auto;padding:22px 18px 60px}
+  a{color:inherit}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft)}
+  h1{font-family:"Fraunces",serif;font-weight:800;font-size:34px;margin:2px 0 4px}
+  .sub{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.04em}
+  .panel{border-top:2px solid var(--ink);margin-top:22px;padding-top:14px}
+  .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px}
+  .addrow{display:flex;gap:8px}
+  #txt{
+    flex:1;font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--ink);
+    background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:2px;padding:10px 12px;min-width:0;
+  }
+  #txt:focus{outline:none;border-color:var(--ink)}
+  button{font-family:"JetBrains Mono",monospace;cursor:pointer}
+  #txtAdd{
+    font-size:12px;letter-spacing:.06em;border:1px solid var(--ink);border-radius:2px;
+    background:var(--ink);color:var(--paper);padding:10px 18px;
+  }
+  #txtAdd:disabled,#mic:disabled{opacity:.5}
+  #mic{
+    display:block;width:150px;height:150px;border-radius:50%;margin:18px auto 8px;
+    border:2px solid var(--rule-strong);background:var(--paper-2);color:var(--ink-soft);
+    font-size:13px;letter-spacing:.04em;line-height:1.5;
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;
+  }
+  #mic.rec{background:var(--accent);border-color:var(--accent-deep);color:var(--paper);animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.05)}}
+  #vstat{text-align:center;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);min-height:20px;margin-top:6px}
+  #vstat.err{color:var(--accent-deep)}
+  .todo-row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+  .todo-text{flex:1;font-size:16px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+  .todo-x{
+    font-size:11px;line-height:1;border:1px solid var(--rule-strong);border-radius:2px;
+    background:var(--paper-2);color:var(--ink-soft);padding:4px 8px;flex:none;align-self:center;
+  }
+  .todo-x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  .todo-x:disabled{opacity:.4}
+  #gate{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);margin-top:30px;line-height:1.8}
+  #app{display:none}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<div class="wrap">
+  <a href="/" style="text-decoration:none">
+    <div class="eyebrow">marktan.ai · the daily</div>
+    <h1>To-Do</h1>
+  </a>
+  <p class="sub"><a href="/">← back to the dashboard</a></p>
+
+  <div id="gate">checking your login…</div>
+
+  <div id="app">
+    <div class="panel">
+      <div class="lbl">Type it</div>
+      <div class="addrow">
+        <input id="txt" type="text" placeholder="e.g. renew passport" autocomplete="off" maxlength="500">
+        <button id="txtAdd">Add</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="lbl">Or say it</div>
+      <button id="mic" type="button">🎙<br>hold to<br>record</button>
+      <div id="vstat">hold the button, speak, release — it transcribes and adds itself</div>
+    </div>
+
+    <div class="panel">
+      <div class="lbl">The list <span id="cnt"></span></div>
+      <div id="list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let SESSION = null;
+let TODOS = [];
+
+function vstat(msg, err){ const el = $("vstat"); el.textContent = msg; el.className = err ? "err" : ""; }
+
+/* ---------- auth: the dashboard's Google-login session unlocks this page ---------- */
+(async function boot(){
+  try{ SESSION = localStorage.getItem("ownerSession") || null; }catch(e){}
+  if(SESSION){
+    try{
+      const r = await fetch("/api/login", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ session: SESSION }) });
+      if(!r.ok) SESSION = null;
+    }catch(e){ SESSION = null; }
+  }
+  if(!SESSION){
+    $("gate").innerHTML = 'This page is for the owner. <a href="/">Log in on the dashboard</a> first, then come back.';
+    return;
+  }
+  $("gate").style.display = "none";
+  $("app").style.display = "block";
+  loadList();
+})();
+
+/* ---------- list ---------- */
+async function loadList(){
+  try{
+    const d = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, { cache:"no-store" }).then(r=>r.json());
+    TODOS = Array.isArray(d.todos) ? d.todos : [];
+    render();
+  }catch(e){}
+}
+function render(){
+  $("cnt").textContent = TODOS.length ? `· ${TODOS.length}` : "";
+  $("list").innerHTML = TODOS.length
+    ? TODOS.map((t,i)=>`<div class="todo-row"><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Done — remove">✕</button></div>`).join("")
+    : '<div class="sub" style="padding:6px 0">Nothing on the list.</div>';
+  document.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>del(+b.dataset.i, b)));
+}
+async function add(text){
+  const res = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, {
+    method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text }),
+  });
+  if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
+  await loadList();
+}
+async function del(i, btn){
+  const victim = TODOS[i]; if(!victim) return;
+  if(btn) btn.disabled = true;
+  try{
+    const cur = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).filter(x=>!(x && x.text===victim.text && x.ts===victim.ts));
+    const res = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, {
+      method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; render();
+  }catch(e){ if(btn) btn.disabled = false; }
+}
+
+/* ---------- text add ---------- */
+async function submitText(){
+  const v = $("txt").value.trim(); if(!v) return;
+  $("txt").disabled = true; $("txtAdd").disabled = true;
+  try{ await add(v); $("txt").value = ""; }
+  catch(e){ vstat("couldn't save — " + (e.message || e), true); }
+  finally{ $("txt").disabled = false; $("txtAdd").disabled = false; $("txt").focus(); }
+}
+$("txtAdd").addEventListener("click", submitText);
+$("txt").addEventListener("keydown", (e)=>{ if(e.key === "Enter") submitText(); });
+
+/* ---------- hold-to-record voice add ----------
+   Hold: getUserMedia + MediaRecorder. Release: stop, POST the clip to
+   /api/transcribe (ElevenLabs Scribe server-side), then add the text.
+   Safari records audio/mp4; Chrome audio/webm — we send whatever the
+   recorder produced. */
+let rec = null, chunks = [], recStart = 0, stream = null;
+
+function recMime(){
+  if(window.MediaRecorder){
+    for(const m of ["audio/webm;codecs=opus","audio/webm","audio/mp4"]){
+      if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
+    }
+  }
+  return "";
+}
+
+async function startRec(e){
+  e.preventDefault();
+  if(rec) return;
+  if(!navigator.mediaDevices || !window.MediaRecorder){ vstat("recording isn't supported in this browser", true); return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }catch(err){ vstat("microphone permission denied", true); return; }
+  chunks = [];
+  const m = recMime();
+  rec = m ? new MediaRecorder(stream, { mimeType: m }) : new MediaRecorder(stream);
+  rec.ondataavailable = (ev)=>{ if(ev.data && ev.data.size) chunks.push(ev.data); };
+  rec.onstop = onRecStop;
+  recStart = Date.now();
+  rec.start();
+  $("mic").classList.add("rec");
+  vstat("recording — release to add");
+}
+
+function stopRec(e){
+  if(e) e.preventDefault();
+  if(!rec) return;
+  $("mic").classList.remove("rec");
+  try{ rec.stop(); }catch(err){ cleanupRec(); }
+}
+
+function cleanupRec(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  rec = null;
+}
+
+async function onRecStop(){
+  const dur = Date.now() - recStart;
+  const mime = (rec && rec.mimeType) || recMime() || "audio/webm";
+  cleanupRec();
+  if(dur < 400 || !chunks.length){ vstat("too short — hold while you speak"); return; }
+  vstat("transcribing…");
+  $("mic").disabled = true;
+  try{
+    const blob = new Blob(chunks, { type: mime });
+    const b64 = await new Promise((res, rej)=>{
+      const rd = new FileReader();
+      rd.onload = ()=>res(String(rd.result).split(",")[1]);
+      rd.onerror = rej;
+      rd.readAsDataURL(blob);
+    });
+    const r = await fetch(`/api/transcribe?token=${encodeURIComponent(SESSION)}`, {
+      method:"POST", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ audio: b64, mime: mime.split(";")[0] }),
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error || `error ${r.status}`);
+    vstat(`adding: “${j.text}”`);
+    await add(j.text);
+    vstat(`✓ added: “${j.text}”`);
+  }catch(err){ vstat(String(err.message || err), true); }
+  finally{ $("mic").disabled = false; }
+}
+
+$("mic").addEventListener("pointerdown", startRec);
+$("mic").addEventListener("pointerup", stopRec);
+$("mic").addEventListener("pointercancel", stopRec);
+$("mic").addEventListener("pointerleave", (e)=>{ if(rec) stopRec(e); });
+$("mic").addEventListener("contextmenu", (e)=>e.preventDefault());
+</script>
+</body>
+</html>

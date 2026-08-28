@@ -423,6 +423,33 @@
   /* owner-only content: hidden until the owner logs in (footer link) */
   .owner-only{display:none}
   body.owner .owner-only{display:block}
+
+  /* ---- to-do list (owner) ---- */
+  #quickTodo{
+    background:var(--paper-2);border-bottom:1px solid var(--rule-strong);
+    padding:7px 16px;display:none;align-items:center;gap:10px;
+  }
+  body.owner #quickTodo{display:flex}
+  #quickTodoInput{
+    flex:1;max-width:520px;font-family:"JetBrains Mono",monospace;font-size:12.5px;
+    color:var(--ink);background:var(--paper);border:1px solid var(--rule-strong);
+    border-radius:2px;padding:5px 10px;min-width:0;
+  }
+  #quickTodoInput:focus{outline:none;border-color:var(--ink)}
+  #quickTodoStat{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);white-space:nowrap}
+  .todo-row{
+    display:flex;align-items:baseline;gap:10px;padding:7px 0;
+    border-bottom:1px solid var(--rule);
+  }
+  .todo-text{flex:1;font-size:15.5px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+  .todo-x{
+    font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1;
+    border:1px solid var(--rule-strong);border-radius:2px;background:var(--paper-2);
+    color:var(--ink-soft);padding:3px 7px;cursor:pointer;flex:none;align-self:center;
+  }
+  .todo-x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  .todo-x:disabled{opacity:.4;cursor:default}
+  #todoEmpty{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);padding:6px 0}
   .owner-sub{
     font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;
@@ -570,6 +597,13 @@
 </head>
 <body>
   <div class="accent-bar"></div>
+
+  <!-- Owner-only quick add: type a to-do and press Enter — saved instantly
+       to the encrypted list (no confirmation step). Invisible to visitors. -->
+  <div id="quickTodo" class="owner-only">
+    <input id="quickTodoInput" type="text" placeholder="＋ add to-do… (Enter to save)" autocomplete="off" maxlength="500">
+    <span id="quickTodoStat"></span>
+  </div>
 
   <div class="wrap">
     <header>
@@ -755,6 +789,14 @@
           <div class="owner-sub">Account · Balances</div>
           <div class="mkt-grid" id="balances"></div>
         </div>
+        <!-- To-do list: encrypted at rest like the private calendar
+             (data/todos.enc.json via /api/todos). Add from the quick box at
+             the very top of the page or the /todo voice page; ✕ deletes. -->
+        <div id="todoBlock" style="margin-top:4px;margin-bottom:20px">
+          <div class="owner-sub">To-Do <a class="srclink" href="/todo" style="margin-left:10px;font-size:10px">🎙 voice add ↗</a></div>
+          <div id="todoList"></div>
+        </div>
+
         <!-- Personal calendar: Outlook-style month/week views, fed from the
              events list (multi-day events render as continuous bars). -->
         <div id="calendarBlock" style="margin-top:20px">
@@ -1185,14 +1227,12 @@ function eventIcs(c){
   return "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
 }
 
-/* Events watchlist — cards sorted by date, undated entries last. */
+/* Events watchlist — cards sorted by date, undated entries last.
+   PUBLIC ONLY: the watchlist shows the same thing to everyone (show =
+   "both" or "public"); show:"private" entries and the private calendar
+   list appear solely in the For Mark calendar, never as cards here. */
 function renderEvents(){
-  // Visibility: show = "both" (default — site + calendar), "public" (site
-  // only), "private" (only while logged in). Private-list entries join the
-  // cards only while logged in, marked with a lock.
-  const events = (EVENTS||[])
-    .filter(c=>c && c.act && (c.show !== "private" || ownerUser))
-    .concat(ownerUser ? (PRIVATE_EVENTS||[]).filter(c=>c && c.act).map(c=>({ ...c, _priv:true })) : []);
+  const events = (EVENTS||[]).filter(c=>c && c.act && c.show !== "private");
   if(!events.length){ $("eventsSec").style.display = "none"; return; }
 
   const [ty,tm,td] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
@@ -1220,7 +1260,7 @@ function renderEvents(){
     const when = c.date
       ? `${niceDay(c.date)}${c.endDate && c.endDate !== c.date ? "–" + niceDay(c.endDate) : ""}`
       : "TBA";
-    const kindLbl = (c._priv || c.show === "private") ? `🔒 ${c.kind||"Private"}` : c.kind;
+    const kindLbl = c.kind;
     const sub = c.date
       ? [kindLbl, c.venue, fmtEventTime(c.time), c.status, today ? (c.delta === 0 ? "today" : "on now") : whenLabel(c.delta)].filter(Boolean).join(" · ")
       : [kindLbl, (c.note || "no Singapore date announced yet")].filter(Boolean).join(" · ");
@@ -1259,16 +1299,66 @@ function calDayFromISO(iso){ const [y,m,d] = iso.split("-").map(Number); return 
 let PRIVATE_EVENTS = [];
 async function loadPrivateEvents(){
   const t = privateToken();
-  if(!t){ PRIVATE_EVENTS = []; renderCalendar(); renderEvents(); return; }
-  renderEvents(); // owner-only public entries become visible right away
+  if(!t){ PRIVATE_EVENTS = []; renderCalendar(); return; }
   try{
     const res = await fetch(`/api/private-events?token=${encodeURIComponent(t)}`, { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     PRIVATE_EVENTS = Array.isArray(d.events) ? d.events : [];
-    renderCalendar();
-    renderEvents(); // private + owner-only entries join the cards
+    renderCalendar(); // private entries appear only in the calendar, never the watchlist cards
   }catch(e){ /* calendar just shows public events */ }
+}
+
+/* Private to-do list — encrypted at rest like the calendar (/api/todos).
+   Adds are instant (Enter in the top box, the /todo voice page, or the
+   watch shortcut); ✕ deletes with a fresh-sha read-modify-write so a
+   concurrent add from another device is never clobbered. */
+let TODOS = null; // null = not loaded / logged out
+async function loadTodos(){
+  const t = privateToken();
+  if(!t){ TODOS = null; renderTodos(); return; }
+  try{
+    const res = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, { cache:"no-store" });
+    if(!res.ok) return;
+    const d = await res.json();
+    TODOS = Array.isArray(d.todos) ? d.todos : [];
+    renderTodos();
+  }catch(e){ /* leave whatever is rendered */ }
+}
+function renderTodos(){
+  const el = $("todoList");
+  if(!el) return;
+  if(!TODOS){ el.innerHTML = ""; return; }
+  if(!TODOS.length){ el.innerHTML = `<div id="todoEmpty">Nothing on the list — add one in the box at the top of the page.</div>`; return; }
+  el.innerHTML = TODOS.map((t,i)=>`<div class="todo-row"><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Done — remove">✕</button></div>`).join("");
+  el.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>deleteTodo(+b.dataset.i, b)));
+}
+async function addTodo(text){
+  const t = privateToken();
+  if(!t || !text.trim()) return false;
+  const res = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, {
+    method:"POST", headers:{ "content-type":"application/json" },
+    body: JSON.stringify({ add: text.trim() }),
+  });
+  if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
+  await loadTodos();
+  return true;
+}
+async function deleteTodo(i, btn){
+  const t = privateToken();
+  if(!t || !TODOS || !TODOS[i]) return;
+  const victim = TODOS[i];
+  if(btn) btn.disabled = true;
+  try{
+    const cur = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).filter(x=>!(x && x.text===victim.text && x.ts===victim.ts));
+    const res = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, {
+      method:"POST", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; renderTodos();
+  }catch(e){ if(btn) btn.disabled = false; }
 }
 
 /* Events visible in [rangeStart, rangeEnd], with repeat:"weekly|monthly|
@@ -1735,7 +1825,7 @@ async function initOwner(){
     const res = await loginPost({ session: s });
     if(res.ok){
       const d = await res.json();
-      if(d.ok){ ownerUser = d.user; setOwnerCookie(s); loadBalances(); loadPrivateEvents(); }
+      if(d.ok){ ownerUser = d.user; setOwnerCookie(s); loadBalances(); loadPrivateEvents(); loadTodos(); }
     }else if(res.status === 401){
       try{ localStorage.removeItem(OWNER_KEY); }catch(e){} // expired/invalid session
       setOwnerCookie(null);
@@ -1771,6 +1861,7 @@ async function onGoogleCredential(resp){
       setOwnerUI();
       loadBalances();
       loadPrivateEvents();
+      loadTodos();
     }
   }catch(err){ alert("Sign-in failed — try again."); setOwnerUI(); }
 }
@@ -1799,6 +1890,7 @@ function toggleLogin(e){
     setOwnerCookie(null);
     try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
     PRIVATE_EVENTS = [];
+    TODOS = null; renderTodos();
     renderCalendar();
     renderEvents();
     setOwnerUI();
@@ -2231,6 +2323,18 @@ renderStatements(); setInterval(renderStatements, 60000); // new firings appear 
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
 initOwner();
+$("quickTodoInput").addEventListener("keydown", async (e)=>{
+  if(e.key !== "Enter") return;
+  const inp = $("quickTodoInput"), st = $("quickTodoStat");
+  const v = inp.value.trim(); if(!v) return;
+  inp.disabled = true; st.textContent = "saving…";
+  try{
+    await addTodo(v);
+    inp.value = ""; st.textContent = "✓ added";
+    setTimeout(()=>{ if(st.textContent === "✓ added") st.textContent = ""; }, 2000);
+  }catch(err){ st.textContent = "couldn't save — " + String(err.message || err); }
+  finally{ inp.disabled = false; inp.focus(); }
+});
 $("calPrev").addEventListener("click", ()=>calNav(-1));
 $("calNext").addEventListener("click", ()=>calNav(1));
 $("calToday").addEventListener("click", ()=>{ calAnchor = calTodayUTC(); renderCalendar(); });
