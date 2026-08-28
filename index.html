@@ -424,6 +424,22 @@
   .owner-only{display:none}
   body.owner .owner-only{display:block}
 
+  /* ---- net worth (owner) ---- */
+  .nw-heads{display:flex;gap:34px;flex-wrap:wrap;align-items:baseline}
+  .nw-head{display:flex;align-items:baseline;gap:10px}
+  .nw-ccy{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;color:var(--ink-soft)}
+  .nw-val{font-family:"Fraunces",serif;font-weight:700;font-size:34px;letter-spacing:-.01em}
+  .nw-changes{display:flex;gap:22px;flex-wrap:wrap;margin-top:8px;font-family:"JetBrains Mono",monospace;font-size:11.5px}
+  .nw-chg b{font-weight:600;letter-spacing:.1em;color:var(--ink-soft);margin-right:7px}
+  .nw-chg.up{color:#2e6b3e}
+  .nw-chg.down{color:var(--accent-deep)}
+  .nw-chg.flat{color:var(--ink-soft)}
+  .nw-comps{margin-top:12px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);columns:2;column-gap:34px;max-width:640px}
+  .nw-comps div{display:flex;justify-content:space-between;gap:12px;padding:2px 0;break-inside:avoid}
+  .nw-comps .neg{color:var(--accent-deep)}
+  .nw-note{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);margin-top:8px;letter-spacing:.04em}
+  @media(max-width:560px){.nw-comps{columns:1}.nw-val{font-size:28px}}
+
   /* ---- to-do list (owner) ---- */
   #quickTodo{
     background:var(--paper-2);border-bottom:1px solid var(--rule-strong);
@@ -787,6 +803,22 @@
         <span class="cnt"></span>
       </div>
       <div id="ownerContent">
+        <!-- Net worth: components live encrypted (data/networth.enc.json via
+             /api/networth, edited in /admin); a snapshot is stored per SGT
+             day, so the day / month / YTD changes are real history, moved by
+             FX and by component edits. -->
+        <div id="nwBlock" style="display:none;margin-bottom:22px">
+          <div class="owner-sub">Net Worth <a class="srclink" href="/admin" target="_blank" rel="noopener" style="margin-left:10px;font-size:10px">✎ edit ↗</a></div>
+          <div class="nw-heads">
+            <div class="nw-head"><span class="nw-ccy">SGD</span><span class="nw-val" id="nwSgd">—</span></div>
+            <div class="nw-head"><span class="nw-ccy">USD</span><span class="nw-val" id="nwUsd">—</span></div>
+          </div>
+          <div class="nw-changes" id="nwChanges"></div>
+          <div class="nw-changes" id="nwBudget" style="margin-top:4px"></div>
+          <div class="nw-comps" id="nwComps"></div>
+          <div class="nw-note" id="nwNote"></div>
+        </div>
+
         <!-- Statement reminders: appear on their due day and PERSIST until
              dismissed with ✕ (dismissals live in localStorage, per firing,
              so next month's statement reappears). -->
@@ -1320,6 +1352,48 @@ async function loadPrivateEvents(){
   }catch(e){ /* calendar just shows public events */ }
 }
 
+/* Net worth — components + daily snapshots, encrypted at rest
+   (/api/networth). Rendered only for the owner. */
+async function loadNetWorth(){
+  const t = privateToken();
+  const blk = $("nwBlock");
+  if(!t){ if(blk) blk.style.display = "none"; return; }
+  try{
+    const res = await fetch(`/api/networth?token=${encodeURIComponent(t)}`, { cache:"no-store" });
+    if(!res.ok) return;
+    const d = await res.json();
+    if(!d || !d.totals) return;
+    const sgd = (n) => "S$" + Math.round(n).toLocaleString("en-US");
+    const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+    $("nwSgd").textContent = sgd(d.totals.sgd);
+    $("nwUsd").textContent = usd(d.totals.usd);
+    const chg = (lbl, c) => {
+      if(!c) return `<span class="nw-chg flat"><b>${lbl}</b>—</span>`;
+      const cls = c.sgd > 0.5 ? "up" : c.sgd < -0.5 ? "down" : "flat";
+      const arrow = cls === "up" ? "▲" : cls === "down" ? "▼" : "＝";
+      const pct = c.pct == null ? "" : ` (${c.pct >= 0 ? "+" : ""}${c.pct.toFixed(2)}%)`;
+      return `<span class="nw-chg ${cls}" title="since ${esc(c.since)}"><b>${lbl}</b>${arrow} ${c.sgd >= 0 ? "+" : "−"}S$${Math.abs(Math.round(c.sgd)).toLocaleString("en-US")}${pct}</span>`;
+    };
+    $("nwChanges").innerHTML = chg("1D", d.changes.day) + chg("MONTH", d.changes.month) + chg("YTD", d.changes.ytd);
+    const bk = d.breakeven;
+    if(bk){
+      const s = bk.surplusSgd, cls = s >= 0 ? "up" : "down";
+      $("nwBudget").innerHTML =
+        `<span class="nw-chg ${cls}"><b>${s >= 0 ? "SURPLUS" : "DEFICIT"}</b>${s >= 0 ? "+" : "−"}S$${Math.abs(Math.round(s)).toLocaleString("en-US")}` +
+        ` vs breakeven ${bk.breakevenCcy === "USD" ? "$" : "S$"}${(bk.breakeven/1e6).toFixed(2)}M${bk.withdrawalRate ? ` @ ${bk.withdrawalRate}% withdrawal` : ""}</span>`;
+    }else{
+      $("nwBudget").innerHTML = "";
+    }
+    $("nwComps").innerHTML = (d.components||[]).map(c=>{
+      const v = (c.ccy === "USD" ? "$" : "S$") + Math.abs(Math.round(c.amount)).toLocaleString("en-US");
+      const tip = c.live ? ` title="${esc(`${c.qty.toLocaleString("en-US")} × ${c.symbol} @ ${c.px}`)}"` : "";
+      return `<div${c.amount < 0 ? ' class="neg"' : ""}${tip}><span>${esc(c.label)}${c.live ? " ·" : ""}</span><span>${c.amount < 0 ? "−" : ""}${v}</span></div>`;
+    }).join("");
+    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots`;
+    blk.style.display = "";
+  }catch(e){ /* leave hidden */ }
+}
+
 /* Private to-do list — encrypted at rest like the calendar (/api/todos).
    Adds are instant (Enter in the top box, the /todo voice page, or the
    watch shortcut); ✕ deletes with a fresh-sha read-modify-write so a
@@ -1840,7 +1914,7 @@ async function initOwner(){
     const res = await loginPost({ session: s });
     if(res.ok){
       const d = await res.json();
-      if(d.ok){ ownerUser = d.user; setOwnerCookie(s); loadBalances(); loadPrivateEvents(); loadTodos(); }
+      if(d.ok){ ownerUser = d.user; setOwnerCookie(s); loadBalances(); loadPrivateEvents(); loadTodos(); loadNetWorth(); }
     }else if(res.status === 401){
       try{ localStorage.removeItem(OWNER_KEY); }catch(e){} // expired/invalid session
       setOwnerCookie(null);
@@ -1877,6 +1951,7 @@ async function onGoogleCredential(resp){
       loadBalances();
       loadPrivateEvents();
       loadTodos();
+      loadNetWorth();
     }
   }catch(err){ alert("Sign-in failed — try again."); setOwnerUI(); }
 }
@@ -1906,6 +1981,7 @@ function toggleLogin(e){
     try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
     PRIVATE_EVENTS = [];
     TODOS = null; renderTodos();
+    $("nwBlock").style.display = "none";
     renderCalendar();
     renderEvents();
     setOwnerUI();

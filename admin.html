@@ -89,10 +89,9 @@
       <div class="eyebrow">marktan.ai</div>
       <h1 style="font-size:26px;margin:2px 0 4px">Admin</h1>
     </a>
-    <p class="sub" style="margin-bottom:16px">Enter the admin password to open the editor.</p>
-    <label for="secret">Password</label>
-    <input id="secret" type="password" autocomplete="current-password" placeholder="ADMIN_SECRET" />
-    <div style="margin-top:14px"><button id="enter">Unlock</button></div>
+    <p class="sub" style="margin-bottom:16px">This editor opens only for the owner's Google login — there is no password.</p>
+    <p class="sub"><a href="/">Sign in with Google on the dashboard</a> (footer → login), then come back — the editor unlocks automatically.</p>
+    <div style="margin-top:14px"><button id="retry">I've signed in — check again</button></div>
     <div id="gateErr" style="color:var(--err);font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:10px"></div>
   </div>
 </div>
@@ -188,6 +187,43 @@
       </div>
     </section>
 
+    <!-- NET WORTH (encrypted; components feed the For Mark net-worth block).
+         Two currency columns: type in a component's own column, the other
+         converts live at the current USD/SGD rate; the TOTAL row follows
+         every keystroke. Market rows (Symbol × Shares) value themselves at
+         the live price. -->
+    <section class="panel">
+      <div class="phead">
+        <h2>Net worth</h2>
+        <span class="meta" id="nwMeta"></span>
+      </div>
+      <div class="tablewrap">
+        <table id="nwTable">
+          <thead><tr><th>Component</th><th class="num">USD</th><th class="num">SGD</th><th class="act"></th></tr></thead>
+          <tbody id="nwBody"></tbody>
+          <tfoot><tr id="nwTotalRow">
+            <td style="font-weight:700">NET WORTH</td>
+            <td class="num" id="nwTotUsd" style="font-weight:700">—</td>
+            <td class="num" id="nwTotSgd" style="font-weight:700">—</td>
+            <td class="act"></td>
+          </tr></tfoot>
+        </table>
+      </div>
+      <div class="hint">Edit the field in each component's own currency — the grey figure in the other column converts automatically at the live rate (<b id="nwFxLbl">—</b>), and the total updates as you type. Liabilities as <b>negative</b> numbers. Rows with a <b>symbol × shares</b> are valued at the live market price; edit the share count. Stored <b>encrypted</b> (data/networth.enc.json); saving refreshes today's snapshot so the day/month/YTD changes stay honest.</div>
+      <div class="bar">
+        <label style="display:flex;align-items:center;gap:7px;margin:0;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:12px">Breakeven
+          <input id="nwBk" type="number" step="any" placeholder="—" style="width:150px">
+          <select id="nwBkCcy" style="width:auto"><option value="SGD">SGD</option><option value="USD">USD</option></select>
+          @ <input id="nwBkRate" type="number" step="any" placeholder="—" style="width:64px">% withdrawal
+        </label>
+      </div>
+      <div class="bar">
+        <button class="ghost" id="nwAdd">+ Add component</button>
+        <button id="nwSave">Save net worth</button>
+        <span class="status" id="nwStatus"></span>
+      </div>
+    </section>
+
     <!-- BIRTHDAYS -->
     <section class="panel">
       <div class="phead">
@@ -217,30 +253,39 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let TOKEN = "";
 let sha = { events: null, birthdays: null };
-let dirty = { events: false, birthdays: false, private: false };
+let dirty = { events: false, birthdays: false, private: false, networth: false };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* ---------- gate ---------- */
 function showApp(){ $("boot").style.display = "none"; $("gate").style.display = "none"; $("app").style.display = "block"; }
 function showGate(){ $("boot").style.display = "none"; $("gate").style.display = "block"; }
-async function tryUnlock(secret, persist = true){
+/* Google-only: the dashboard's owner session (localStorage "ownerSession",
+   minted by /api/login after Google Sign-In) is the ONLY way in — the old
+   password box is gone now that the editor holds financial data. The shared
+   secret remains a machine credential for API automations (e.g. the watch
+   shortcut), never a way into this page. */
+async function tryUnlock(session){
   $("gateErr").textContent = "";
   try{
-    const res = await fetch(`/api/admin?token=${encodeURIComponent(secret)}`, { cache:"no-store" });
-    if(res.status === 401){ $("gateErr").textContent = "Wrong password."; return; }
+    const res = await fetch(`/api/admin?token=${encodeURIComponent(session)}`, { cache:"no-store" });
+    if(res.status === 401) return; // stale/invalid session — gate stays
     if(!res.ok){ const j = await res.json().catch(()=>({})); $("gateErr").textContent = j.error || `Error ${res.status}`; return; }
     const d = await res.json();
-    TOKEN = secret;
-    if(persist){ try{ localStorage.setItem("mt_admin_token", secret); }catch(_){} }
+    TOKEN = session;
     hydrate(d);
     showApp();
     loadPrivate();
+    loadNetworth();
   }catch(e){ $("gateErr").textContent = String(e.message || e); }
 }
-$("enter").addEventListener("click", ()=>tryUnlock($("secret").value.trim()));
-$("secret").addEventListener("keydown", e=>{ if(e.key==="Enter") tryUnlock($("secret").value.trim()); });
-$("lock").addEventListener("click", ()=>{ try{ localStorage.removeItem("mt_admin_token"); }catch(_){} location.reload(); });
+$("retry").addEventListener("click", ()=>location.reload());
+$("lock").addEventListener("click", ()=>{
+  // Lock = sign out of the owner session entirely (dashboard included).
+  try{ localStorage.removeItem("ownerSession"); }catch(_){}
+  try{ localStorage.removeItem("mt_admin_token"); }catch(_){} // legacy cleanup
+  location.reload();
+});
 
 /* ---------- hydrate ---------- */
 function hydrate(d){
@@ -259,7 +304,7 @@ function updateMeta(){
 }
 function setDirty(kind, v){
   dirty[kind] = v;
-  const el = kind === "events" ? $("evStatus") : kind === "private" ? $("pvStatus") : $("bdStatus");
+  const el = kind === "events" ? $("evStatus") : kind === "private" ? $("pvStatus") : kind === "networth" ? $("nwStatus") : $("bdStatus");
   if(v){ el.textContent = "unsaved changes"; el.className = "status dirty"; }
   else if(!el.classList.contains("ok") && !el.classList.contains("err")){ el.textContent = ""; }
 }
@@ -404,7 +449,7 @@ async function save(kind, data, statusEl, btn){
 $("evSave").addEventListener("click", ()=>{ renderEvents(collectEvents()); updateMeta(); save("events", collectEvents(), $("evStatus"), $("evSave")); });
 $("bdSave").addEventListener("click", ()=>{ renderBirthdays(collectBirthdays()); updateMeta(); save("birthdays", collectBirthdays(), $("bdStatus"), $("bdSave")); });
 
-window.addEventListener("beforeunload", (e)=>{ if(dirty.events||dirty.birthdays||dirty.private){ e.preventDefault(); e.returnValue=""; } });
+window.addEventListener("beforeunload", (e)=>{ if(dirty.events||dirty.birthdays||dirty.private||dirty.networth){ e.preventDefault(); e.returnValue=""; } });
 
 /* ---------- private calendar (encrypted store via /api/private-events) ---------- */
 let pvSha = null;
@@ -444,6 +489,147 @@ async function savePrivate(){
   finally{ $("pvSave").disabled = false; }
 }
 $("pvSave").addEventListener("click", savePrivate);
+
+/* ---------- net worth (encrypted store via /api/networth) ----------
+   Two currency columns. A fixed component is edited in its own currency's
+   cell; the other cell shows the live-converted figure in grey and follows
+   every keystroke, as does the NET WORTH total row. Typing in the grey cell
+   flips the component's currency to that column. Market rows (symbol ×
+   shares) value themselves from the price fetched at load. */
+let nwSha = null, nwFx = null;
+const nwFmt = (n) => Number.isFinite(n) ? Math.round(n).toLocaleString("en-US") : "—";
+
+function nwRecalc(){
+  if(!nwFx) return;
+  let sgd = 0, pending = false;
+  [...$("nwBody").children].forEach(tr=>{
+    const usdCell = tr.querySelector('[data-cell="USD"]'), sgdCell = tr.querySelector('[data-cell="SGD"]');
+    if(tr.dataset.kind === "market"){
+      const qty = parseFloat((tr.querySelector('[data-key="qty"]')||{}).value) || 0;
+      const px = parseFloat(tr.dataset.px);
+      if(!Number.isFinite(px)){ pending = true; usdCell.value = "—"; sgdCell.value = "—"; return; }
+      const native = qty * px;
+      const inSgd = tr.dataset.pxccy === "SGD" ? native : native * nwFx;
+      sgd += inSgd;
+      usdCell.value = nwFmt(inSgd / nwFx); sgdCell.value = nwFmt(inSgd);
+    }else{
+      const src = tr.dataset.src === "USD" ? "USD" : "SGD";
+      const cell = src === "USD" ? usdCell : sgdCell, other = src === "USD" ? sgdCell : usdCell;
+      const v = parseFloat(String(cell.value).replace(/,/g, "")) || 0;
+      const inSgd = src === "USD" ? v * nwFx : v;
+      sgd += inSgd;
+      other.value = nwFmt(src === "USD" ? inSgd : inSgd / nwFx);
+      cell.classList.remove("conv"); other.classList.add("conv");
+    }
+  });
+  $("nwTotSgd").textContent = "S$" + nwFmt(sgd);
+  $("nwTotUsd").textContent = "$" + nwFmt(sgd / nwFx) + (pending ? " (+ unpriced rows — Save to fetch)" : "");
+}
+
+function nwRow(c){
+  c = c || {};
+  const tr = document.createElement("tr");
+  const isMarket = !!c.symbol;
+  tr.dataset.kind = isMarket ? "market" : "fixed";
+
+  const td1 = document.createElement("td");
+  const lbl = document.createElement("input"); lbl.value = c.label||""; lbl.placeholder = "Component"; lbl.dataset.key = "label";
+  lbl.addEventListener("input", ()=>setDirty("networth", true));
+  td1.appendChild(lbl);
+  if(isMarket){
+    tr.dataset.px = c.px != null ? c.px : "";
+    tr.dataset.pxccy = c.ccy === "SGD" ? "SGD" : "USD";
+    const sub = document.createElement("div");
+    sub.style.cssText = "display:flex;gap:6px;align-items:center;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a8064";
+    const sym = document.createElement("input"); sym.value = c.symbol; sym.dataset.key = "symbol"; sym.style.width = "84px"; sym.title = "Yahoo symbol";
+    sym.addEventListener("input", ()=>{ tr.dataset.px = ""; setDirty("networth", true); nwRecalc(); }); // new symbol → priced on save
+    const x = document.createElement("span"); x.textContent = "×";
+    const qty = document.createElement("input"); qty.type = "number"; qty.step = "any"; qty.value = c.qty != null ? c.qty : ""; qty.dataset.key = "qty"; qty.style.width = "100px"; qty.title = "Shares";
+    qty.addEventListener("input", ()=>{ setDirty("networth", true); nwRecalc(); });
+    const at = document.createElement("span"); at.textContent = c.px != null ? `@ ${c.px}` : "@ (priced on save)";
+    sub.append(sym, x, qty, at);
+    td1.appendChild(sub);
+  }
+  tr.appendChild(td1);
+
+  for(const ccy of ["USD","SGD"]){
+    const td = document.createElement("td"); td.className = "num";
+    const inp = document.createElement("input"); inp.dataset.cell = ccy; inp.style.textAlign = "right"; inp.autocomplete = "off";
+    if(isMarket){
+      inp.readOnly = true; inp.classList.add("conv"); inp.tabIndex = -1;
+    }else{
+      inp.addEventListener("focus", ()=>{ // editing the grey cell? start from the raw converted number
+        if(inp.classList.contains("conv")) inp.value = String(parseFloat(String(inp.value).replace(/,/g, "")) || "");
+      });
+      inp.addEventListener("input", ()=>{ tr.dataset.src = ccy; setDirty("networth", true); nwRecalc(); });
+    }
+    td.appendChild(inp); tr.appendChild(td);
+  }
+  if(!isMarket){
+    tr.dataset.src = c.ccy === "USD" ? "USD" : "SGD";
+    tr.querySelector(`[data-cell="${tr.dataset.src}"]`).value = c.amount != null ? c.amount : "";
+  }
+
+  const del = document.createElement("td"); del.className = "act";
+  const b = document.createElement("button"); b.className = "danger"; b.textContent = "✕"; b.title = "Delete";
+  b.addEventListener("click", ()=>{
+    if(!confirm(`Delete "${lbl.value || "this component"}"? (Takes effect on Save.)`)) return;
+    tr.remove(); setDirty("networth", true); nwRecalc();
+  });
+  del.appendChild(b); tr.appendChild(del);
+  return tr;
+}
+
+function nwRender(j){
+  nwSha = j.sha; nwFx = j.totals.fx;
+  $("nwFxLbl").textContent = `USD/SGD ${nwFx.toFixed(4)}`;
+  const body = $("nwBody"); body.innerHTML = "";
+  (j.components||[]).forEach(c=>body.appendChild(nwRow(c)));
+  $("nwBk").value = j.breakeven ? j.breakeven.breakeven : "";
+  $("nwBkCcy").value = j.breakeven ? j.breakeven.breakevenCcy : "SGD";
+  $("nwBkRate").value = (j.breakeven && j.breakeven.withdrawalRate != null) ? j.breakeven.withdrawalRate : "";
+  $("nwMeta").textContent = `${(j.components||[]).length} components · snapshot ${j.asOf}`;
+  nwRecalc();
+}
+["nwBk","nwBkCcy","nwBkRate"].forEach(id=>$(id).addEventListener("input", ()=>setDirty("networth", true)));
+async function loadNetworth(){
+  try{
+    const res = await fetch(`/api/networth?token=${encodeURIComponent(TOKEN)}`, { cache:"no-store" });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){ $("nwStatus").textContent = j.error || `error ${res.status}`; $("nwStatus").className = "status err"; return; }
+    nwRender(j);
+    setDirty("networth", false);
+  }catch(e){ $("nwStatus").textContent = String(e.message||e); $("nwStatus").className = "status err"; }
+}
+$("nwAdd").addEventListener("click", ()=>{ $("nwBody").appendChild(nwRow({})); setDirty("networth", true); nwRecalc(); });
+$("nwSave").addEventListener("click", async ()=>{
+  const st = $("nwStatus"); st.className = "status"; st.textContent = "saving…"; $("nwSave").disabled = true;
+  const components = [...$("nwBody").children].map(tr=>{
+    const g = k => (tr.querySelector(`[data-key="${k}"]`)||{}).value || "";
+    const label = g("label").trim();
+    if(tr.dataset.kind === "market") return { label, symbol: g("symbol").trim(), qty: parseFloat(g("qty")) || 0 };
+    const src = tr.dataset.src === "USD" ? "USD" : "SGD";
+    return { label, ccy: src, amount: parseFloat(String((tr.querySelector(`[data-cell="${src}"]`)||{}).value).replace(/,/g, "")) || 0 };
+  }).filter(c=>c.label);
+  try{
+    const settings = parseFloat($("nwBk").value) > 0
+      ? { breakeven: parseFloat($("nwBk").value), breakevenCcy: $("nwBkCcy").value, withdrawalRate: parseFloat($("nwBkRate").value) || null }
+      : null;
+    const res = await fetch(`/api/networth?token=${encodeURIComponent(TOKEN)}`, {
+      method:"POST", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ components, settings, sha: nwSha }),
+    });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){
+      st.className = "status err";
+      st.textContent = res.status === 409 ? "conflict — reload, the store changed" : (j.error || `error ${res.status}`);
+      return;
+    }
+    nwRender(j); dirty.networth = false;
+    st.className = "status ok"; st.textContent = "saved · encrypted · today's snapshot refreshed";
+  }catch(e){ st.className = "status err"; st.textContent = String(e.message || e); }
+  finally{ $("nwSave").disabled = false; }
+});
 
 /* ---------- Claude calendar assistant ---------- */
 /* One attachment slot: a pasted/attached image ({kind:"image", media_type,
@@ -664,22 +850,17 @@ $("aiApply").addEventListener("click", async ()=>{
 });
 $("aiDiscard").addEventListener("click", ()=>{ $("aiResult").style.display = "none"; aiProposal = null; });
 
-/* ---------- boot: remember token, allow ?token= deep-link, and accept the
-   dashboard's Google-login owner session so no separate PIN is needed ---------- */
+/* ---------- boot: Google login only — the dashboard's owner session is the
+   sole credential; ?token= deep-links and the stored password are gone ---------- */
 (async function(){
-  let t = "";
-  try{ const u = new URL(location.href); t = u.searchParams.get("token") || ""; }catch(_){}
-  if(!t){ try{ t = localStorage.getItem("mt_admin_token") || ""; }catch(_){} }
-  if(t){ $("secret").value = t; await tryUnlock(t); if($("app").style.display === "block") return; }
-  // Logged in on the dashboard as the owner? That session unlocks admin too.
+  try{ localStorage.removeItem("mt_admin_token"); }catch(_){} // retire the old stored password
   let s = "";
   try{ s = localStorage.getItem("ownerSession") || ""; }catch(_){}
   if(s){
-    await tryUnlock(s, false); // don't persist the session as the admin token
+    await tryUnlock(s);
     if($("app").style.display === "block") return;
-    $("gateErr").textContent = ""; // stale session — just show the gate quietly
   }
-  showGate(); // no working credential — only now reveal the password gate
+  showGate(); // not signed in (or stale session) — show the sign-in pointer
 })();
 </script>
 </body>
