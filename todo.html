@@ -56,6 +56,7 @@
   .todo-row.done .todo-chk{background:var(--accent);border-color:var(--accent);color:var(--paper)}
   .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
   .todo-text{flex:1;font-size:16px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+  .todo-date{font-family:"JetBrains Mono",monospace;font-size:10px;color:#b3a88e;white-space:nowrap;flex:none}
   .todo-x{
     font-size:11px;line-height:1;border:1px solid var(--rule-strong);border-radius:2px;
     background:var(--paper-2);color:var(--ink-soft);padding:4px 8px;flex:none;align-self:center;
@@ -133,10 +134,16 @@ async function loadList(){
     render();
   }catch(e){}
 }
+function todoDate(ts){
+  if(!Number.isFinite(ts)) return "";
+  const d = new Date(ts);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short", ...(sameYear ? {} : { year:"numeric" }) }).format(d);
+}
 function render(){
   $("cnt").textContent = TODOS.length ? `· ${TODOS.length}` : "";
   $("list").innerHTML = TODOS.length
-    ? TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+    ? TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
     : '<div class="sub" style="padding:6px 0">Nothing on the list.</div>';
   document.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>del(+b.dataset.i, b)));
   document.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{

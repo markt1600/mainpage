@@ -469,6 +469,7 @@
   .todo-row.done .todo-chk{background:var(--accent);border-color:var(--accent);color:var(--paper)}
   .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
   .todo-text{flex:1;font-size:15.5px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+  .todo-date{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);white-space:nowrap;flex:none}
   .todo-x{
     font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1;
     border:1px solid var(--rule-strong);border-radius:2px;background:var(--paper-2);
@@ -1410,12 +1411,19 @@ async function loadTodos(){
     renderTodos();
   }catch(e){ /* leave whatever is rendered */ }
 }
+/* "28 Aug" in SGT; adds the year once an item is old enough to cross one */
+function todoDate(ts){
+  if(!Number.isFinite(ts)) return "";
+  const d = new Date(ts);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short", ...(sameYear ? {} : { year:"numeric" }) }).format(d);
+}
 function renderTodos(){
   const el = $("todoList");
   if(!el) return;
   if(!TODOS){ el.innerHTML = ""; return; }
   if(!TODOS.length){ el.innerHTML = `<div id="todoEmpty">Nothing on the list — add one in the box at the top of the page.</div>`; return; }
-  el.innerHTML = TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("");
+  el.innerHTML = TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("");
   el.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>deleteTodo(+b.dataset.i, b)));
   el.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
     b.closest(".todo-row").classList.add("done"); // brief tick + strike, then it goes
