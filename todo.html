@@ -45,7 +45,16 @@
   @keyframes pulse{50%{transform:scale(1.05)}}
   #vstat{text-align:center;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);min-height:20px;margin-top:6px}
   #vstat.err{color:var(--accent-deep)}
-  .todo-row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+  .todo-row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);transition:opacity .35s}
+  .todo-chk{
+    width:18px;height:18px;border-radius:50%;flex:none;align-self:center;
+    border:1.5px solid var(--rule-strong);background:transparent;cursor:pointer;
+    padding:0;color:transparent;font-size:11px;line-height:1;
+  }
+  .todo-chk:hover{border-color:var(--accent);color:var(--accent)}
+  .todo-row.done{opacity:.45}
+  .todo-row.done .todo-chk{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+  .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
   .todo-text{flex:1;font-size:16px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
   .todo-x{
     font-size:11px;line-height:1;border:1px solid var(--rule-strong);border-radius:2px;
@@ -127,9 +136,13 @@ async function loadList(){
 function render(){
   $("cnt").textContent = TODOS.length ? `· ${TODOS.length}` : "";
   $("list").innerHTML = TODOS.length
-    ? TODOS.map((t,i)=>`<div class="todo-row"><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Done — remove">✕</button></div>`).join("")
+    ? TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
     : '<div class="sub" style="padding:6px 0">Nothing on the list.</div>';
   document.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>del(+b.dataset.i, b)));
+  document.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
+    b.closest(".todo-row").classList.add("done");
+    setTimeout(()=>del(+b.dataset.i, b), 450);
+  }));
 }
 async function add(text){
   const res = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, {
