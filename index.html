@@ -812,6 +812,7 @@
             <div class="nw-head"><span class="nw-val" id="nwUsd">—</span><span class="nw-sgd" id="nwSgd">—</span></div>
             <div class="nw-changes" id="nwChanges"></div>
             <div class="nw-changes" id="nwBudget" style="margin-top:4px"></div>
+            <div class="nw-changes" id="nwImpact" style="margin-top:4px"></div>
             <div class="nw-note" id="nwNote"></div>
           </div>
         </div>
@@ -1376,8 +1377,19 @@ async function loadNetWorth(){
       $("nwBudget").innerHTML =
         `<span class="nw-chg ${cls}"><b>${s >= 0 ? "SURPLUS" : "DEFICIT"}</b>${s >= 0 ? "+" : "−"}S$${Math.abs(Math.round(s)).toLocaleString("en-US")}` +
         ` vs breakeven ${bk.breakevenCcy === "USD" ? "$" : "S$"}${(bk.breakeven/1e6).toFixed(2)}M${bk.withdrawalRate ? ` @ ${bk.withdrawalRate}% withdrawal` : ""}</span>`;
+      // What the surplus/deficit means for spending: |surplus| × withdrawal
+      // rate = the sustainable annual budget adjustment; /12 for monthly.
+      if(bk.withdrawalRate){
+        const annSgd = Math.abs(s) * bk.withdrawalRate / 100;
+        const money = (v) => `$${Math.round(v / d.totals.fx).toLocaleString("en-US")} (S$${Math.round(v).toLocaleString("en-US")})`;
+        $("nwImpact").innerHTML =
+          `<span class="nw-chg ${cls}"><b>BUDGET</b>${s >= 0 ? "increase" : "reduce"} annual by ${money(annSgd)} · monthly by ${money(annSgd / 12)}</span>`;
+      }else{
+        $("nwImpact").innerHTML = "";
+      }
     }else{
       $("nwBudget").innerHTML = "";
+      $("nwImpact").innerHTML = "";
     }
     $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots · components in /admin`;
     blk.style.display = "";
