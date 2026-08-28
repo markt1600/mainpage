@@ -1342,12 +1342,19 @@ async function loadPrivateEvents(){
   const t = privateToken();
   if(!t){ PRIVATE_EVENTS = []; renderCalendar(); return; }
   try{
-    const res = await fetch(`/api/private-events?token=${encodeURIComponent(t)}`, { cache:"no-store" });
+    const res = await ownerFetch("/api/private-events", { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     PRIVATE_EVENTS = Array.isArray(d.events) ? d.events : [];
     renderCalendar(); // private entries appear only in the calendar, never the watchlist cards
   }catch(e){ /* calendar just shows public events */ }
+}
+
+/* Owner API calls carry the session as an Authorization header (kept out
+   of URLs and request logs). */
+function ownerFetch(url, opts){
+  opts = opts || {};
+  return fetch(url, { ...opts, headers: { ...(opts.headers||{}), authorization: "Bearer " + privateToken() } });
 }
 
 /* Net worth — components + daily snapshots, encrypted at rest
@@ -1357,7 +1364,7 @@ async function loadNetWorth(){
   const blk = $("nwBlock");
   if(!t){ if(blk) blk.style.display = "none"; return; }
   try{
-    const res = await fetch(`/api/networth?token=${encodeURIComponent(t)}`, { cache:"no-store" });
+    const res = await ownerFetch("/api/networth", { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     if(!d || !d.totals) return;
@@ -1409,7 +1416,7 @@ async function loadTodos(){
   const t = privateToken();
   if(!t){ TODOS = null; renderTodos(); return; }
   try{
-    const res = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, { cache:"no-store" });
+    const res = await ownerFetch("/api/todos", { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     TODOS = Array.isArray(d.todos) ? d.todos : [];
@@ -1438,7 +1445,7 @@ function renderTodos(){
 async function addTodo(text){
   const t = privateToken();
   if(!t || !text.trim()) return false;
-  const res = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, {
+  const res = await ownerFetch("/api/todos", {
     method:"POST", headers:{ "content-type":"application/json" },
     body: JSON.stringify({ add: text.trim() }),
   });
@@ -1452,9 +1459,9 @@ async function deleteTodo(i, btn){
   const victim = TODOS[i];
   if(btn) btn.disabled = true;
   try{
-    const cur = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, { cache:"no-store" }).then(r=>r.json());
+    const cur = await ownerFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
     const list = (cur.todos||[]).filter(x=>!(x && x.text===victim.text && x.ts===victim.ts));
-    const res = await fetch(`/api/todos?token=${encodeURIComponent(t)}`, {
+    const res = await ownerFetch("/api/todos", {
       method:"POST", headers:{ "content-type":"application/json" },
       body: JSON.stringify({ todos: list, sha: cur.sha }),
     });
@@ -1884,9 +1891,11 @@ let gsiLoading = null;
 
 function ownerToken(){ try{ return localStorage.getItem(OWNER_KEY); }catch(e){ return null; } }
 
-/* Share the owner session with sibling subdomains (dailymag.marktan.ai
-   uses it to unlock MERIDIAN's special editions) via a .marktan.ai
-   cookie. No-op on localhost or previews, where the domain won't match. */
+/* Share a LIMITED, specials-scope token with sibling subdomains
+   (dailymag.marktan.ai uses it to unlock MERIDIAN's special editions) via
+   a .marktan.ai cookie. Deliberately NOT the full session: a stolen cookie
+   unlocks specials only, never admin or financial data. No-op on localhost
+   or previews, where the domain won't match. */
 function setOwnerCookie(session){
   try{
     if(!/(^|\.)marktan\.ai$/.test(location.hostname)) return;
@@ -1927,7 +1936,7 @@ async function initOwner(){
     const res = await loginPost({ session: s });
     if(res.ok){
       const d = await res.json();
-      if(d.ok){ ownerUser = d.user; setOwnerCookie(s); loadBalances(); loadPrivateEvents(); loadTodos(); loadNetWorth(); }
+      if(d.ok){ ownerUser = d.user; setOwnerCookie(d.specialsToken || null); loadBalances(); loadPrivateEvents(); loadTodos(); loadNetWorth(); }
     }else if(res.status === 401){
       try{ localStorage.removeItem(OWNER_KEY); }catch(e){} // expired/invalid session
       setOwnerCookie(null);
@@ -1959,7 +1968,7 @@ async function onGoogleCredential(resp){
     if(d.ok && d.session){
       ownerUser = d.user;
       try{ localStorage.setItem(OWNER_KEY, d.session); }catch(e){}
-      setOwnerCookie(d.session);
+      setOwnerCookie(d.specialsToken || null);
       setOwnerUI();
       loadBalances();
       loadPrivateEvents();
@@ -2033,10 +2042,9 @@ function renderBalances(balances){
 async function loadBalances(){
   const t = privateToken();
   if(!t) return; // not logged in — nothing private to fetch
-  const qs = "?token=" + encodeURIComponent(t);
   beginThinking();
   try{
-    const res = await fetch("/api/balances" + qs, { cache:"no-store" });
+    const res = await ownerFetch("/api/balances", { cache:"no-store" });
     if(!res.ok){
       if(res.status !== 401 && res.status !== 404) noteIssue("balances"); // 401 = gated by design
       return;
@@ -2520,8 +2528,8 @@ async function ceCommit(del){
   ceMsg(del ? "deleting…" : "saving…");
   ["ceSave","ceDelete"].forEach(id=>$(id).disabled = true);
   try{
-    const base = priv ? `/api/private-events?token=${encodeURIComponent(token)}` : `/api/admin?token=${encodeURIComponent(token)}`;
-    const cur = await fetch(base, { cache: "no-store" });
+    const base = priv ? "/api/private-events" : "/api/admin";
+    const cur = await ownerFetch(base, { cache: "no-store" });
     if(!cur.ok) throw new Error(cur.status === 401 ? "login expired — reload the page" : `couldn't load the list (${cur.status})`);
     const j = await cur.json();
     const list = priv ? (j.events || []) : ((j.events && j.events.list) || []);
@@ -2529,7 +2537,7 @@ async function ceCommit(del){
     const i = list.findIndex(e => e && e.act === ceOrig.act && (e.date || null) === ceOrig.date);
     if(i === -1) throw new Error("entry not found — it changed elsewhere; reload the page");
     if(del) list.splice(i, 1); else list[i] = { ...list[i], ...upd };
-    const res = await fetch(base, {
+    const res = await ownerFetch(base, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify(priv ? { events: list, sha } : { type: "events", data: list, sha }),
     });

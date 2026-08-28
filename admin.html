@@ -262,6 +262,13 @@ let dirty = { events: false, birthdays: false, private: false, networth: false }
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+/* Every API call carries the session as an Authorization header (kept out
+   of URLs and request logs). */
+function authFetch(url, opts, tok){
+  opts = opts || {};
+  return fetch(url, { ...opts, headers: { ...(opts.headers||{}), authorization: "Bearer " + (tok || TOKEN) } });
+}
+
 /* ---------- gate ---------- */
 function showApp(){ $("boot").style.display = "none"; $("gate").style.display = "none"; $("app").style.display = "block"; }
 function showGate(){ $("boot").style.display = "none"; $("gate").style.display = "block"; }
@@ -273,7 +280,7 @@ function showGate(){ $("boot").style.display = "none"; $("gate").style.display =
 async function tryUnlock(session){
   $("gateErr").textContent = "";
   try{
-    const res = await fetch(`/api/admin?token=${encodeURIComponent(session)}`, { cache:"no-store" });
+    const res = await authFetch("/api/admin", { cache:"no-store" }, session);
     if(res.status === 401) return; // stale/invalid session — gate stays
     if(!res.ok){ const j = await res.json().catch(()=>({})); $("gateErr").textContent = j.error || `Error ${res.status}`; return; }
     const d = await res.json();
@@ -431,7 +438,7 @@ $("bdAdd").addEventListener("click", ()=>{ $("bdBody").appendChild(bdRow({})); s
 async function save(kind, data, statusEl, btn){
   statusEl.className = "status"; statusEl.textContent = "saving…"; btn.disabled = true;
   try{
-    const res = await fetch(`/api/admin?token=${encodeURIComponent(TOKEN)}`, {
+    const res = await authFetch("/api/admin", {
       method:"POST", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ type:kind, data, sha: sha[kind] }),
     });
@@ -465,7 +472,7 @@ function renderPrivate(list){
 }
 async function loadPrivate(){
   try{
-    const res = await fetch(`/api/private-events?token=${encodeURIComponent(TOKEN)}`, { cache:"no-store" });
+    const res = await authFetch("/api/private-events", { cache:"no-store" });
     const j = await res.json().catch(()=>({}));
     if(!res.ok){ $("pvStatus").textContent = j.error || `error ${res.status}`; $("pvStatus").className = "status err"; return; }
     pvSha = j.sha;
@@ -477,7 +484,7 @@ $("pvAdd").addEventListener("click", ()=>{ $("pvBody").appendChild(evRow({}, "pr
 async function savePrivate(){
   const st = $("pvStatus"); st.className = "status"; st.textContent = "saving…"; $("pvSave").disabled = true;
   try{
-    const res = await fetch(`/api/private-events?token=${encodeURIComponent(TOKEN)}`, {
+    const res = await authFetch("/api/private-events", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ events: collectRows("pvBody"), sha: pvSha }),
     });
@@ -630,7 +637,7 @@ function nwRender(j){
 ["nwBk","nwBkCcy","nwBkRate"].forEach(id=>$(id).addEventListener("input", ()=>setDirty("networth", true)));
 async function loadNetworth(){
   try{
-    const res = await fetch(`/api/networth?token=${encodeURIComponent(TOKEN)}`, { cache:"no-store" });
+    const res = await authFetch("/api/networth", { cache:"no-store" });
     const j = await res.json().catch(()=>({}));
     if(!res.ok){ $("nwStatus").textContent = j.error || `error ${res.status}`; $("nwStatus").className = "status err"; return; }
     nwRender(j);
@@ -665,7 +672,7 @@ $("nwSave").addEventListener("click", async ()=>{
     const settings = parseFloat($("nwBk").value) > 0
       ? { breakeven: parseFloat($("nwBk").value), breakevenCcy: $("nwBkCcy").value, withdrawalRate: parseFloat($("nwBkRate").value) || null }
       : null;
-    const res = await fetch(`/api/networth?token=${encodeURIComponent(TOKEN)}`, {
+    const res = await authFetch("/api/networth", {
       method:"POST", headers:{ "content-type":"application/json" },
       body: JSON.stringify({ components, settings, sha: nwSha }),
     });
@@ -801,7 +808,7 @@ $("aiGo").addEventListener("click", async ()=>{
   $("aiGo").disabled = true;
   try{
     const a = aiAttach || {};
-    const res = await fetch(`/api/assist?token=${encodeURIComponent(TOKEN)}`, {
+    const res = await authFetch("/api/assist", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

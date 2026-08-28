@@ -13,7 +13,7 @@
 // Auth: same as /api/admin — ?token= carrying the admin secret or a valid
 // owner login session. Uses ANTHROPIC_API_KEY (server-side only).
 
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, reqToken } from "./_session.js";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -79,10 +79,8 @@ export default async function handler(req, res) {
   // Auth: admin secret or owner session, like /api/admin.
   const secret = (process.env.ADMIN_SECRET || process.env.DASHBOARD_SECRET || "").trim();
   if (!secret) { res.status(503).json({ error: "admin disabled: set ADMIN_SECRET (or DASHBOARD_SECRET)" }); return; }
-  let token = null;
-  try { token = new URL(req.url, "http://x").searchParams.get("token"); } catch (_) {}
-  const skey = sessionKey();
-  if (token !== secret && !(skey && checkSession(token, skey))) {
+  const token = reqToken(req);
+  if (token !== secret && !isOwner(token, sessionKey())) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }

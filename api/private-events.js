@@ -15,7 +15,7 @@
 // VAPID_PRIVATE_KEY.
 
 import crypto from "node:crypto";
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, reqToken } from "./_session.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
@@ -106,12 +106,10 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
-  const secret = (process.env.ADMIN_SECRET || process.env.DASHBOARD_SECRET || "").trim();
-  if (!secret) { res.status(503).json({ error: "set ADMIN_SECRET (or DASHBOARD_SECRET)" }); return; }
-  let token = null;
-  try { token = new URL(req.url, "http://x").searchParams.get("token"); } catch (_) {}
-  const skey = sessionKey();
-  if (token !== secret && !(skey && checkSession(token, skey))) {
+  // OWNER SESSION ONLY (like net worth): the shared secret also lives in
+  // phone/watch shortcut URLs, and the private calendar shouldn't be one
+  // leaked shortcut away.
+  if (!isOwner(reqToken(req), sessionKey())) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }

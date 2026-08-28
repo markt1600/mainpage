@@ -17,7 +17,7 @@
 //
 // Never cached (personal data).
 
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, reqToken } from "./_session.js";
 
 // Anthropic cost_report amounts are documented as USD in lowest units (cents).
 // If the spend figure looks 100x off vs your console, flip this to false.
@@ -84,14 +84,9 @@ export default async function handler(req, res) {
 
   const secret = process.env.DASHBOARD_SECRET;
   if (secret) {
-    let token = null;
-    try {
-      const u = new URL(req.url, "http://x");
-      token = u.searchParams.get("token");
-    } catch (_) {}
-    // Only a valid owner login session (Google Sign-In) unlocks balances.
-    const key = sessionKey();
-    if (!key || !checkSession(token, key)) {
+    // Only a FULL owner login session (Google Sign-In) unlocks balances —
+    // the scoped .marktan.ai cookie token is refused.
+    if (!isOwner(reqToken(req), sessionKey())) {
       res.status(401).json({ error: "unauthorized" });
       return;
     }

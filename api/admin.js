@@ -20,7 +20,7 @@
 //   GITHUB_REPO    - optional; "owner/repo", defaults to markt1600/mainpage.
 //   GITHUB_BRANCH  - optional; defaults to "main".
 
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, reqToken } from "./_session.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
@@ -153,15 +153,10 @@ export default async function handler(req, res) {
     res.status(503).json({ error: "admin disabled: set ADMIN_SECRET (or DASHBOARD_SECRET) in Vercel" });
     return;
   }
-  let token = null;
-  try {
-    const u = new URL(req.url, "http://x");
-    token = u.searchParams.get("token");
-  } catch (_) {}
-  // Accept the shared secret, or a valid owner session from the Google login.
-  const skey = sessionKey();
-  const viaSession = skey && checkSession(token, skey);
-  if (token !== secret && !viaSession) {
+  const token = reqToken(req);
+  // Accept the shared secret, or a valid FULL owner session from the Google
+  // login (isOwner — the scoped .marktan.ai cookie token is refused here).
+  if (token !== secret && !isOwner(token, sessionKey())) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
