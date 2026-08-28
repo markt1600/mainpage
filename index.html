@@ -425,20 +425,16 @@
   body.owner .owner-only{display:block}
 
   /* ---- net worth (owner) ---- */
-  .nw-heads{display:flex;gap:34px;flex-wrap:wrap;align-items:baseline}
-  .nw-head{display:flex;align-items:baseline;gap:10px}
-  .nw-ccy{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;color:var(--ink-soft)}
+  .nw-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
   .nw-val{font-family:"Fraunces",serif;font-weight:700;font-size:34px;letter-spacing:-.01em}
+  .nw-sgd{font-family:"Fraunces",serif;font-weight:500;font-size:19px;color:var(--ink-soft)}
   .nw-changes{display:flex;gap:22px;flex-wrap:wrap;margin-top:8px;font-family:"JetBrains Mono",monospace;font-size:11.5px}
   .nw-chg b{font-weight:600;letter-spacing:.1em;color:var(--ink-soft);margin-right:7px}
   .nw-chg.up{color:#2e6b3e}
   .nw-chg.down{color:var(--accent-deep)}
   .nw-chg.flat{color:var(--ink-soft)}
-  .nw-comps{margin-top:12px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);columns:2;column-gap:34px;max-width:640px}
-  .nw-comps div{display:flex;justify-content:space-between;gap:12px;padding:2px 0;break-inside:avoid}
-  .nw-comps .neg{color:var(--accent-deep)}
   .nw-note{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);margin-top:8px;letter-spacing:.04em}
-  @media(max-width:560px){.nw-comps{columns:1}.nw-val{font-size:28px}}
+  @media(max-width:560px){.nw-val{font-size:28px}}
 
   /* ---- to-do list (owner) ---- */
   #quickTodo{
@@ -808,16 +804,16 @@
              /api/networth, edited in /admin); a snapshot is stored per SGT
              day, so the day / month / YTD changes are real history, moved by
              FX and by component edits. -->
+        <!-- Collapsed by default: the figure only appears on click, so
+             showing the site to someone doesn't reveal it. -->
         <div id="nwBlock" style="display:none;margin-bottom:22px">
-          <div class="owner-sub">Net Worth <a class="srclink" href="/admin" target="_blank" rel="noopener" style="margin-left:10px;font-size:10px">✎ edit ↗</a></div>
-          <div class="nw-heads">
-            <div class="nw-head"><span class="nw-ccy">SGD</span><span class="nw-val" id="nwSgd">—</span></div>
-            <div class="nw-head"><span class="nw-ccy">USD</span><span class="nw-val" id="nwUsd">—</span></div>
+          <div class="owner-sub" id="nwToggle" style="cursor:pointer" title="Click to show / hide">Net Worth <span id="nwCaret">▸</span> <a class="srclink" href="/admin" target="_blank" rel="noopener" style="margin-left:10px;font-size:10px">✎ edit ↗</a></div>
+          <div id="nwDetail" style="display:none">
+            <div class="nw-head"><span class="nw-val" id="nwUsd">—</span><span class="nw-sgd" id="nwSgd">—</span></div>
+            <div class="nw-changes" id="nwChanges"></div>
+            <div class="nw-changes" id="nwBudget" style="margin-top:4px"></div>
+            <div class="nw-note" id="nwNote"></div>
           </div>
-          <div class="nw-changes" id="nwChanges"></div>
-          <div class="nw-changes" id="nwBudget" style="margin-top:4px"></div>
-          <div class="nw-comps" id="nwComps"></div>
-          <div class="nw-note" id="nwNote"></div>
         </div>
 
         <!-- Statement reminders: appear on their due day and PERSIST until
@@ -1364,10 +1360,8 @@ async function loadNetWorth(){
     if(!res.ok) return;
     const d = await res.json();
     if(!d || !d.totals) return;
-    const sgd = (n) => "S$" + Math.round(n).toLocaleString("en-US");
-    const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
-    $("nwSgd").textContent = sgd(d.totals.sgd);
-    $("nwUsd").textContent = usd(d.totals.usd);
+    $("nwUsd").textContent = "$" + Math.round(d.totals.usd).toLocaleString("en-US");
+    $("nwSgd").textContent = "(S$" + Math.round(d.totals.sgd).toLocaleString("en-US") + ")";
     const chg = (lbl, c) => {
       if(!c) return `<span class="nw-chg flat"><b>${lbl}</b>—</span>`;
       const cls = c.sgd > 0.5 ? "up" : c.sgd < -0.5 ? "down" : "flat";
@@ -1385,12 +1379,7 @@ async function loadNetWorth(){
     }else{
       $("nwBudget").innerHTML = "";
     }
-    $("nwComps").innerHTML = (d.components||[]).map(c=>{
-      const v = (c.ccy === "USD" ? "$" : "S$") + Math.abs(Math.round(c.amount)).toLocaleString("en-US");
-      const tip = c.live ? ` title="${esc(`${c.qty.toLocaleString("en-US")} × ${c.symbol} @ ${c.px}`)}"` : "";
-      return `<div${c.amount < 0 ? ' class="neg"' : ""}${tip}><span>${esc(c.label)}${c.live ? " ·" : ""}</span><span>${c.amount < 0 ? "−" : ""}${v}</span></div>`;
-    }).join("");
-    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots`;
+    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots · components in /admin`;
     blk.style.display = "";
   }catch(e){ /* leave hidden */ }
 }
@@ -2423,6 +2412,12 @@ renderStatements(); setInterval(renderStatements, 60000); // new firings appear 
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
 initOwner();
+$("nwToggle").addEventListener("click", (e)=>{
+  if(e.target.closest("a")) return; // the edit link is a link, not the toggle
+  const open = $("nwDetail").style.display === "none";
+  $("nwDetail").style.display = open ? "" : "none";
+  $("nwCaret").textContent = open ? "▾" : "▸";
+});
 $("quickTodoInput").addEventListener("keydown", async (e)=>{
   if(e.key !== "Enter") return;
   const inp = $("quickTodoInput"), st = $("quickTodoStat");
