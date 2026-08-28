@@ -2407,7 +2407,9 @@ loadLists();
 loadMeridianStatus(); setInterval(loadMeridianStatus, 10*60*1000); // flips grey → green as the morning build lands
 initPush();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
-setInterval(()=>{ if(ownerUser) loadTodos(); }, 60000); // items added from the watch/phone appear without a reload
+setInterval(()=>{ if(ownerUser){ loadTodos(); loadNetWorth(); } }, 60000); // watch-added items + market moves appear without a reload
+// Coming back from another tab (e.g. after saving in /admin) refreshes immediately
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && ownerUser){ loadTodos(); loadNetWorth(); } });
 renderStatements(); setInterval(renderStatements, 60000); // new firings appear at midnight SGT
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
