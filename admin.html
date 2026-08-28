@@ -193,10 +193,13 @@
          every keystroke. Market rows (Symbol × Shares) value themselves at
          the live price. -->
     <section class="panel">
-      <div class="phead">
-        <h2>Net worth</h2>
+      <!-- Collapsed by default, like the dashboard block: figures appear
+           only when the heading is clicked. -->
+      <div class="phead" id="nwPanelToggle" style="cursor:pointer" title="Click to show / hide">
+        <h2>Net worth <span id="nwPanelCaret" style="font-size:14px">▸</span></h2>
         <span class="meta" id="nwMeta"></span>
       </div>
+      <div id="nwPanelBody" style="display:none">
       <div class="tablewrap">
         <table id="nwTable">
           <thead><tr><th>Component</th><th class="num">USD</th><th class="num">SGD</th><th class="act"></th></tr></thead>
@@ -223,6 +226,7 @@
         <button id="nwSave">Save net worth</button>
         <span class="status" id="nwStatus"></span>
       </div>
+      </div><!-- /nwPanelBody -->
     </section>
 
     <!-- BIRTHDAYS -->
@@ -643,6 +647,11 @@ function nwInsert(row){
 }
 $("nwAdd").addEventListener("click", ()=>nwInsert(nwRow({})));
 $("nwAddMkt").addEventListener("click", ()=>nwInsert(nwRow({}, true)));
+$("nwPanelToggle").addEventListener("click", ()=>{
+  const open = $("nwPanelBody").style.display === "none";
+  $("nwPanelBody").style.display = open ? "" : "none";
+  $("nwPanelCaret").textContent = open ? "▾" : "▸";
+});
 $("nwSave").addEventListener("click", async ()=>{
   const st = $("nwStatus"); st.className = "status"; st.textContent = "saving…"; $("nwSave").disabled = true;
   const components = [...$("nwBody").children].map(tr=>{
