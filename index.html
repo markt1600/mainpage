@@ -439,8 +439,19 @@
   #quickTodoStat{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);white-space:nowrap}
   .todo-row{
     display:flex;align-items:baseline;gap:10px;padding:7px 0;
-    border-bottom:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);transition:opacity .35s;
   }
+  /* the round tick-off button that makes it read as a to-do list —
+     clicking it completes (and removes) the item */
+  .todo-chk{
+    width:17px;height:17px;border-radius:50%;flex:none;align-self:center;
+    border:1.5px solid var(--rule-strong);background:transparent;cursor:pointer;
+    padding:0;color:transparent;font-size:10px;line-height:1;
+  }
+  .todo-chk:hover{border-color:var(--accent);color:var(--accent)}
+  .todo-row.done{opacity:.45}
+  .todo-row.done .todo-chk{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+  .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
   .todo-text{flex:1;font-size:15.5px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
   .todo-x{
     font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1;
@@ -1330,8 +1341,12 @@ function renderTodos(){
   if(!el) return;
   if(!TODOS){ el.innerHTML = ""; return; }
   if(!TODOS.length){ el.innerHTML = `<div id="todoEmpty">Nothing on the list — add one in the box at the top of the page.</div>`; return; }
-  el.innerHTML = TODOS.map((t,i)=>`<div class="todo-row"><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Done — remove">✕</button></div>`).join("");
+  el.innerHTML = TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("");
   el.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>deleteTodo(+b.dataset.i, b)));
+  el.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
+    b.closest(".todo-row").classList.add("done"); // brief tick + strike, then it goes
+    setTimeout(()=>deleteTodo(+b.dataset.i, b), 450);
+  }));
 }
 async function addTodo(text){
   const t = privateToken();
