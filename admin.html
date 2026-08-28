@@ -219,6 +219,7 @@
       </div>
       <div class="bar">
         <button class="ghost" id="nwAdd">+ Add component</button>
+        <button class="ghost" id="nwAddMkt">+ Add market row (symbol × qty)</button>
         <button id="nwSave">Save net worth</button>
         <span class="status" id="nwStatus"></span>
       </div>
@@ -526,10 +527,10 @@ function nwRecalc(){
   $("nwTotUsd").textContent = "$" + nwFmt(sgd / nwFx) + (pending ? " (+ unpriced rows — Save to fetch)" : "");
 }
 
-function nwRow(c){
+function nwRow(c, forceMarket){
   c = c || {};
   const tr = document.createElement("tr");
-  const isMarket = !!c.symbol;
+  const isMarket = !!c.symbol || !!forceMarket;
   tr.dataset.kind = isMarket ? "market" : "fixed";
 
   const td1 = document.createElement("td");
@@ -541,7 +542,7 @@ function nwRow(c){
     tr.dataset.pxccy = c.ccy === "SGD" ? "SGD" : "USD";
     const sub = document.createElement("div");
     sub.style.cssText = "display:flex;gap:6px;align-items:center;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a8064";
-    const sym = document.createElement("input"); sym.value = c.symbol; sym.dataset.key = "symbol"; sym.style.width = "84px"; sym.title = "Yahoo symbol";
+    const sym = document.createElement("input"); sym.value = c.symbol || ""; sym.placeholder = "BTC-USD"; sym.dataset.key = "symbol"; sym.style.width = "84px"; sym.title = "Yahoo symbol";
     sym.addEventListener("input", ()=>{ tr.dataset.px = ""; setDirty("networth", true); nwRecalc(); }); // new symbol → priced on save
     const x = document.createElement("span"); x.textContent = "×";
     const qty = document.createElement("input"); qty.type = "number"; qty.step = "any"; qty.value = c.qty != null ? c.qty : ""; qty.dataset.key = "qty"; qty.style.width = "100px"; qty.title = "Shares";
@@ -602,6 +603,7 @@ async function loadNetworth(){
   }catch(e){ $("nwStatus").textContent = String(e.message||e); $("nwStatus").className = "status err"; }
 }
 $("nwAdd").addEventListener("click", ()=>{ $("nwBody").appendChild(nwRow({})); setDirty("networth", true); nwRecalc(); });
+$("nwAddMkt").addEventListener("click", ()=>{ $("nwBody").appendChild(nwRow({}, true)); setDirty("networth", true); nwRecalc(); });
 $("nwSave").addEventListener("click", async ()=>{
   const st = $("nwStatus"); st.className = "status"; st.textContent = "saving…"; $("nwSave").disabled = true;
   const components = [...$("nwBody").children].map(tr=>{
