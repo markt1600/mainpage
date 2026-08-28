@@ -32,9 +32,27 @@ async function verifyGoogleCredential(credential, clientId) {
   return { email: OWNER_EMAIL };
 }
 
+// Sibling sites that may verify a session cross-origin (MERIDIAN's special
+// editions check the shared .marktan.ai cookie against this endpoint).
+const CORS_ORIGINS = new Set([
+  "https://marktan.ai",
+  "https://www.marktan.ai",
+  "https://dailymag.marktan.ai",
+]);
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
+
+  const origin = String(req.headers.origin || "");
+  if (CORS_ORIGINS.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "content-type");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  if (req.method === "OPTIONS") { res.status(204).end(); return; }
 
   const clientId = (process.env.GOOGLE_CLIENT_ID || "").trim() || null;
 
