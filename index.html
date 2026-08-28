@@ -1692,6 +1692,18 @@ let gsiLoading = null;
 
 function ownerToken(){ try{ return localStorage.getItem(OWNER_KEY); }catch(e){ return null; } }
 
+/* Share the owner session with sibling subdomains (dailymag.marktan.ai
+   uses it to unlock MERIDIAN's special editions) via a .marktan.ai
+   cookie. No-op on localhost or previews, where the domain won't match. */
+function setOwnerCookie(session){
+  try{
+    if(!/(^|\.)marktan\.ai$/.test(location.hostname)) return;
+    document.cookie = session
+      ? `mt_owner=${encodeURIComponent(session)}; domain=.marktan.ai; path=/; max-age=7776000; secure; samesite=lax`
+      : "mt_owner=; domain=.marktan.ai; path=/; max-age=0; secure; samesite=lax";
+  }catch(e){}
+}
+
 function setOwnerUI(){
   const link = $("loginLink");
   if(ownerUser){
@@ -1723,9 +1735,10 @@ async function initOwner(){
     const res = await loginPost({ session: s });
     if(res.ok){
       const d = await res.json();
-      if(d.ok){ ownerUser = d.user; loadBalances(); loadPrivateEvents(); }
+      if(d.ok){ ownerUser = d.user; setOwnerCookie(s); loadBalances(); loadPrivateEvents(); }
     }else if(res.status === 401){
       try{ localStorage.removeItem(OWNER_KEY); }catch(e){} // expired/invalid session
+      setOwnerCookie(null);
     }
   }catch(e){ /* endpoint unreachable — stay logged out this load, keep the session */ }
   setOwnerUI();
@@ -1754,6 +1767,7 @@ async function onGoogleCredential(resp){
     if(d.ok && d.session){
       ownerUser = d.user;
       try{ localStorage.setItem(OWNER_KEY, d.session); }catch(e){}
+      setOwnerCookie(d.session);
       setOwnerUI();
       loadBalances();
       loadPrivateEvents();
@@ -1782,6 +1796,7 @@ function toggleLogin(e){
   if(ownerUser){
     ownerUser = null;
     try{ localStorage.removeItem(OWNER_KEY); }catch(e2){}
+    setOwnerCookie(null);
     try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
     PRIVATE_EVENTS = [];
     renderCalendar();
