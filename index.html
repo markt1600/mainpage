@@ -1374,14 +1374,18 @@ async function loadNetWorth(){
     const bk = d.breakeven;
     if(bk){
       const s = bk.surplusSgd, cls = s >= 0 ? "up" : "down";
+      // Surplus/deficit reads in the breakeven's own currency (USD for a
+      // USD breakeven); the budget impact reads in SGD — life runs in SG.
+      const inBkCcy = bk.breakevenCcy === "USD";
+      const sShown = inBkCcy ? bk.surplusUsd : s;
       $("nwBudget").innerHTML =
-        `<span class="nw-chg ${cls}"><b>${s >= 0 ? "SURPLUS" : "DEFICIT"}</b>${s >= 0 ? "+" : "−"}S$${Math.abs(Math.round(s)).toLocaleString("en-US")}` +
-        ` vs breakeven ${bk.breakevenCcy === "USD" ? "$" : "S$"}${(bk.breakeven/1e6).toFixed(2)}M${bk.withdrawalRate ? ` @ ${bk.withdrawalRate}% withdrawal` : ""}</span>`;
+        `<span class="nw-chg ${cls}"><b>${s >= 0 ? "SURPLUS" : "DEFICIT"}</b>${s >= 0 ? "+" : "−"}${inBkCcy ? "$" : "S$"}${Math.abs(Math.round(sShown)).toLocaleString("en-US")}` +
+        ` vs breakeven ${inBkCcy ? "$" : "S$"}${(bk.breakeven/1e6).toFixed(2)}M${bk.withdrawalRate ? ` @ ${bk.withdrawalRate}% withdrawal` : ""}</span>`;
       // What the surplus/deficit means for spending: |surplus| × withdrawal
       // rate = the sustainable annual budget adjustment; /12 for monthly.
       if(bk.withdrawalRate){
         const annSgd = Math.abs(s) * bk.withdrawalRate / 100;
-        const money = (v) => `$${Math.round(v / d.totals.fx).toLocaleString("en-US")} (S$${Math.round(v).toLocaleString("en-US")})`;
+        const money = (v) => `S$${Math.round(v).toLocaleString("en-US")}`;
         $("nwImpact").innerHTML =
           `<span class="nw-chg ${cls}"><b>BUDGET</b>${s >= 0 ? "increase" : "reduce"} annual by ${money(annSgd)} · monthly by ${money(annSgd / 12)}</span>`;
       }else{
