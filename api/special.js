@@ -16,7 +16,7 @@
 // matching public key is committed in dailymag (state/specials-pubkey.b64).
 
 import crypto from "node:crypto";
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, isSpecialsScope, reqToken } from "./_session.js";
 
 const RAW = "https://raw.githubusercontent.com/markt1600/dailymag/main/";
 // Vercel serverless responses cap out around 4.5 MB — bigger PDFs can't be
@@ -51,19 +51,18 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
 
-  let file = null, token = null;
-  try {
-    const u = new URL(req.url, "http://x");
-    file = u.searchParams.get("file");
-    token = u.searchParams.get("token");
-  } catch (_) {}
+  let file = null;
+  try { file = new URL(req.url, "http://x").searchParams.get("file"); } catch (_) {}
 
   // Everything below fails as a plain 404 — an unauthenticated probe learns
   // nothing, not even whether the file exists.
   if (!file || !/^special-\d+-\d+\.(html|pdf)$/.test(file)) { notFound(res); return; }
+  // Accepted credentials: the FULL owner session, or the LIMITED
+  // specials-scope token that rides in the .marktan.ai cookie. This is the
+  // only private endpoint the scoped token unlocks.
   const skey = sessionKey();
-  const cred = token || cookieToken(req);
-  if (!skey || !cred || !checkSession(cred, skey)) { notFound(res); return; }
+  const cred = reqToken(req) || cookieToken(req);
+  if (!cred || !(isOwner(cred, skey) || isSpecialsScope(cred, skey))) { notFound(res); return; }
 
   const keyB64 = (process.env.MERIDIAN_SPECIALS_KEY || "").trim();
   if (!keyB64) {

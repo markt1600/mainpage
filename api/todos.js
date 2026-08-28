@@ -16,7 +16,7 @@
 // PRIVATE_STORE_KEY → PUSH_STORE_KEY → VAPID_PRIVATE_KEY.
 
 import crypto from "node:crypto";
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, reqToken } from "./_session.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
@@ -96,10 +96,8 @@ export default async function handler(req, res) {
 
   const secret = (process.env.ADMIN_SECRET || process.env.DASHBOARD_SECRET || "").trim();
   if (!secret) { res.status(503).json({ error: "set ADMIN_SECRET (or DASHBOARD_SECRET)" }); return; }
-  let token = null;
-  try { token = new URL(req.url, "http://x").searchParams.get("token"); } catch (_) {}
-  const skey = sessionKey();
-  if (token !== secret && !(skey && checkSession(token, skey))) {
+  const token = reqToken(req);
+  if (token !== secret && !isOwner(token, sessionKey())) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }

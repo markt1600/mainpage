@@ -31,7 +31,7 @@
 // PRIVATE_STORE_KEY → PUSH_STORE_KEY → VAPID_PRIVATE_KEY.
 
 import crypto from "node:crypto";
-import { sessionKey, checkSession } from "./_session.js";
+import { sessionKey, isOwner, reqToken } from "./_session.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
@@ -209,11 +209,9 @@ export default async function handler(req, res) {
 
   // OWNER SESSION ONLY — deliberately stricter than the other admin APIs:
   // the shared secret also lives in phone/watch shortcut URLs, and financial
-  // data should never be one leaked shortcut away.
-  let token = null;
-  try { token = new URL(req.url, "http://x").searchParams.get("token"); } catch (_) {}
-  const skey = sessionKey();
-  if (!skey || !checkSession(token, skey)) {
+  // data should never be one leaked shortcut away. isOwner also refuses the
+  // scoped .marktan.ai cookie token.
+  if (!isOwner(reqToken(req), sessionKey())) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }

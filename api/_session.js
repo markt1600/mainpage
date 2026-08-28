@@ -21,7 +21,38 @@ export function mintSession(email, key) {
   return `${payload}.${sign(payload, key)}`;
 }
 
-// Returns the email inside a valid, unexpired session token; null otherwise.
+// The one owner. Session payloads either equal this (full owner session)
+// or carry a scope prefix (limited tokens — see SPECIALS_SCOPE).
+export const OWNER_EMAIL = "markh.tan@gmail.com";
+
+// The LIMITED token that rides in the .marktan.ai cookie so sibling
+// subdomains (dailymag's specials) can verify the owner. Deliberately a
+// different payload from the full session: an XSS on any subdomain that
+// steals the cookie gets specials access only — never admin, the private
+// calendar, to-dos, or net worth. Those accept isOwner() exclusively.
+export const SPECIALS_SCOPE = "specials:" + OWNER_EMAIL;
+
+// True only for a valid FULL owner session — the localStorage token minted
+// by Google Sign-In. Every private API must use this (never truthiness of
+// checkSession, which would also accept scoped tokens).
+export function isOwner(token, key) {
+  return !!key && checkSession(token, key) === OWNER_EMAIL;
+}
+
+// True for the limited specials cookie token.
+export function isSpecialsScope(token, key) {
+  return !!key && checkSession(token, key) === SPECIALS_SCOPE;
+}
+
+// Credential extraction: Authorization: Bearer <token> preferred (stays out
+// of request logs); ?token= kept as a fallback for shortcuts and old links.
+export function reqToken(req) {
+  const m = /^Bearer\s+(.+)$/i.exec(String(req.headers && req.headers.authorization || ""));
+  if (m) return m[1].trim();
+  try { return new URL(req.url, "http://x").searchParams.get("token"); } catch (_) { return null; }
+}
+
+// Returns the payload inside a valid, unexpired session token; null otherwise.
 export function checkSession(token, key) {
   const parts = String(token || "").split(".");
   if (parts.length !== 3) return null;

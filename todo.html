@@ -126,10 +126,15 @@ function vstat(msg, err){ const el = $("vstat"); el.textContent = msg; el.classN
   loadList();
 })();
 
+function authFetch(url, opts){
+  opts = opts || {};
+  return fetch(url, { ...opts, headers: { ...(opts.headers||{}), authorization: "Bearer " + SESSION } });
+}
+
 /* ---------- list ---------- */
 async function loadList(){
   try{
-    const d = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, { cache:"no-store" }).then(r=>r.json());
+    const d = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
     TODOS = Array.isArray(d.todos) ? d.todos : [];
     render();
   }catch(e){}
@@ -152,7 +157,7 @@ function render(){
   }));
 }
 async function add(text){
-  const res = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, {
+  const res = await authFetch("/api/todos", {
     method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text }),
   });
   if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
@@ -162,9 +167,9 @@ async function del(i, btn){
   const victim = TODOS[i]; if(!victim) return;
   if(btn) btn.disabled = true;
   try{
-    const cur = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, { cache:"no-store" }).then(r=>r.json());
+    const cur = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
     const list = (cur.todos||[]).filter(x=>!(x && x.text===victim.text && x.ts===victim.ts));
-    const res = await fetch(`/api/todos?token=${encodeURIComponent(SESSION)}`, {
+    const res = await authFetch("/api/todos", {
       method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ todos: list, sha: cur.sha }),
     });
     if(!res.ok) throw new Error("save failed");
@@ -244,7 +249,7 @@ async function onRecStop(){
       rd.onerror = rej;
       rd.readAsDataURL(blob);
     });
-    const r = await fetch(`/api/transcribe?token=${encodeURIComponent(SESSION)}`, {
+    const r = await authFetch("/api/transcribe", {
       method:"POST", headers:{ "content-type":"application/json" },
       body: JSON.stringify({ audio: b64, mime: mime.split(";")[0] }),
     });

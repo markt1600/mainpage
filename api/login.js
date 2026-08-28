@@ -13,9 +13,7 @@
 // receives 403. Env vars: GOOGLE_CLIENT_ID, and one of SESSION_SECRET /
 // ADMIN_SECRET / DASHBOARD_SECRET for the session HMAC key.
 
-import { sessionKey, mintSession, checkSession } from "./_session.js";
-
-const OWNER_EMAIL = "markh.tan@gmail.com";
+import { sessionKey, mintSession, checkSession, OWNER_EMAIL, SPECIALS_SCOPE } from "./_session.js";
 
 async function verifyGoogleCredential(credential, clientId) {
   const res = await fetch(
@@ -70,9 +68,18 @@ export default async function handler(req, res) {
   } catch (_) {}
 
   if (body.session) {
-    const email = checkSession(body.session, key);
-    if (email === OWNER_EMAIL) res.status(200).json({ ok: true, user: OWNER_EMAIL });
-    else res.status(401).json({ error: "unauthorized" });
+    const payload = checkSession(body.session, key);
+    if (payload === OWNER_EMAIL) {
+      // A full session also gets a fresh LIMITED token for the .marktan.ai
+      // cookie (specials access only — see _session.js).
+      res.status(200).json({ ok: true, user: OWNER_EMAIL, specialsToken: mintSession(SPECIALS_SCOPE, key) });
+    } else if (payload === SPECIALS_SCOPE) {
+      // The scoped cookie token verifies as "owner is here" (dailymag's
+      // dropdown check) but never upgrades to anything more.
+      res.status(200).json({ ok: true, user: OWNER_EMAIL });
+    } else {
+      res.status(401).json({ error: "unauthorized" });
+    }
     return;
   }
 
@@ -80,7 +87,7 @@ export default async function handler(req, res) {
     try {
       const v = await verifyGoogleCredential(body.credential, clientId);
       if (v.email) {
-        res.status(200).json({ ok: true, user: v.email, session: mintSession(v.email, key) });
+        res.status(200).json({ ok: true, user: v.email, session: mintSession(v.email, key), specialsToken: mintSession(SPECIALS_SCOPE, key) });
       } else {
         res.status(v.error).json({ error: v.error === 403 ? "not the owner" : "unauthorized" });
       }
