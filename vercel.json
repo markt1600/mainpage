@@ -24,6 +24,9 @@
     },
     "api/deliver.js": {
       "maxDuration": 15
+    },
+    "api/special.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
