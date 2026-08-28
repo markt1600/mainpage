@@ -2334,6 +2334,7 @@ loadLists();
 loadMeridianStatus(); setInterval(loadMeridianStatus, 10*60*1000); // flips grey → green as the morning build lands
 initPush();
 renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at midnight SGT
+setInterval(()=>{ if(ownerUser) loadTodos(); }, 60000); // items added from the watch/phone appear without a reload
 renderStatements(); setInterval(renderStatements, 60000); // new firings appear at midnight SGT
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
