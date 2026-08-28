@@ -33,6 +33,9 @@
     },
     "api/transcribe.js": {
       "maxDuration": 30
+    },
+    "api/networth.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
