@@ -54,6 +54,11 @@
   .nav-links a:hover{color:var(--accent-deep)}
   .nav-links a.here{color:var(--accent-deep);border-bottom:2px solid var(--accent)}
   .nav-sep{color:var(--rule-strong)}
+  /* phones: wrap onto extra rows instead of sideways scrolling */
+  @media(max-width:700px){
+    #topnav{align-items:flex-start}
+    .nav-links{flex-wrap:wrap;overflow-x:visible;row-gap:6px;column-gap:14px;justify-content:flex-end}
+  }
 
   /* gate */
   #gate{max-width:420px;margin:14vh auto 0}
