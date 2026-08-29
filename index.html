@@ -424,6 +424,33 @@
   .owner-only{display:none}
   body.owner .owner-only{display:block}
 
+  /* ---- top navigation ---- */
+  html{scroll-behavior:smooth}
+  #topnav{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    background:var(--paper);border-bottom:1px solid var(--rule-strong);
+    padding:8px 18px;
+  }
+  .nav-brand{
+    font-family:"Fraunces",serif;font-weight:800;font-size:17px;letter-spacing:-.01em;
+    color:var(--ink);text-decoration:none;white-space:nowrap;
+  }
+  .nav-brand em{font-style:italic;color:var(--accent)}
+  .nav-links{
+    display:flex;align-items:center;gap:16px;overflow-x:auto;min-width:0;
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;padding:3px 0}
+  .nav-links a:hover{color:var(--accent-deep)}
+  .nav-owner{display:none !important}
+  body.owner .nav-owner{display:inline-flex !important;align-items:center;gap:16px}
+  .nav-sep{color:var(--rule-strong)}
+  /* anchored sections land clear of the sticky bar */
+  section[id],#newsSec,#privateSec{scroll-margin-top:52px}
+
   /* ---- net worth (owner) ---- */
   .nw-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
   .nw-val{font-family:"Fraunces",serif;font-weight:700;font-size:34px;letter-spacing:-.01em}
@@ -466,6 +493,19 @@
   .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
   .todo-text{flex:1;font-size:15.5px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
   .todo-date{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);white-space:nowrap;flex:none}
+  #todoViewBtn{
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;
+    margin-left:10px;text-decoration:none;color:var(--ink-soft);
+    border:1px solid var(--rule-strong);border-radius:10px;padding:2px 10px;background:var(--paper-2);
+  }
+  #todoViewBtn:hover{border-color:var(--ink);color:var(--ink)}
+  .todo-mv{
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.04em;line-height:1;
+    border:1px solid var(--rule);border-radius:9px;background:transparent;
+    color:var(--ink-faint);padding:3px 8px;cursor:pointer;flex:none;align-self:center;white-space:nowrap;
+  }
+  .todo-mv:hover{border-color:var(--rule-strong);color:var(--ink-soft)}
+  .todo-mv:disabled{opacity:.4;cursor:default}
   .todo-x{
     font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1;
     border:1px solid var(--rule-strong);border-radius:2px;background:var(--paper-2);
@@ -619,8 +659,27 @@
   }
 </style>
 </head>
-<body>
+<body id="top">
   <div class="accent-bar"></div>
+
+  <!-- Top navigation: brand left, section links right; sticky. The
+       owner-only items appear with the login state like everything else. -->
+  <nav id="topnav" aria-label="Site">
+    <a class="nav-brand" href="#top">The <em>Daily</em></a>
+    <div class="nav-links">
+      <a href="#marketsSec">Markets</a>
+      <a href="#newsSec">News</a>
+      <a href="#weatherSec">Weather</a>
+      <a href="#eventsSec">Events</a>
+      <a href="#holidaysSec">Holidays</a>
+      <span class="owner-only nav-owner">
+        <span class="nav-sep">·</span>
+        <a href="#privateSec">Private</a>
+        <a href="/todo">To-Do</a>
+        <a href="/admin" target="_blank" rel="noopener">Admin</a>
+      </span>
+    </div>
+  </nav>
 
   <!-- Owner-only quick add: type a to-do and press Enter — saved instantly
        to the encrypted list (no confirmation step). Invisible to visitors. -->
@@ -663,7 +722,7 @@
     </header>
 
     <!-- Markets -->
-    <section class="markets rise" style="animation-delay:.22s" aria-label="Markets">
+    <section class="markets rise" id="marketsSec" style="animation-delay:.22s" aria-label="Markets">
       <div class="sec-head">
         <h2>Markets <span class="dot">·</span> Latest</h2>
         <span class="cnt" id="mktCnt"></span>
@@ -690,7 +749,7 @@
     </section>
 
     <!-- Weather (Singapore above Tokyo) -->
-    <section class="markets rise" style="animation-delay:.26s" aria-label="Weather">
+    <section class="markets rise" id="weatherSec" style="animation-delay:.26s" aria-label="Weather">
       <div class="sec-head">
         <h2>Weather <span class="dot">·</span> Outlook</h2>
         <span class="cnt" id="wxCnt"></span>
@@ -727,7 +786,7 @@
     </section>
 
     <!-- Body -->
-    <div class="grid">
+    <div class="grid" id="newsSec">
       <main class="features-col rise" style="animation-delay:.3s">
         <div class="sec-head">
           <h2>Stories <span class="dot">·</span> Worth&nbsp;Knowing</h2>
@@ -794,7 +853,7 @@
     <!-- Owner-only content: hidden until the owner logs in via the footer
          link. Add more private blocks anywhere by giving any element the
          class "owner-only" — they all show/hide with the login state. -->
-    <section class="markets rise owner-only" aria-label="Owner">
+    <section class="markets rise owner-only" id="privateSec" aria-label="Owner">
       <div class="sec-head">
         <h2>For Mark <span class="dot">·</span> Private</h2>
         <span class="cnt"></span>
@@ -834,7 +893,9 @@
              (data/todos.enc.json via /api/todos). Add from the quick box at
              the very top of the page or the /todo voice page; ✕ deletes. -->
         <div id="todoBlock" style="margin-top:4px;margin-bottom:20px">
-          <div class="owner-sub">To-Do <a class="srclink" href="/todo" style="margin-left:10px;font-size:10px">🎙 voice add ↗</a></div>
+          <div class="owner-sub">To-Do
+            <a href="#" id="todoViewBtn" title="Cycle Today → Next → Someday"></a>
+            <a class="srclink" href="/todo" style="margin-left:10px;font-size:10px">🎙 voice add ↗</a></div>
           <div id="todoList"></div>
         </div>
 
@@ -1430,17 +1491,48 @@ function todoDate(ts){
   const sameYear = d.getFullYear() === new Date().getFullYear();
   return new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short", ...(sameYear ? {} : { year:"numeric" }) }).format(d);
 }
+/* Buckets (Today / Next / Someday). The dashboard shows ONE bucket at a
+   time — the chip in the heading cycles the view — and each row's "→"
+   chip moves that item along the same cycle. */
+const TODO_BUCKETS = ["today","next","someday"];
+let todoView = "today";
+const todoBucket = (t) => TODO_BUCKETS.includes(t && t.bucket) ? t.bucket : "today";
+const nextBucket = (b) => TODO_BUCKETS[(TODO_BUCKETS.indexOf(b) + 1) % TODO_BUCKETS.length];
+
 function renderTodos(){
   const el = $("todoList");
   if(!el) return;
-  if(!TODOS){ el.innerHTML = ""; return; }
-  if(!TODOS.length){ el.innerHTML = `<div id="todoEmpty">Nothing on the list — add one in the box at the top of the page.</div>`; return; }
-  el.innerHTML = TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("");
+  if(!TODOS){ el.innerHTML = ""; $("todoViewBtn").textContent = ""; return; }
+  const count = (b) => TODOS.filter(t=>todoBucket(t)===b).length;
+  $("todoViewBtn").textContent = `${todoView} · ${count(todoView)}  ▸`;
+  $("todoViewBtn").title = `Showing ${todoView}. Click for ${nextBucket(todoView)} (${count(nextBucket(todoView))}).`;
+  const rows = TODOS.map((t,i)=>({ t, i })).filter(r=>todoBucket(r.t)===todoView);
+  if(!rows.length){ el.innerHTML = `<div id="todoEmpty">Nothing in ${todoView}.</div>`; return; }
+  el.innerHTML = rows.map(({t,i})=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${nextBucket(todoView)}">→ ${nextBucket(todoView)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("");
   el.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>deleteTodo(+b.dataset.i, b)));
+  el.querySelectorAll(".todo-mv").forEach(b=>b.addEventListener("click", ()=>moveTodo(+b.dataset.i, b)));
   el.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
     b.closest(".todo-row").classList.add("done"); // brief tick + strike, then it goes
     setTimeout(()=>deleteTodo(+b.dataset.i, b), 450);
   }));
+}
+
+/* Move an item to the next bucket — fresh-sha read-modify-write like delete */
+async function moveTodo(i, btn){
+  const t = privateToken();
+  if(!t || !TODOS || !TODOS[i]) return;
+  const victim = TODOS[i], to = nextBucket(todoBucket(victim));
+  if(btn) btn.disabled = true;
+  try{
+    const cur = await ownerFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).map(x=>(x && x.text===victim.text && x.ts===victim.ts) ? { ...x, bucket: to } : x);
+    const res = await ownerFetch("/api/todos", {
+      method:"POST", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; renderTodos();
+  }catch(e){ if(btn) btn.disabled = false; }
 }
 async function addTodo(text){
   const t = privateToken();
@@ -2438,6 +2530,7 @@ renderStatements(); setInterval(renderStatements, 60000); // new firings appear 
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
 initOwner();
+$("todoViewBtn").addEventListener("click", (e)=>{ e.preventDefault(); todoView = nextBucket(todoView); renderTodos(); });
 $("nwToggle").addEventListener("click", (e)=>{
   if(e.target.closest("a")) return; // the edit link is a link, not the toggle
   const open = $("nwDetail").style.display === "none";

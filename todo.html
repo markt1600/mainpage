@@ -65,6 +65,44 @@
   .todo-x:disabled{opacity:.4}
   #gate{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);margin-top:30px;line-height:1.8}
   #app{display:none}
+
+  /* ---- the stack: Today (white) in front, Next (cream) and Someday
+     (kraft) tucked behind; click a tucked card to bring it forward ---- */
+  #stack{margin-top:30px}
+  .tcard{
+    border-radius:16px;padding:18px 22px 24px;
+    border:1px solid rgba(40,32,20,.08);
+    box-shadow:0 14px 34px rgba(40,32,20,.16), 0 2px 8px rgba(40,32,20,.08);
+    transition:margin .25s ease, width .25s ease;
+    position:relative;
+  }
+  .tcard[data-b="today"]{background:#fefdfa;color:#26221b}
+  .tcard[data-b="next"]{background:#f3edde;color:#2a251c}
+  .tcard[data-b="someday"]{background:#c8b48f;color:#38301f;border-color:rgba(40,32,20,.14)}
+  .thead{display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer;user-select:none;-webkit-user-select:none}
+  .tlabel{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.1em;color:#8a7f6a}
+  .tcard[data-b="someday"] .tlabel{color:#5d5138}
+  .tdots{display:grid;grid-template-columns:6px 6px;gap:4px;margin-top:3px}
+  .tdots i{width:6px;height:6px;border:1.2px solid rgba(90,80,60,.5);border-radius:50%}
+  .tbody{margin-top:10px}
+  /* tucked cards: only the header strip shows, narrower, slid up behind */
+  .tcard.min{width:94%;margin:0 auto -14px;padding-bottom:16px;z-index:1}
+  .tcard.min + .tcard.min{width:97%}
+  .tcard.min .tbody{display:none}
+  .tcard.front{z-index:3;margin-top:0}
+  .tcard .todo-row{border-bottom-color:rgba(40,32,20,.16)}
+  .tcard[data-b="someday"] .todo-row{border-bottom-color:rgba(40,32,20,.22)}
+  .tcard .todo-chk{background:transparent;border-color:rgba(90,80,60,.5)}
+  .tcard .todo-date{color:rgba(90,80,60,.65)}
+  .tcard .todo-x{background:transparent;border-color:rgba(90,80,60,.4);color:rgba(90,80,60,.8)}
+  .todo-mv{
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.04em;line-height:1;
+    border:1px solid rgba(90,80,60,.4);border-radius:9px;background:transparent;
+    color:rgba(90,80,60,.85);padding:3px 8px;cursor:pointer;flex:none;align-self:center;white-space:nowrap;
+  }
+  .todo-mv:hover{border-color:rgba(90,80,60,.8)}
+  .todo-mv:disabled{opacity:.4}
+  .tempty{font-family:"JetBrains Mono",monospace;font-size:11px;color:rgba(90,80,60,.6);padding:8px 0}
 </style>
 </head>
 <body>
@@ -80,7 +118,7 @@
 
   <div id="app">
     <div class="panel">
-      <div class="lbl">Type it</div>
+      <div class="lbl">Type it <span id="addTo1" style="text-transform:none;letter-spacing:.04em"></span></div>
       <div class="addrow">
         <input id="txt" type="text" placeholder="e.g. renew passport" autocomplete="off" maxlength="500">
         <button id="txtAdd">Add</button>
@@ -88,15 +126,12 @@
     </div>
 
     <div class="panel">
-      <div class="lbl">Or say it</div>
+      <div class="lbl">Or say it <span id="addTo2" style="text-transform:none;letter-spacing:.04em"></span></div>
       <button id="mic" type="button">🎙<br>hold to<br>record</button>
       <div id="vstat">hold the button, speak, release — it transcribes and adds itself</div>
     </div>
 
-    <div class="panel">
-      <div class="lbl">The list <span id="cnt"></span></div>
-      <div id="list"></div>
-    </div>
+    <div id="stack"></div>
   </div>
 </div>
 
@@ -139,6 +174,12 @@ async function loadList(){
     render();
   }catch(e){}
 }
+const BUCKETS = ["today","next","someday"];
+const LABELS = { today:"Today", next:"Next", someday:"Someday" };
+let ACTIVE = "today";
+const bucketOf = (t) => BUCKETS.includes(t && t.bucket) ? t.bucket : "today";
+const nextB = (b) => BUCKETS[(BUCKETS.indexOf(b)+1) % BUCKETS.length];
+
 function todoDate(ts){
   if(!Number.isFinite(ts)) return "";
   const d = new Date(ts);
@@ -146,19 +187,53 @@ function todoDate(ts){
   return new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short", ...(sameYear ? {} : { year:"numeric" }) }).format(d);
 }
 function render(){
-  $("cnt").textContent = TODOS.length ? `· ${TODOS.length}` : "";
-  $("list").innerHTML = TODOS.length
-    ? TODOS.map((t,i)=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
-    : '<div class="sub" style="padding:6px 0">Nothing on the list.</div>';
+  // Fixed sheet order (Someday at the back, like the pad): tucked cards
+  // show just their header strip; the ACTIVE card comes to the front.
+  const order = BUCKETS.filter(b=>b!==ACTIVE).reverse().concat([ACTIVE]); // e.g. someday, next, today
+  $("stack").innerHTML = order.map(b=>{
+    const rows = TODOS.map((t,i)=>({t,i})).filter(r=>bucketOf(r.t)===b);
+    const front = b === ACTIVE;
+    const items = rows.length
+      ? rows.map(({t,i})=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${LABELS[nextB(b)]}">→ ${nextB(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+      : `<div class="tempty">Nothing in ${LABELS[b].toLowerCase()}.</div>`;
+    return `<div class="tcard ${front?"front":"min"}" data-b="${b}">
+      <div class="thead" data-b="${b}" title="${front?"":"Bring "+LABELS[b]+" to the front"}">
+        <span class="tlabel">${LABELS[b]}${rows.length?` · ${rows.length}`:""}</span>
+        <span class="tdots"><i></i><i></i><i></i><i></i></span>
+      </div>
+      <div class="tbody">${items}</div>
+    </div>`;
+  }).join("");
+  $("addTo1").textContent = `· adds to ${LABELS[ACTIVE]}`;
+  $("addTo2").textContent = `· adds to ${LABELS[ACTIVE]}`;
+  document.querySelectorAll(".thead").forEach(h=>h.addEventListener("click", ()=>{
+    if(h.dataset.b !== ACTIVE){ ACTIVE = h.dataset.b; render(); }
+  }));
   document.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>del(+b.dataset.i, b)));
+  document.querySelectorAll(".todo-mv").forEach(b=>b.addEventListener("click", ()=>move(+b.dataset.i, b)));
   document.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
     b.closest(".todo-row").classList.add("done");
     setTimeout(()=>del(+b.dataset.i, b), 450);
   }));
 }
+
+async function move(i, btn){
+  const victim = TODOS[i]; if(!victim) return;
+  const to = nextB(bucketOf(victim));
+  if(btn) btn.disabled = true;
+  try{
+    const cur = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).map(x=>(x && x.text===victim.text && x.ts===victim.ts) ? { ...x, bucket: to } : x);
+    const res = await authFetch("/api/todos", {
+      method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; render();
+  }catch(e){ if(btn) btn.disabled = false; }
+}
 async function add(text){
   const res = await authFetch("/api/todos", {
-    method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text }),
+    method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text, bucket: ACTIVE }),
   });
   if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
   await loadList();
