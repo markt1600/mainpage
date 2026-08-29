@@ -41,12 +41,19 @@ function decrypt(blob) {
 }
 
 const str = (v, max = 500) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+// GTD-ish buckets; anything unrecognised (incl. legacy items) lands in today
+const BUCKETS = ["today", "next", "someday"];
+const bucketOf = (v) => (BUCKETS.includes(String(v)) ? String(v) : "today");
 
 function sanitize(data) {
   if (!Array.isArray(data)) throw new Error("expected an array");
   if (data.length > 500) throw new Error("too many entries");
   return data
-    .map((t) => ({ text: str(t && t.text), ts: Number.isFinite(Number(t && t.ts)) ? Number(t.ts) : Date.now() }))
+    .map((t) => ({
+      text: str(t && t.text),
+      ts: Number.isFinite(Number(t && t.ts)) ? Number(t.ts) : Date.now(),
+      bucket: bucketOf(t && t.bucket),
+    }))
     .filter((t) => t.text);
 }
 
@@ -114,9 +121,10 @@ export default async function handler(req, res) {
       if (body.add != null) {
         const text = str(body.add);
         if (!text) { res.status(400).json({ error: "empty item" }); return; }
+        const bucket = bucketOf(body.bucket); // optional; quick adds land in today
         for (let attempt = 0; ; attempt++) {
           const { todos, sha } = await readStore(ghToken);
-          todos.push({ text, ts: Date.now() });
+          todos.push({ text, ts: Date.now(), bucket });
           try {
             const newSha = await writeStore(ghToken, sanitize(todos), sha);
             res.status(200).json({ ok: true, count: todos.length, sha: newSha });
