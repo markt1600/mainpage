@@ -63,6 +63,28 @@
   }
   .todo-x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
   .todo-x:disabled{opacity:.4}
+  /* ---- shared top navigation (links back into the dashboard) ---- */
+  #topnav{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    background:var(--paper);border-bottom:1px solid var(--rule-strong);
+    padding:8px 18px;
+  }
+  .nav-brand{
+    font-family:"Fraunces",serif;font-weight:800;font-size:17px;letter-spacing:-.01em;
+    color:var(--ink);text-decoration:none;white-space:nowrap;
+  }
+  .nav-brand em{font-style:italic;color:var(--accent)}
+  .nav-links{
+    display:flex;align-items:center;gap:16px;overflow-x:auto;min-width:0;
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;padding:3px 0}
+  .nav-links a:hover{color:var(--accent-deep)}
+  .nav-links a.here{color:var(--accent-deep);border-bottom:2px solid var(--accent)}
+  .nav-sep{color:var(--rule-strong)}
   #gate{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);margin-top:30px;line-height:1.8}
   #app{display:none}
 
@@ -107,12 +129,25 @@
 </head>
 <body>
 <div class="bar"></div>
+<nav id="topnav" aria-label="Site">
+  <a class="nav-brand" href="/">The <em>Daily</em></a>
+  <div class="nav-links">
+    <a href="/#marketsSec">Markets</a>
+    <a href="/#newsSec">News</a>
+    <a href="/#weatherSec">Weather</a>
+    <a href="/#eventsSec">Events</a>
+    <a href="/#holidaysSec">Holidays</a>
+    <span class="nav-sep">·</span>
+    <a href="/#privateSec">Private</a>
+    <a href="/#todoBlock" class="here">To-Do</a>
+    <a href="/admin">Admin</a>
+  </div>
+</nav>
 <div class="wrap">
   <a href="/" style="text-decoration:none">
     <div class="eyebrow">marktan.ai · the daily</div>
     <h1>To-Do</h1>
   </a>
-  <p class="sub"><a href="/">← back to the dashboard</a></p>
 
   <div id="gate">checking your login…</div>
 

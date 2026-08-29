@@ -32,6 +32,29 @@
   .sub{color:var(--ink-soft);font-size:14px;margin-top:4px}
   .sub code{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-3);padding:1px 5px;border-radius:3px}
 
+  /* ---- shared top navigation (links back into the dashboard) ---- */
+  #topnav{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    background:var(--paper);border-bottom:1px solid var(--rule-strong);
+    padding:8px 18px;
+  }
+  .nav-brand{
+    font-family:"Fraunces",serif;font-weight:800;font-size:17px;letter-spacing:-.01em;
+    color:var(--ink);text-decoration:none;white-space:nowrap;
+  }
+  .nav-brand em{font-style:italic;color:var(--accent)}
+  .nav-links{
+    display:flex;align-items:center;gap:16px;overflow-x:auto;min-width:0;
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;padding:3px 0}
+  .nav-links a:hover{color:var(--accent-deep)}
+  .nav-links a.here{color:var(--accent-deep);border-bottom:2px solid var(--accent)}
+  .nav-sep{color:var(--rule-strong)}
+
   /* gate */
   #gate{max-width:420px;margin:14vh auto 0}
   #gate .card{background:var(--paper-2);border:1px solid var(--rule);border-radius:10px;padding:26px}
@@ -78,6 +101,21 @@
 </head>
 <body>
 <div class="accent-bar"></div>
+<nav id="topnav" aria-label="Site">
+  <a class="nav-brand" href="/">The <em>Daily</em></a>
+  <div class="nav-links">
+    <a href="/#marketsSec">Markets</a>
+    <a href="/#newsSec">News</a>
+    <a href="/#weatherSec">Weather</a>
+    <a href="/#eventsSec">Events</a>
+    <a href="/#holidaysSec">Holidays</a>
+    <span class="nav-sep">·</span>
+    <a href="/#privateSec">Private</a>
+    <a href="/#todoBlock">To-Do</a>
+    <a href="/admin" class="here">Admin</a>
+  </div>
+</nav>
+
 
 <!-- Boot: shown while checking stored credentials -->
 <div id="boot">unlocking…</div>
