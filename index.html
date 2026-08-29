@@ -493,18 +493,41 @@
   .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
   .todo-text{flex:1;font-size:15.5px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
   .todo-date{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);white-space:nowrap;flex:none}
-  #todoViewBtn{
-    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;
-    margin-left:10px;text-decoration:none;color:var(--ink-soft);
-    border:1px solid var(--rule-strong);border-radius:10px;padding:2px 10px;background:var(--paper-2);
+  /* the stacked pad (same system as /todo): Someday kraft at the back,
+     Next cream, Today white in front; tucked cards show their strip only */
+  #todoList{margin-top:14px;max-width:640px}
+  .tcard{
+    border-radius:14px;padding:14px 18px 18px;
+    border:1px solid rgba(40,32,20,.08);
+    box-shadow:0 12px 28px rgba(40,32,20,.15), 0 2px 6px rgba(40,32,20,.08);
+    transition:margin .25s ease, width .25s ease;
+    position:relative;
   }
-  #todoViewBtn:hover{border-color:var(--ink);color:var(--ink)}
+  .tcard[data-b="today"]{background:#fefdfa;color:#26221b}
+  .tcard[data-b="next"]{background:#f3edde;color:#2a251c}
+  .tcard[data-b="someday"]{background:#c8b48f;color:#38301f;border-color:rgba(40,32,20,.14)}
+  .thead{display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer;user-select:none;-webkit-user-select:none}
+  .tlabel{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.1em;color:#8a7f6a}
+  .tcard[data-b="someday"] .tlabel{color:#5d5138}
+  .tdots{display:grid;grid-template-columns:6px 6px;gap:4px;margin-top:2px}
+  .tdots i{width:6px;height:6px;border:1.2px solid rgba(90,80,60,.5);border-radius:50%}
+  .tbody{margin-top:6px}
+  .tcard.min{width:94%;margin:0 auto -12px;padding-bottom:14px;z-index:1}
+  .tcard.min + .tcard.min{width:97%}
+  .tcard.min .tbody{display:none}
+  .tcard.front{z-index:3}
+  .tcard .todo-row{border-bottom-color:rgba(40,32,20,.16)}
+  .tcard[data-b="someday"] .todo-row{border-bottom-color:rgba(40,32,20,.22)}
+  .tcard .todo-chk{background:transparent;border-color:rgba(90,80,60,.5)}
+  .tcard .todo-date{color:rgba(90,80,60,.65)}
+  .tcard .todo-x{background:transparent;border-color:rgba(90,80,60,.4);color:rgba(90,80,60,.8)}
+  .tempty{font-family:"JetBrains Mono",monospace;font-size:11px;color:rgba(90,80,60,.6);padding:6px 0}
   .todo-mv{
     font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.04em;line-height:1;
-    border:1px solid var(--rule);border-radius:9px;background:transparent;
-    color:var(--ink-faint);padding:3px 8px;cursor:pointer;flex:none;align-self:center;white-space:nowrap;
+    border:1px solid rgba(90,80,60,.4);border-radius:9px;background:transparent;
+    color:rgba(90,80,60,.85);padding:3px 8px;cursor:pointer;flex:none;align-self:center;white-space:nowrap;
   }
-  .todo-mv:hover{border-color:var(--rule-strong);color:var(--ink-soft)}
+  .todo-mv:hover{border-color:rgba(90,80,60,.8)}
   .todo-mv:disabled{opacity:.4;cursor:default}
   .todo-x{
     font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1;
@@ -893,9 +916,7 @@
              (data/todos.enc.json via /api/todos). Add from the quick box at
              the very top of the page or the /todo voice page; ✕ deletes. -->
         <div id="todoBlock" style="margin-top:4px;margin-bottom:20px">
-          <div class="owner-sub">To-Do
-            <a href="#" id="todoViewBtn" title="Cycle Today → Next → Someday"></a>
-            <a class="srclink" href="/todo" style="margin-left:10px;font-size:10px">🎙 voice add ↗</a></div>
+          <div class="owner-sub">To-Do <a class="srclink" href="/todo" style="margin-left:10px;font-size:10px">🎙 voice add ↗</a></div>
           <div id="todoList"></div>
         </div>
 
@@ -1499,16 +1520,31 @@ let todoView = "today";
 const todoBucket = (t) => TODO_BUCKETS.includes(t && t.bucket) ? t.bucket : "today";
 const nextBucket = (b) => TODO_BUCKETS[(TODO_BUCKETS.indexOf(b) + 1) % TODO_BUCKETS.length];
 
+const TODO_LABELS = { today:"Today", next:"Next", someday:"Someday" };
 function renderTodos(){
   const el = $("todoList");
   if(!el) return;
-  if(!TODOS){ el.innerHTML = ""; $("todoViewBtn").textContent = ""; return; }
-  const count = (b) => TODOS.filter(t=>todoBucket(t)===b).length;
-  $("todoViewBtn").textContent = `${todoView} · ${count(todoView)}  ▸`;
-  $("todoViewBtn").title = `Showing ${todoView}. Click for ${nextBucket(todoView)} (${count(nextBucket(todoView))}).`;
-  const rows = TODOS.map((t,i)=>({ t, i })).filter(r=>todoBucket(r.t)===todoView);
-  if(!rows.length){ el.innerHTML = `<div id="todoEmpty">Nothing in ${todoView}.</div>`; return; }
-  el.innerHTML = rows.map(({t,i})=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${nextBucket(todoView)}">→ ${nextBucket(todoView)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("");
+  if(!TODOS){ el.innerHTML = ""; return; }
+  // The stacked pad: tucked cards show only their header strip; clicking
+  // one brings it to the front. Same system as /todo.
+  const order = TODO_BUCKETS.filter(b=>b!==todoView).reverse().concat([todoView]);
+  el.innerHTML = order.map(b=>{
+    const rows = TODOS.map((t,i)=>({t,i})).filter(r=>todoBucket(r.t)===b);
+    const front = b === todoView;
+    const items = rows.length
+      ? rows.map(({t,i})=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${TODO_LABELS[nextBucket(b)]}">→ ${nextBucket(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+      : `<div class="tempty">Nothing in ${TODO_LABELS[b].toLowerCase()} — add one in the box at the top of the page.</div>`;
+    return `<div class="tcard ${front?"front":"min"}" data-b="${b}">
+      <div class="thead" data-b="${b}" title="${front?"":"Bring "+TODO_LABELS[b]+" to the front"}">
+        <span class="tlabel">${TODO_LABELS[b]}${rows.length?` · ${rows.length}`:""}</span>
+        <span class="tdots"><i></i><i></i><i></i><i></i></span>
+      </div>
+      <div class="tbody">${items}</div>
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".thead").forEach(h=>h.addEventListener("click", ()=>{
+    if(h.dataset.b !== todoView){ todoView = h.dataset.b; renderTodos(); }
+  }));
   el.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>deleteTodo(+b.dataset.i, b)));
   el.querySelectorAll(".todo-mv").forEach(b=>b.addEventListener("click", ()=>moveTodo(+b.dataset.i, b)));
   el.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
@@ -2530,7 +2566,6 @@ renderStatements(); setInterval(renderStatements, 60000); // new firings appear 
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
 initOwner();
-$("todoViewBtn").addEventListener("click", (e)=>{ e.preventDefault(); todoView = nextBucket(todoView); renderTodos(); });
 $("nwToggle").addEventListener("click", (e)=>{
   if(e.target.closest("a")) return; // the edit link is a link, not the toggle
   const open = $("nwDetail").style.display === "none";
