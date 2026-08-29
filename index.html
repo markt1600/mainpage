@@ -448,8 +448,14 @@
   .nav-owner{display:none !important}
   body.owner .nav-owner{display:inline-flex !important;align-items:center;gap:16px}
   .nav-sep{color:var(--rule-strong)}
+  /* phones: wrap onto extra rows instead of sideways scrolling */
+  @media(max-width:700px){
+    #topnav{align-items:flex-start}
+    .nav-links{flex-wrap:wrap;overflow-x:visible;row-gap:6px;column-gap:14px;justify-content:flex-end}
+  }
   /* anchored sections land clear of the sticky bar */
   section[id],#newsSec,#privateSec,#todoBlock{scroll-margin-top:52px}
+  @media(max-width:700px){section[id],#newsSec,#privateSec,#todoBlock{scroll-margin-top:88px}}
 
   /* ---- net worth (owner) ---- */
   .nw-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
