@@ -426,8 +426,8 @@
 
   /* ---- top navigation ---- */
   html{scroll-behavior:smooth}
+  #stickyTop{position:sticky;top:0;z-index:50}
   #topnav{
-    position:sticky;top:0;z-index:50;
     display:flex;align-items:center;justify-content:space-between;gap:16px;
     background:var(--paper);border-bottom:1px solid var(--rule-strong);
     padding:8px 18px;
@@ -455,7 +455,11 @@
   }
   /* anchored sections land clear of the sticky bar */
   section[id],#newsSec,#privateSec,#todoBlock,#projectsSec{scroll-margin-top:52px}
-  @media(max-width:700px){section[id],#newsSec,#privateSec,#todoBlock,#projectsSec{scroll-margin-top:108px}}
+  body.owner section[id],body.owner #newsSec,body.owner #privateSec,body.owner #todoBlock,body.owner #projectsSec{scroll-margin-top:98px}
+  @media(max-width:700px){
+    section[id],#newsSec,#privateSec,#todoBlock,#projectsSec{scroll-margin-top:108px}
+    body.owner section[id],body.owner #newsSec,body.owner #privateSec,body.owner #todoBlock,body.owner #projectsSec{scroll-margin-top:154px}
+  }
 
   /* ---- net worth (owner) ---- */
   .nw-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -691,8 +695,9 @@
 <body id="top">
   <div class="accent-bar"></div>
 
-  <!-- Top navigation: brand left, section links right; sticky. The
-       owner-only items appear with the login state like everything else. -->
+  <!-- Sticky header: the nav, plus (for the owner) the quick-add bar
+       riding just beneath it — both travel with the scroll. -->
+  <div id="stickyTop">
   <nav id="topnav" aria-label="Site">
     <a class="nav-brand" href="#top">The <em>Daily</em></a>
     <div class="nav-links">
@@ -718,6 +723,7 @@
     <input id="quickTodoInput" type="text" placeholder="＋ add to-do… (Enter to save)" autocomplete="off" maxlength="500">
     <span id="quickTodoStat"></span>
   </div>
+  </div><!-- /stickyTop -->
 
   <div class="wrap">
     <header>
