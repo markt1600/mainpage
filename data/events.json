@@ -193,5 +193,18 @@
     "status": "on sale",
     "note": "Carnival II World Tour",
     "url": "https://www.klook.com/event-detail/101030785-2026-jay-chou-tour-singapore/"
+  },
+  {
+    "act": "Dulwich College Open Evening",
+    "kind": "School Holiday",
+    "date": "2026-09-03",
+    "endDate": null,
+    "time": "16:20",
+    "repeat": null,
+    "show": "both",
+    "venue": "Dulwich College Singapore",
+    "status": "",
+    "note": "4:20–4:25pm Arrival (Smart Casual) · 4:30–4:50pm Meet the Tutor + Welcome video · 4:50–5:00pm Transition (Tea/Coffee Levels 3–4) · 5:00–6:55pm Meet the Departments",
+    "url": ""
   }
 ]
