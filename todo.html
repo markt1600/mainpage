@@ -244,7 +244,10 @@ function render(){
   // show just their header strip; the ACTIVE card comes to the front.
   const order = BUCKETS.filter(b=>b!==ACTIVE).reverse().concat([ACTIVE]); // e.g. someday, next, today
   $("stack").innerHTML = order.map(b=>{
-    const rows = TODOS.map((t,i)=>({t,i})).filter(r=>bucketOf(r.t)===b);
+    // in-progress items sink to the bottom of their card (stable sort
+    // keeps insertion order within each group)
+    const rows = TODOS.map((t,i)=>({t,i})).filter(r=>bucketOf(r.t)===b)
+      .sort((a,c)=>(a.t.doing?1:0)-(c.t.doing?1:0));
     const front = b === ACTIVE;
     const items = rows.length
       ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${LABELS[nextB(b)]}">→ ${nextB(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
