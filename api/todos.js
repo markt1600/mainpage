@@ -4,7 +4,7 @@
 // data/todos.enc.json is AES-256-GCM ciphertext, unreadable without the
 // server-side key even though the repo is public.
 //
-//   GET  ?token=              → { todos: [{text, ts}...], sha }
+//   GET  ?token=              → { todos: [{text, ts, bucket, doing}...], sha }
 //   POST { todos, sha }       → full save (stale sha → 409)
 //   POST { add: "text" }      → convenience append (server does the
 //                               read-modify-write, one retry on a race) —
@@ -53,6 +53,7 @@ function sanitize(data) {
       text: str(t && t.text),
       ts: Number.isFinite(Number(t && t.ts)) ? Number(t.ts) : Date.now(),
       bucket: bucketOf(t && t.bucket),
+      doing: !!(t && t.doing), // "in progress" — started but not yet complete
     }))
     .filter((t) => t.text);
 }

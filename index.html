@@ -498,6 +498,17 @@
     padding:0;color:transparent;font-size:10px;line-height:1;
   }
   .todo-chk:hover{border-color:var(--accent);color:var(--accent)}
+  /* in-progress: half-filled amber circle + a small tag; toggled by
+     clicking the item's text (the circle still completes in one click) */
+  .todo-text{cursor:pointer}
+  .todo-row.doing .todo-chk{
+    border-color:#b07820;
+    background:linear-gradient(90deg,#b07820 50%,transparent 50%);
+  }
+  .todo-doing-tag{
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.06em;
+    color:#b07820;white-space:nowrap;flex:none;
+  }
   .todo-row.done{opacity:.45}
   .todo-row.done .todo-chk{background:var(--accent);border-color:var(--accent);color:var(--paper)}
   .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
@@ -1546,7 +1557,7 @@ function renderTodos(){
     const rows = TODOS.map((t,i)=>({t,i})).filter(r=>todoBucket(r.t)===b);
     const front = b === todoView;
     const items = rows.length
-      ? rows.map(({t,i})=>`<div class="todo-row"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text">${esc(t.text)}</span><span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${TODO_LABELS[nextBucket(b)]}">→ ${nextBucket(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+      ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${TODO_LABELS[nextBucket(b)]}">→ ${nextBucket(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
       : `<div class="tempty">Nothing in ${TODO_LABELS[b].toLowerCase()} — add one in the box at the top of the page.</div>`;
     return `<div class="tcard ${front?"front":"min"}" data-b="${b}">
       <div class="thead" data-b="${b}" title="${front?"":"Bring "+TODO_LABELS[b]+" to the front"}">
@@ -1561,10 +1572,32 @@ function renderTodos(){
   }));
   el.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>deleteTodo(+b.dataset.i, b)));
   el.querySelectorAll(".todo-mv").forEach(b=>b.addEventListener("click", ()=>moveTodo(+b.dataset.i, b)));
+  el.querySelectorAll(".todo-text").forEach(s=>s.addEventListener("click", ()=>{
+    if(String(window.getSelection && window.getSelection())) return; // selecting text, not toggling
+    toggleTodoDoing(+s.dataset.i);
+  }));
   el.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
     b.closest(".todo-row").classList.add("done"); // brief tick + strike, then it goes
     setTimeout(()=>deleteTodo(+b.dataset.i, b), 450);
   }));
+}
+
+/* Flip an item's in-progress marker — fresh-sha read-modify-write */
+async function toggleTodoDoing(i){
+  const t = privateToken();
+  if(!t || !TODOS || !TODOS[i]) return;
+  const victim = TODOS[i], to = !victim.doing;
+  TODOS[i] = { ...victim, doing: to }; renderTodos(); // optimistic
+  try{
+    const cur = await ownerFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).map(x=>(x && x.text===victim.text && x.ts===victim.ts) ? { ...x, doing: to } : x);
+    const res = await ownerFetch("/api/todos", {
+      method:"POST", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; renderTodos();
+  }catch(e){ loadTodos(); }
 }
 
 /* Move an item to the next bucket — fresh-sha read-modify-write like delete */
