@@ -88,6 +88,8 @@
   tr:last-child td{border-bottom:none}
   td input,td select{font-size:12px;padding:6px 7px}
   td.num{width:74px}
+  td.date{width:136px}
+  td input[type="date"]{padding:5px 5px;min-width:124px}
   td.act{width:44px;text-align:center}
   .bar{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
   .status{font-family:"JetBrains Mono",monospace;font-size:12px}
@@ -202,7 +204,7 @@
           <tbody id="evBody"></tbody>
         </table>
       </div>
-      <div class="hint">Date format <b>YYYY-MM-DD</b>; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional). Repeat makes the entry recur in the calendar (weekly / monthly / yearly from its date). Show: <b>both</b> = site + your calendar · <b>public</b> = site only · <b>private</b> = your calendar only, never the public watchlist (note: this file lives in the public repo — truly private items belong in the Private calendar below). Finished events drop off automatically.</div>
+      <div class="hint">Pick dates from the calendar; leave blank for TBA. End date only for multi-day events. Time <b>HH:MM</b> (24h, optional). Repeat makes the entry recur in the calendar (weekly / monthly / yearly from its date). Show: <b>both</b> = site + your calendar · <b>public</b> = site only · <b>private</b> = your calendar only, never the public watchlist (note: this file lives in the public repo — truly private items belong in the Private calendar below). Finished events drop off automatically.</div>
       <div class="bar">
         <button class="ghost" id="evAdd">+ Add event</button>
         <button id="evSave">Save events</button>
@@ -371,17 +373,21 @@ function evRow(e, dk){
   e = e || {};
   dk = dk || "events"; // which list's dirty state this row belongs to
   const tr = document.createElement("tr");
-  const cell = (val, key, ph, cls) => {
+  const cell = (val, key, ph, cls, type) => {
     const td = document.createElement("td"); if(cls) td.className = cls;
     const inp = document.createElement("input");
+    // Dates get the native picker; a legacy value the picker can't hold
+    // (anything not YYYY-MM-DD) stays editable as plain text instead of
+    // being silently blanked.
+    if(type === "date" && (val == null || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(String(val)))) inp.type = "date";
     inp.value = val == null ? "" : val; inp.placeholder = ph || ""; inp.dataset.key = key;
     inp.addEventListener("input", ()=>setDirty(dk, true));
     td.appendChild(inp); return td;
   };
   tr.appendChild(cell(e.act, "act", "Event name"));
   tr.appendChild(cell(e.kind, "kind", "Concert"));
-  tr.appendChild(cell(e.date, "date", "2026-10-02", "num"));
-  tr.appendChild(cell(e.endDate, "endDate", "—", "num"));
+  tr.appendChild(cell(e.date, "date", "2026-10-02", "date", "date"));
+  tr.appendChild(cell(e.endDate, "endDate", "—", "date", "date"));
   tr.appendChild(cell(e.time, "time", "19:30", "num"));
   {
     // Recurrence: the calendar repeats the entry weekly/monthly/yearly from
@@ -887,7 +893,12 @@ function renderProposal(p){
           <option value="private"${a.list!=="public"?" selected":""}>private</option>
           <option value="public"${a.list==="public"?" selected":""}>public</option>
         </select></td>
-        ${AI_COLS.map(k=>`<td><input value="${esc(a[k]==null?"":a[k])}" data-add="${i}" data-k="${k}"></td>`).join("")}
+        ${AI_COLS.map(k=>{
+          const v = a[k]==null?"":String(a[k]);
+          // date columns get the native picker when the value fits it
+          const dt = (k==="date"||k==="endDate") && (v===""||/^\d{4}-\d{2}-\d{2}$/.test(v));
+          return `<td${dt?' class="date"':""}><input${dt?' type="date"':""} value="${esc(v)}" data-add="${i}" data-k="${k}"></td>`;
+        }).join("")}
       </tr>`).join("")}</tbody>
     </table></div>` : `<div class="hint" style="margin-top:8px">No additions proposed.</div>`;
   $("aiDeletes").innerHTML = (p.deletes && p.deletes.length) ? `
