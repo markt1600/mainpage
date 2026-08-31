@@ -284,11 +284,11 @@
       </div>
       <div class="tablewrap">
         <table id="bdTable">
-          <thead><tr><th>Name</th><th>Month</th><th>Day</th><th class="act"></th></tr></thead>
+          <thead><tr><th>Name</th><th>Date</th><th class="act"></th></tr></thead>
           <tbody id="bdBody"></tbody>
         </table>
       </div>
-      <div class="hint">Month 1–12, day 1–31. Shown on the dashboard from 7 days before to 3 days after.</div>
+      <div class="hint">Pick any year — only the month and day are stored (birthdays recur every year). Shown on the dashboard from 7 days before to 3 days after.</div>
       <div class="bar">
         <button class="ghost" id="bdAdd">+ Add birthday</button>
         <button id="bdSave">Save birthdays</button>
@@ -307,7 +307,6 @@ let TOKEN = "";
 let sha = { events: null, birthdays: null };
 let dirty = { events: false, birthdays: false, private: false, networth: false };
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* Every API call carries the session as an Authorization header (kept out
    of URLs and request logs). */
@@ -456,14 +455,17 @@ function bdRow(b){
   const name = document.createElement("input"); name.value = b.name||""; name.placeholder="Name"; name.dataset.key="name";
   name.addEventListener("input", ()=>setDirty("birthdays", true)); td1.appendChild(name); tr.appendChild(td1);
 
-  const td2 = document.createElement("td"); td2.className="num";
-  const mon = document.createElement("select"); mon.dataset.key="month";
-  MONTHS.forEach((m,i)=>{ const o=document.createElement("option"); o.value=i+1; o.textContent=`${i+1} · ${m}`; if(b.month===i+1)o.selected=true; mon.appendChild(o); });
-  mon.addEventListener("change", ()=>setDirty("birthdays", true)); td2.appendChild(mon); tr.appendChild(td2);
-
-  const td3 = document.createElement("td"); td3.className="num";
-  const day = document.createElement("input"); day.type="number"; day.min=1; day.max=31; day.value=b.day||""; day.dataset.key="day"; day.placeholder="1–31";
-  day.addEventListener("input", ()=>setDirty("birthdays", true)); td3.appendChild(day); tr.appendChild(td3);
+  // One date picker instead of month + day fields. Only the month and day
+  // are stored — the year in the picker is display-only (seeded with the
+  // current year for new/legacy rows).
+  const td2 = document.createElement("td"); td2.className="date";
+  const dt = document.createElement("input"); dt.type="date"; dt.dataset.key="mmdd";
+  if(b.month>=1 && b.month<=12 && b.day>=1 && b.day<=31){
+    let yr = new Date().getFullYear();
+    if(b.month===2 && b.day===29) while(!(yr%4===0 && (yr%100!==0 || yr%400===0))) yr++; // Feb 29 needs a leap year
+    dt.value = `${yr}-${String(b.month).padStart(2,"0")}-${String(b.day).padStart(2,"0")}`;
+  }
+  dt.addEventListener("input", ()=>setDirty("birthdays", true)); td2.appendChild(dt); tr.appendChild(td2);
 
   const del = document.createElement("td"); del.className="act";
   const btn = document.createElement("button"); btn.className="danger"; btn.textContent="✕"; btn.title="Delete";
@@ -478,8 +480,10 @@ function renderBirthdays(list){
 function collectBirthdays(){
   return [...$("bdBody").children].map(tr=>{
     const name = (tr.querySelector('input[data-key="name"]')||{}).value?.trim() || "";
-    const month = parseInt((tr.querySelector('select[data-key="month"]')||{}).value, 10);
-    const day = parseInt((tr.querySelector('input[data-key="day"]')||{}).value, 10);
+    // "YYYY-MM-DD" from the picker → month/day only; the year is discarded
+    const m = /^\d{4}-(\d{2})-(\d{2})$/.exec((tr.querySelector('input[data-key="mmdd"]')||{}).value || "");
+    const month = m ? parseInt(m[1], 10) : NaN;
+    const day = m ? parseInt(m[2], 10) : NaN;
     return { name, month, day };
   }).filter(b=>b.name && b.month>=1 && b.month<=12 && b.day>=1 && b.day<=31);
 }
