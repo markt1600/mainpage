@@ -563,21 +563,6 @@
     text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;
   }
 
-  /* ---- statement reminders (owner section) ---- */
-  .stmt{
-    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.04em;
-    color:var(--ink-soft);padding:7px 0;border-bottom:1px solid var(--rule);
-    display:flex;align-items:center;gap:7px;
-  }
-  .stmt:last-child{border-bottom:none}
-  .stmt b{color:var(--ink);font-weight:600}
-  .stmt-date{color:var(--ink-faint)}
-  .stmt-x{
-    margin-left:auto;color:var(--accent);text-decoration:none;
-    border:1px solid var(--rule-strong);border-radius:2px;padding:1px 7px;
-  }
-  .stmt-x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
-
   /* ---- personal calendar (owner section) ---- */
   .cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 10px;flex-wrap:wrap}
   .cal-nav{display:flex;align-items:center;gap:6px}
@@ -924,13 +909,9 @@
           </div>
         </div>
 
-        <!-- Statement reminders: appear on their due day and PERSIST until
-             dismissed with ✕ (dismissals live in localStorage, per firing,
-             so next month's statement reappears). -->
-        <div id="statementsBlock" style="display:none;margin-bottom:20px">
-          <div class="owner-sub">Statements · To File</div>
-          <div id="statements"></div>
-        </div>
+        <!-- Statement reminders became to-dos: the daily cron (api/notify.js)
+             adds a "File … statement" item to the to-do list on each
+             statement's landing day — no separate banner here any more. -->
 
         <!-- Account balances + spend (fetches only with the owner session or ?me= link) -->
         <div id="accountSec" style="display:none">
@@ -2268,86 +2249,9 @@ function renderHappyDay(){
   $("happyDayTxt").textContent = t;
 }
 
-/* ============================================================
-   STATEMENT REMINDERS — each fires on its day of the month (SGT;
-   the day the statement lands, i.e. one day after the statement
-   date — month-end statements → the 1st), then PERSISTS in the
-   private section until dismissed with ✕. Dismissals are stored
-   per firing in localStorage, so next month's statement shows
-   again. Keep the config in sync with api/notify.js.
-   ============================================================ */
-const REMINDERS = [
-  { day: 20, text: "Citi SG CC Statement Available" },
-  { day: 24, text: "Citi US CC Statement Available" },
-  { day: 24, text: "UOB CC Statement Available" },
-  { day: 1,  text: "Citi SG Bank Statement Available" },
-  { day: 1,  text: "Citi US Bank Statement Available" },
-];
-const REM_CLEAR_KEY = "clearedReminders";
-
-function remCleared(){ try{ return JSON.parse(localStorage.getItem(REM_CLEAR_KEY) || "{}"); }catch(e){ return {}; } }
-
-/* Most recent firing (ISO date) of a reminder on or before today. */
-function remLastFire(r, y, m, d){
-  const dim = (yy, mm) => new Date(Date.UTC(yy, mm, 0)).getUTCDate(); // days in month mm (1-12)
-  let fy = y, fm = m, fd = Math.min(r.day, dim(y, m));
-  if(fd > d){
-    fm = m - 1;
-    if(fm < 1){ fm = 12; fy = y - 1; }
-    fd = Math.min(r.day, dim(fy, fm));
-  }
-  return `${fy}-${String(fm).padStart(2,"0")}-${String(fd).padStart(2,"0")}`;
-}
-
-/* A reminder must FIRST appear on its firing day — never retroactively
-   (feature launch, a new browser, or a newly added reminder must not
-   surface old firings). Any reminder this browser hasn't tracked yet is
-   baselined as cleared-through-yesterday, so only firings from today
-   onward show, and then persist until ✕. */
-function remBaseline(y, m, d){
-  try{
-    const c = remCleared();
-    const yd = new Date(Date.UTC(y, m-1, d-1)); // yesterday (SGT calendar)
-    const iso = `${yd.getUTCFullYear()}-${String(yd.getUTCMonth()+1).padStart(2,"0")}-${String(yd.getUTCDate()).padStart(2,"0")}`;
-    let changed = false;
-    for(const r of REMINDERS){
-      if(!(r.text in c)){ c[r.text] = iso; changed = true; }
-    }
-    if(changed) localStorage.setItem(REM_CLEAR_KEY, JSON.stringify(c));
-  }catch(e){}
-}
-
-function renderStatements(){
-  const el = $("statements");
-  if(!el) return;
-  const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date()).split("-").map(Number);
-  remBaseline(y, m, d);
-  const cleared = remCleared();
-  const due = REMINDERS
-    .map(r => ({ ...r, fired: remLastFire(r, y, m, d) }))
-    .filter(r => !(cleared[r.text] && cleared[r.text] >= r.fired));
-
-  $("statementsBlock").style.display = due.length ? "" : "none";
-  el.innerHTML = due.map(r => {
-    const [fy, fm, fd] = r.fired.split("-").map(Number);
-    const nice = new Intl.DateTimeFormat("en-GB", { day:"numeric", month:"short", timeZone:"UTC" }).format(new Date(Date.UTC(fy, fm-1, fd)));
-    return `
-      <div class="stmt">
-        <span style="color:var(--accent)">🔔</span> <b>${esc(r.text)}</b>
-        <span class="stmt-date">· ${esc(nice)}</span>
-        <a href="#" class="stmt-x" data-t="${esc(r.text)}" data-f="${r.fired}" title="Clear — filed to budget">✕</a>
-      </div>`;
-  }).join("");
-  el.querySelectorAll(".stmt-x").forEach(a => a.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    const c = remCleared();
-    c[a.dataset.t] = a.dataset.f;
-    try{ localStorage.setItem(REM_CLEAR_KEY, JSON.stringify(c)); }catch(e){}
-    renderStatements();
-  }));
-}
+/* Statement reminders became to-dos: the daily cron (api/notify.js)
+   adds a "File … statement" item to the to-do list on each statement's
+   landing day, so there's no banner or localStorage tracking here. */
 
 /* ============================================================
    BIRTHDAYS — shown from 7 days before to 3 days after the date.
@@ -2612,7 +2516,6 @@ renderHappyDay(); setInterval(renderHappyDay, 60000); // re-check so it flips at
 setInterval(()=>{ if(ownerUser){ loadTodos(); loadNetWorth(); } }, 60000); // watch-added items + market moves appear without a reload
 // Coming back from another tab (e.g. after saving in /admin) refreshes immediately
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && ownerUser){ loadTodos(); loadNetWorth(); } });
-renderStatements(); setInterval(renderStatements, 60000); // new firings appear at midnight SGT
 tick(); setInterval(tick,1000);
 $("loginLink").addEventListener("click", toggleLogin);
 initOwner();
