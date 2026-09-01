@@ -70,17 +70,27 @@ const STATEMENTS = [
   { day: 1,  text: "Citi SG bank statement" },
   { day: 1,  text: "Citi US bank statement" },
 ];
+// Other recurring monthly chores dropped into the list on their day,
+// text used verbatim (plus the month tag).
+const MONTHLY_TODOS = [
+  { day: 1, text: "Pay UOB credit card bill" },
+  { day: 1, text: "Pay Ultima credit card bill" },
+];
 
-/* To-do items for statements landing today: "File Citi SG CC statement
-   (Sep)" in the Today bucket. The month tag keeps texts distinct across
-   months, which is also what the append dedupe keys on. */
+/* To-do items due today: statements landing → "File Citi SG CC statement
+   (Sep)", plus the recurring chores — all in the Today bucket. The month
+   tag keeps texts distinct across months, which is also what the append
+   dedupe keys on. */
 function statementTodos(today) {
   const [y, m, d] = today.split("-").map(Number);
   const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // days in this month
   const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
-  return STATEMENTS
-    .filter((r) => d === Math.min(r.day, lastDay))
-    .map((r) => ({ text: `File ${r.text} (${mon})`, ts: Date.now(), bucket: "today", doing: false }));
+  const dueToday = (r) => d === Math.min(r.day, lastDay);
+  const item = (text) => ({ text: `${text} (${mon})`, ts: Date.now(), bucket: "today", doing: false });
+  return [
+    ...STATEMENTS.filter(dueToday).map((r) => item(`File ${r.text}`)),
+    ...MONTHLY_TODOS.filter(dueToday).map((r) => item(r.text)),
+  ];
 }
 
 function happyDayLine(today) {
