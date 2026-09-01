@@ -471,6 +471,13 @@
   .nw-chg.down{color:var(--accent-deep)}
   .nw-chg.flat{color:var(--ink-soft)}
   .nw-note{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-faint);margin-top:8px;letter-spacing:.04em}
+  /* driver breakdown under the change chips: what moved the number */
+  .nw-drivers{display:flex;gap:34px;flex-wrap:wrap;margin-top:7px}
+  .nw-drv{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-soft);min-width:210px}
+  .nw-drv-h{font-weight:600;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:3px;font-size:10px}
+  .nw-drv-row{display:flex;justify-content:space-between;gap:14px;padding:1.5px 0}
+  .nw-drv-row .up{color:#2e6b3e}
+  .nw-drv-row .down{color:var(--accent-deep)}
   @media(max-width:560px){.nw-val{font-size:28px}}
 
   /* ---- to-do list (owner) ---- */
@@ -903,6 +910,7 @@
           <div id="nwDetail" style="display:none">
             <div class="nw-head"><span class="nw-val" id="nwUsd">—</span><span class="nw-sgd" id="nwSgd">—</span></div>
             <div class="nw-changes" id="nwChanges"></div>
+            <div class="nw-drivers" id="nwDrivers"></div>
             <div class="nw-changes" id="nwBudget" style="margin-top:4px"></div>
             <div class="nw-changes" id="nwImpact" style="margin-top:4px"></div>
             <div class="nw-note" id="nwNote"></div>
@@ -1466,6 +1474,17 @@ async function loadNetWorth(){
       return `<span class="nw-chg ${cls}" title="since ${esc(c.since)}"><b>${lbl}</b>${arrow} ${c.sgd >= 0 ? "+" : "−"}S$${Math.abs(Math.round(c.sgd)).toLocaleString("en-US")}${pct}</span>`;
     };
     $("nwChanges").innerHTML = chg("1D", d.changes.day) + chg("MONTH", d.changes.month) + chg("YTD", d.changes.ytd);
+    // What moved it: per-component + FX driver lists under the chips (top
+    // movers; the tail collapses into "other"). Only for periods whose
+    // compared snapshot recorded per-component parts.
+    const drv = (lbl, c) => {
+      if(!c || !c.drivers || !c.drivers.length) return "";
+      const top = c.drivers.slice(0, 6);
+      const rest = c.drivers.slice(6).reduce((s, x) => s + x.sgd, 0);
+      const row = (label, v) => `<div class="nw-drv-row"><span>${esc(label)}</span><span class="${v > 0.5 ? "up" : v < -0.5 ? "down" : ""}">${v >= 0 ? "+" : "−"}S$${Math.abs(Math.round(v)).toLocaleString("en-US")}</span></div>`;
+      return `<div class="nw-drv"><div class="nw-drv-h">${lbl} DRIVERS</div>${top.map(x=>row(x.label, x.sgd)).join("")}${Math.abs(rest) >= 1 ? row("other", rest) : ""}</div>`;
+    };
+    $("nwDrivers").innerHTML = drv("1D", d.changes.day) + drv("MONTH", d.changes.month);
     const bk = d.breakeven;
     if(bk){
       const s = bk.surplusSgd, cls = s >= 0 ? "up" : "down";
@@ -1490,7 +1509,8 @@ async function loadNetWorth(){
       $("nwBudget").innerHTML = "";
       $("nwImpact").innerHTML = "";
     }
-    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots · components in /admin`;
+    const noDrv = d.changes.day && !(d.changes.day.drivers && d.changes.day.drivers.length);
+    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots · components in /admin${noDrv ? " · driver breakdown starts with the next snapshot" : ""}`;
     blk.style.display = "";
   }catch(e){ /* leave hidden */ }
 }
