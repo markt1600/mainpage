@@ -23,6 +23,9 @@
 // vs the last snapshot of the previous calendar month; ytd = vs the last
 // snapshot of the previous year. Each falls back to the oldest snapshot
 // available, and is null until there is anything to compare against.
+// Each change also carries `drivers`: the per-component moves (valued at
+// today's FX) plus a "USD/SGD FX" line, summing to the total — available
+// once the compared snapshot carries per-component parts.
 //
 // Pricing is all-or-nothing: if FX or any share price can't be fetched the
 // request fails rather than recording a snapshot with a hole in it.
@@ -187,20 +190,75 @@ function breakevenFor(settings, totals) {
   return { ...s, surplusSgd: totals.sgd - bkSgd, surplusUsd: (totals.sgd - bkSgd) / totals.fx };
 }
 
-// changes vs history, in SGD (abs + pct)
-function changesFor(history, today, nowSgd) {
+// Per-component values a snapshot carries so later changes can be
+// decomposed into drivers: native = the amount in the component's own
+// currency (market rows: qty × price in the trading currency).
+function snapParts(rows, fx) {
+  return rows.map((r) => ({
+    label: r.label, ccy: r.ccy, native: r.amount,
+    sgd: r.ccy === "USD" ? r.amount * fx : r.amount,
+  }));
+}
+
+/* Decompose the SGD change vs a snapshot into drivers: each component's
+   own move valued at TODAY's FX, plus one "USD/SGD FX" line carrying the
+   rate move on the old USD holdings — the parts sum exactly to the total
+   change. Null when the snapshot predates part tracking. */
+function driversFor(snap, rows, fx) {
+  if (!snap || !Array.isArray(snap.parts) || !snap.parts.length) return null;
+  const old = new Map(snap.parts.map((p) => [p.label, p]));
+  const nw = new Map(rows.map((r) => [r.label, r]));
+  let fxPart = 0;
+  const out = [];
+  for (const label of new Set([...old.keys(), ...nw.keys()])) {
+    const o = old.get(label), n = nw.get(label);
+    const ccy = (n ? n.ccy : o.ccy) || "SGD";
+    const asset = ((n ? n.amount : 0) - (o ? o.native : 0)) * (ccy === "USD" ? fx : 1);
+    if (o && ccy === "USD") fxPart += o.native * (fx - (Number.isFinite(snap.fx) ? snap.fx : fx));
+    if (Math.abs(asset) >= 0.5) out.push({ label, sgd: asset });
+  }
+  if (Math.abs(fxPart) >= 0.5) out.push({ label: "USD/SGD FX", sgd: fxPart, fx: true });
+  return out.sort((a, b) => Math.abs(b.sgd) - Math.abs(a.sgd));
+}
+
+// changes vs history, in SGD (abs + pct + driver breakdown)
+function changesFor(history, today, totals, rows) {
+  const nowSgd = totals.sgd;
   const prior = history.filter((h) => h && h.d && h.d < today).sort((a, b) => (a.d < b.d ? -1 : 1));
   const pick = (pred) => {
     const c = prior.filter(pred);
     return c.length ? c[c.length - 1] : (prior.length ? prior[0] : null);
   };
   const month = today.slice(0, 7), year = today.slice(0, 4);
-  const mk = (snap) => snap ? { sgd: nowSgd - snap.sgd, pct: snap.sgd ? ((nowSgd - snap.sgd) / Math.abs(snap.sgd)) * 100 : null, since: snap.d } : null;
+  const mk = (snap) => snap ? {
+    sgd: nowSgd - snap.sgd,
+    pct: snap.sgd ? ((nowSgd - snap.sgd) / Math.abs(snap.sgd)) * 100 : null,
+    since: snap.d,
+    drivers: driversFor(snap, rows, totals.fx),
+  } : null;
   return {
     day: mk(prior.length ? prior[prior.length - 1] : null),
     month: mk(pick((h) => h.d.slice(0, 7) < month)),
     ytd: mk(pick((h) => h.d.slice(0, 4) < year)),
   };
+}
+
+/* Parts make snapshots much heavier, and the GitHub contents API stops
+   returning files past ~1MB — so keep parts only where a change might
+   compare to: the last ~45 days, each month's final snapshot, and each
+   year's final snapshot. Everything else keeps just its totals. */
+function pruneParts(history) {
+  const lastOfMonth = {}, lastOfYear = {};
+  for (const h of history) {
+    if (h && h.d) { lastOfMonth[h.d.slice(0, 7)] = h.d; lastOfYear[h.d.slice(0, 4)] = h.d; }
+  }
+  const cutoff = new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10);
+  return history.map((h) => {
+    if (!h || !h.parts) return h;
+    if (h.d >= cutoff || lastOfMonth[h.d.slice(0, 7)] === h.d || lastOfYear[h.d.slice(0, 4)] === h.d) return h;
+    const { parts, ...rest } = h;
+    return rest;
+  });
 }
 
 export default async function handler(req, res) {
@@ -229,9 +287,10 @@ export default async function handler(req, res) {
       const settings = body.settings !== undefined ? sanitizeSettings(body.settings) : cur.settings;
       const { rows, totals } = await priceAndTotal(components);
       // refresh today's snapshot so edits are reflected in the change figures
-      const history = cur.history.filter((h) => h && h.d !== today).concat([{ d: today, sgd: totals.sgd, usd: totals.usd, fx: totals.fx }]).slice(-MAX_HISTORY);
+      const history = pruneParts(cur.history.filter((h) => h && h.d !== today)
+        .concat([{ d: today, sgd: totals.sgd, usd: totals.usd, fx: totals.fx, parts: snapParts(rows, totals.fx) }])).slice(-MAX_HISTORY);
       const sha = await writeStore(ghToken, components, history, settings, body.sha || cur.sha, "networth: update");
-      res.status(200).json({ components: rows, totals, changes: changesFor(history, today, totals.sgd), breakeven: breakevenFor(settings, totals), sha, asOf: today });
+      res.status(200).json({ components: rows, totals, changes: changesFor(history, today, totals, rows), breakeven: breakevenFor(settings, totals), sha, asOf: today });
       return;
     }
 
@@ -240,14 +299,14 @@ export default async function handler(req, res) {
     let outSha = sha, outHistory = history;
     if (!history.some((h) => h && h.d === today)) {
       // first load of the SGT day — record the snapshot the future compares to
-      outHistory = history.concat([{ d: today, sgd: totals.sgd, usd: totals.usd, fx: totals.fx }]).slice(-MAX_HISTORY);
+      outHistory = pruneParts(history.concat([{ d: today, sgd: totals.sgd, usd: totals.usd, fx: totals.fx, parts: snapParts(rows, totals.fx) }])).slice(-MAX_HISTORY);
       try {
         outSha = await writeStore(ghToken, components, outHistory, settings, sha, `networth: daily snapshot ${today}`);
       } catch (e) {
         if (!(e && e.conflict)) throw e; // a concurrent snapshot already landed — fine
       }
     }
-    res.status(200).json({ components: rows, totals, changes: changesFor(outHistory, today, totals.sgd), breakeven: breakevenFor(settings, totals), sha: outSha, asOf: today });
+    res.status(200).json({ components: rows, totals, changes: changesFor(outHistory, today, totals, rows), breakeven: breakevenFor(settings, totals), sha: outSha, asOf: today });
   } catch (err) {
     if (err && err.conflict) { res.status(409).json({ error: "conflict — reload" }); return; }
     res.status(502).json({ error: String(err && err.message || err).slice(0, 200) });
