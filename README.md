@@ -23,7 +23,7 @@ Built as one static page plus a few Vercel serverless functions. No framework, n
 | Birthdays (shown 7 days before → 3 days after) | `data/birthdays.json` — edit at **`/admin`** (inline `BIRTHDAYS` array in `index.html` is the fallback) | No |
 | Events watchlist (concerts, races, fitness, motorsport — finished events drop off) | `data/events.json` — edit at **`/admin`** (inline `EVENTS` array in `index.html` is the fallback) | No |
 | Personal calendar (owner-only): Outlook-style month/week views, Sunday-first, multi-day events as continuous bars, recurring events (weekly/monthly/yearly), birthdays as annual dots; click any entry to edit every field or delete it (saves through the admin APIs with a fresh-sha conflict guard) | Public events + birthdays + the encrypted private list (`/api/private-events`) | Login |
-| Statement filing (owner-only): on each statement's landing day the daily cron adds a "File … statement" item to the to-do list | `STATEMENTS` config in `api/notify.js` | Login |
+| Statement filing + recurring to-dos (owner-only): on schedule the daily cron adds items to the to-do list — statement-filing days and monthly bills are built in, and any item can be made recurring (monthly/yearly on a chosen date) from the To-dos panel in `/admin` | `STATEMENTS` / `MONTHLY_TODOS` configs in `api/notify.js`; user rules stored encrypted with the list | Login |
 | Public holidays (next per region: Singapore, Japan, Vancouver/BC, Hong Kong, Shanghai) | Nager.Date API | No |
 | 🔔 Morning digest push (07:20 SGT: build status, birthdays, event starts) | Web Push via `/api/notify` cron — see **Notifications** below | VAPID keys |
 
