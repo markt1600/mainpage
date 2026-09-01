@@ -234,6 +234,27 @@
       </div>
     </section>
 
+    <!-- TO-DOS (encrypted; same store the dashboard pad and /todo use).
+         Lists every outstanding item across all buckets; the Recurring
+         controls create schedules the daily cron re-adds items from. -->
+    <section class="panel">
+      <div class="phead">
+        <h2>To-dos</h2>
+        <span class="meta" id="tdMeta"></span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Item</th><th>Bucket</th><th>Added</th><th>Recurring</th><th>On</th><th class="act"></th>
+          </tr></thead>
+          <tbody id="tdBody"></tbody>
+        </table>
+      </div>
+      <div class="hint">All outstanding items (Today / Next / Someday). Make one recurring and pick a date: <b>monthly</b> re-adds it on that day each month, <b>yearly</b> on that month + day each year (the picker's year is ignored). The daily cron adds the item back to Today with a month/year tag — the copy on the list now is unaffected. Changes here save immediately.</div>
+      <div class="bar"><span class="status" id="tdStatus"></span></div>
+      <div id="tdRules" style="margin-top:8px"></div>
+    </section>
+
     <!-- NET WORTH (encrypted; components feed the For Mark net-worth block).
          Two currency columns: type in a component's own column, the other
          converts live at the current USD/SGD rate; the TOTAL row follows
@@ -334,6 +355,7 @@ async function tryUnlock(session){
     hydrate(d);
     showApp();
     loadPrivate();
+    loadTodosAdmin();
     loadNetworth();
   }catch(e){ $("gateErr").textContent = String(e.message || e); }
 }
@@ -556,6 +578,140 @@ async function savePrivate(){
   finally{ $("pvSave").disabled = false; }
 }
 $("pvSave").addEventListener("click", savePrivate);
+
+/* ---------- to-dos + recurring rules (encrypted store via /api/todos) ----------
+   Lists every outstanding item; the Recurring select + date picker create
+   {text, freq, day[, month]} rules stored beside the list. The daily cron
+   re-adds a rule's item on schedule with a "(Sep)" / "(2026)" tag, so
+   rules key on the BASE text (tag stripped). Changes save immediately
+   with the usual sha guard. */
+let TD = { todos: [], rules: [], sha: null };
+const TD_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const tdBase = (t) => String(t||"").replace(/\s*\((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})\)$/, "");
+function tdStat(msg, cls){ const el = $("tdStatus"); el.textContent = msg; el.className = "status" + (cls ? " " + cls : ""); }
+
+async function loadTodosAdmin(){
+  try{
+    const d = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    TD = { todos: Array.isArray(d.todos) ? d.todos : [], rules: Array.isArray(d.rules) ? d.rules : [], sha: d.sha || null };
+    renderTodosAdmin();
+  }catch(e){}
+}
+
+const tdDate = (ts) => Number.isFinite(ts) ? new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short" }).format(new Date(ts)) : "";
+const ruleFor = (text) => TD.rules.find(r => r.text === tdBase(text)) || null;
+// seed the picker from a rule: monthly shows the current month, yearly its
+// own month; the year is display-only either way
+function ruleDateValue(r){
+  if(!r) return "";
+  const y = new Date().getFullYear();
+  const m = r.freq === "yearly" ? (r.month || 1) : (new Date().getMonth() + 1);
+  const dim = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2,"0")}-${String(Math.min(r.day, dim)).padStart(2,"0")}`;
+}
+
+function renderTodosAdmin(){
+  const body = $("tdBody"); body.innerHTML = "";
+  const order = { today:0, next:1, someday:2 };
+  const items = TD.todos.map((t,i)=>({t,i})).sort((a,b)=>(order[a.t.bucket]??0)-(order[b.t.bucket]??0));
+  for(const {t,i} of items){
+    const r = ruleFor(t.text);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${esc(t.text)}${t.doing?` <span style="color:#b07820;font-size:10px">· in progress</span>`:""}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-faint)">${esc(t.bucket||"today")}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-faint);white-space:nowrap">${tdDate(t.ts)}</td>
+      <td style="width:104px"><select data-td-freq="${i}">
+        <option value="">—</option>
+        <option value="monthly"${r && r.freq==="monthly" ? " selected" : ""}>monthly</option>
+        <option value="yearly"${r && r.freq==="yearly" ? " selected" : ""}>yearly</option>
+      </select></td>
+      <td class="date"><input type="date" data-td-date="${i}" value="${ruleDateValue(r)}"${r ? "" : " disabled"}></td>
+      <td class="act"><button class="danger" data-td-del="${i}" title="Delete item">✕</button></td>`;
+    body.appendChild(tr);
+  }
+  if(!items.length){
+    body.innerHTML = `<tr><td colspan="6" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-faint);padding:10px 8px">Nothing outstanding.</td></tr>`;
+  }
+  $("tdMeta").textContent = `${TD.todos.length} item${TD.todos.length===1?"":"s"} · ${TD.rules.length} recurring`;
+
+  // Every schedule, including ones whose current copy is already ticked
+  // off — this is where a rule outlives its item.
+  $("tdRules").innerHTML = TD.rules.length ? `
+    <div class="hint" style="margin-bottom:4px"><b>Recurring schedules</b> — keep firing even after the current copy is ticked off:</div>
+    ${TD.rules.map((r,ri)=>`<div style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:2px 0">
+      ↻ ${esc(r.text)} · ${r.freq==="yearly" ? `every year on ${r.day} ${TD_MONTHS[(r.month||1)-1]}` : `every month on day ${r.day}`}
+      <a href="#" data-td-rdel="${ri}" style="margin-left:8px;color:var(--err);text-decoration:none" title="Remove schedule">✕</a>
+    </div>`).join("")}` : "";
+
+  body.querySelectorAll("[data-td-del]").forEach(b=>b.addEventListener("click", ()=>tdDeleteItem(+b.dataset.tdDel)));
+  body.querySelectorAll("[data-td-freq]").forEach(s=>s.addEventListener("change", ()=>tdFreqChange(+s.dataset.tdFreq, s)));
+  body.querySelectorAll("[data-td-date]").forEach(inp=>inp.addEventListener("change", ()=>tdDateChange(+inp.dataset.tdDate, inp)));
+  $("tdRules").querySelectorAll("[data-td-rdel]").forEach(a=>a.addEventListener("click", (ev)=>{ ev.preventDefault(); tdRuleDelete(+a.dataset.tdRdel); }));
+}
+
+async function tdSave(part){
+  tdStat("saving…");
+  try{
+    const res = await authFetch("/api/todos", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ ...part, sha: TD.sha }) });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){
+      tdStat(res.status === 409 ? "conflict — reloading" : (j.error || `error ${res.status}`), "err");
+      await loadTodosAdmin();
+      return false;
+    }
+    TD.sha = j.sha || TD.sha;
+    tdStat("saved · encrypted", "ok");
+    return true;
+  }catch(e){ tdStat(String(e.message || e), "err"); return false; }
+}
+
+async function tdDeleteItem(i){
+  const t = TD.todos[i]; if(!t) return;
+  if(!confirm(`Delete "${t.text}"?`)) return;
+  TD.todos = TD.todos.filter((_,j)=>j!==i);
+  if(await tdSave({ todos: TD.todos })) renderTodosAdmin();
+}
+
+function tdUpsertRule(base, freq, day, month){
+  TD.rules = TD.rules.filter(r=>r.text!==base);
+  const rule = { text: base, freq, day };
+  if(freq === "yearly") rule.month = month;
+  TD.rules.push(rule);
+}
+
+async function tdFreqChange(i, sel){
+  const t = TD.todos[i]; if(!t) return;
+  const base = tdBase(t.text);
+  const inp = document.querySelector(`[data-td-date="${i}"]`);
+  if(!sel.value){
+    TD.rules = TD.rules.filter(r=>r.text!==base);
+    if(inp){ inp.value = ""; inp.disabled = true; }
+    if(await tdSave({ rules: TD.rules })) renderTodosAdmin();
+    return;
+  }
+  if(inp) inp.disabled = false;
+  if(!inp || !inp.value){ tdStat("pick a date to finish the schedule"); if(inp) inp.focus(); return; }
+  const [, m, d] = inp.value.split("-").map(Number);
+  tdUpsertRule(base, sel.value, d, m);
+  if(await tdSave({ rules: TD.rules })) renderTodosAdmin();
+}
+
+async function tdDateChange(i, inp){
+  const t = TD.todos[i]; if(!t || !inp.value) return;
+  const sel = document.querySelector(`[data-td-freq="${i}"]`);
+  if(!sel || !sel.value){ tdStat("choose monthly or yearly first"); return; }
+  const [, m, d] = inp.value.split("-").map(Number);
+  tdUpsertRule(tdBase(t.text), sel.value, d, m);
+  if(await tdSave({ rules: TD.rules })) renderTodosAdmin();
+}
+
+async function tdRuleDelete(ri){
+  const r = TD.rules[ri]; if(!r) return;
+  if(!confirm(`Remove the recurring schedule for "${r.text}"?`)) return;
+  TD.rules = TD.rules.filter((_,j)=>j!==ri);
+  if(await tdSave({ rules: TD.rules })) renderTodosAdmin();
+}
 
 /* ---------- net worth (encrypted store via /api/networth) ----------
    Two currency columns. A fixed component is edited in its own currency's

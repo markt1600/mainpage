@@ -39,23 +39,34 @@ function ghHeaders(token) {
   };
 }
 
+/* The blob holds { todos, rules } — rules are the recurring-item
+   schedules managed in /admin (monthly/yearly re-adds fired by the
+   daily cron). Legacy blobs were a bare todos array. */
+function unpack(d) {
+  if (Array.isArray(d)) return { todos: d, rules: [] };
+  return {
+    todos: Array.isArray(d && d.todos) ? d.todos : [],
+    rules: Array.isArray(d && d.rules) ? d.rules : [],
+  };
+}
+
 export async function readTodos(ghToken) {
   const res = await fetch(`${GH}/repos/${REPO}/contents/${PATH}?ref=${encodeURIComponent(BRANCH)}`, { headers: ghHeaders(ghToken), cache: "no-store" });
-  if (res.status === 404) return { todos: [], sha: null };
+  if (res.status === 404) return { todos: [], rules: [], sha: null };
   if (!res.ok) throw new Error(`GitHub read ${res.status}`);
   const j = await res.json();
   try {
-    const todos = decrypt(JSON.parse(Buffer.from(j.content || "", "base64").toString("utf8")));
-    return { todos: Array.isArray(todos) ? todos : [], sha: j.sha || null };
+    const d = decrypt(JSON.parse(Buffer.from(j.content || "", "base64").toString("utf8")));
+    return { ...unpack(d), sha: j.sha || null };
   } catch (_) {
-    return { todos: [], sha: j.sha || null }; // undecryptable — treat as empty
+    return { todos: [], rules: [], sha: j.sha || null }; // undecryptable — treat as empty
   }
 }
 
-export async function writeTodos(ghToken, todos, sha) {
+export async function writeTodos(ghToken, todos, rules, sha) {
   const body = {
     message: `todos: update (${todos.length} item${todos.length === 1 ? "" : "s"})`,
-    content: Buffer.from(JSON.stringify(encrypt(todos), null, 1) + "\n", "utf8").toString("base64"),
+    content: Buffer.from(JSON.stringify(encrypt({ todos, rules: Array.isArray(rules) ? rules : [] }), null, 1) + "\n", "utf8").toString("base64"),
     branch: BRANCH,
   };
   if (sha) body.sha = sha;
@@ -75,12 +86,12 @@ export async function writeTodos(ghToken, todos, sha) {
    actually added. */
 export async function appendTodos(ghToken, items) {
   for (let attempt = 0; ; attempt++) {
-    const { todos, sha } = await readTodos(ghToken);
+    const { todos, rules, sha } = await readTodos(ghToken);
     const have = new Set(todos.map((t) => t && t.text));
     const adds = items.filter((it) => it.text && !have.has(it.text));
     if (!adds.length) return [];
     try {
-      await writeTodos(ghToken, todos.concat(adds), sha);
+      await writeTodos(ghToken, todos.concat(adds), rules, sha);
       return adds.map((it) => it.text);
     } catch (e) {
       if (e && e.conflict && attempt < 1) continue;

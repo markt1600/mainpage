@@ -25,7 +25,7 @@
 
 import webpush from "web-push";
 import { readSubs, writeSubs } from "./_pushstore.js";
-import { appendTodos } from "./_todostore.js";
+import { appendTodos, readTodos } from "./_todostore.js";
 
 const SITE = "https://marktan.ai";
 const MERIDIAN_STATUS = "https://raw.githubusercontent.com/markt1600/dailymag/main/status.json";
@@ -91,6 +91,27 @@ function statementTodos(today) {
     ...STATEMENTS.filter(dueToday).map((r) => item(`File ${r.text}`)),
     ...MONTHLY_TODOS.filter(dueToday).map((r) => item(r.text)),
   ];
+}
+
+/* User-defined recurring rules, stored (encrypted) with the list itself
+   and managed in /admin: {text, freq:"monthly", day} re-adds monthly on
+   that day; freq:"yearly" adds {month} and re-adds once a year. The tag
+   — "(Sep)" for monthly, "(2026)" for yearly — keeps occurrences
+   distinct, which is what the append dedupe keys on. */
+function ruleTodos(rules, today) {
+  const [y, m, d] = today.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
+  const out = [];
+  for (const r of Array.isArray(rules) ? rules : []) {
+    if (!r || !r.text) continue;
+    if (r.freq === "yearly") {
+      if (m === r.month && d === Math.min(r.day, lastDay)) out.push({ text: `${r.text} (${y})`, ts: Date.now(), bucket: "today", doing: false });
+    } else if (d === Math.min(r.day, lastDay)) {
+      out.push({ text: `${r.text} (${mon})`, ts: Date.now(), bucket: "today", doing: false });
+    }
+  }
+  return out;
 }
 
 function happyDayLine(today) {
@@ -184,18 +205,25 @@ export default async function handler(req, res) {
   webpush.setVapidDetails("mailto:markh.tan@gmail.com", pub, priv);
 
   const payload = await composeDigest();
+  const ghToken = (process.env.GITHUB_TOKEN || "").trim();
+
+  // Everything due on the list today: built-in statements/chores plus the
+  // user's recurring rules from the encrypted store.
+  let due = statementTodos(sgToday());
+  if (ghToken) {
+    try { due = due.concat(ruleTodos((await readTodos(ghToken)).rules, sgToday())); } catch (_) {}
+  }
+
   if (dry) {
-    res.status(200).json({ dry: true, payload, wouldAddTodos: statementTodos(sgToday()).map((t) => t.text) });
+    res.status(200).json({ dry: true, payload, wouldAddTodos: due.map((t) => t.text) });
     return;
   }
 
-  const ghToken = (process.env.GITHUB_TOKEN || "").trim();
   if (!ghToken) { res.status(503).json({ error: "GITHUB_TOKEN not set" }); return; }
 
-  // Statement-filing to-dos land before the push goes out; a failure here
-  // must not block the digest (the dedupe makes tomorrow's retry safe).
+  // Scheduled to-dos land before the push goes out; a failure here must
+  // not block the digest (the dedupe makes tomorrow's retry safe).
   let todosAdded = [];
-  const due = statementTodos(sgToday());
   if (due.length) {
     try { todosAdded = await appendTodos(ghToken, due); } catch (_) {}
   }
