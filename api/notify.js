@@ -5,9 +5,12 @@
 //
 //   · MERIDIAN pipeline: built (with issue/time/duration/pages) or MISSING
 //   · the Happy Day counter
-//   · statement reminders due today
 //   · birthdays today / tomorrow / a week out
 //   · watchlist events starting today or tomorrow
+//
+// Statements are no longer a digest line: on each statement's landing
+// day this cron drops a "File … statement" item straight into the
+// encrypted to-do list instead (deduped by text, so re-runs are safe).
 //
 // Delivery uses the `tag` field, so a re-run replaces the notification
 // instead of stacking a duplicate.
@@ -22,6 +25,7 @@
 
 import webpush from "web-push";
 import { readSubs, writeSubs } from "./_pushstore.js";
+import { appendTodos } from "./_todostore.js";
 
 const SITE = "https://marktan.ai";
 const MERIDIAN_STATUS = "https://raw.githubusercontent.com/markt1600/dailymag/main/status.json";
@@ -54,15 +58,30 @@ function daysUntil(iso, today) {
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
 
-// Keep both of these in sync with the same-named configs in index.html.
+// Keep HAPPY_DAY in sync with the same-named config in index.html.
 const HAPPY_DAY = { month: 4, day: 4, firstYear: 2023 };
-const REMINDERS = [
-  { day: 20, text: "Citi SG CC Statement Available" },
-  { day: 24, text: "Citi US CC Statement Available" },
-  { day: 24, text: "UOB CC Statement Available" },
-  { day: 1,  text: "Citi SG Bank Statement Available" },
-  { day: 1,  text: "Citi US Bank Statement Available" },
+// Statement landing days (SGT; one day after the statement date —
+// month-end statements → the 1st). This is now the only copy: the
+// dashboard shows the resulting to-dos, not a separate banner.
+const STATEMENTS = [
+  { day: 20, text: "Citi SG CC statement" },
+  { day: 24, text: "Citi US CC statement" },
+  { day: 24, text: "UOB CC statement" },
+  { day: 1,  text: "Citi SG bank statement" },
+  { day: 1,  text: "Citi US bank statement" },
 ];
+
+/* To-do items for statements landing today: "File Citi SG CC statement
+   (Sep)" in the Today bucket. The month tag keeps texts distinct across
+   months, which is also what the append dedupe keys on. */
+function statementTodos(today) {
+  const [y, m, d] = today.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // days in this month
+  const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
+  return STATEMENTS
+    .filter((r) => d === Math.min(r.day, lastDay))
+    .map((r) => ({ text: `File ${r.text} (${mon})`, ts: Date.now(), bucket: "today", doing: false }));
+}
 
 function happyDayLine(today) {
   const [y, m, d] = today.split("-").map(Number);
@@ -74,12 +93,6 @@ function happyDayLine(today) {
     (Date.UTC(y, m - 1, d) - Date.UTC(annivYear, HAPPY_DAY.month - 1, HAPPY_DAY.day)) / 86400000
   ) + 1;
   return `♥ Happy Day ${years * 365}.${dayNum}`;
-}
-
-function reminderLines(today) {
-  const [y, m, d] = today.split("-").map(Number);
-  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // days in this month
-  return REMINDERS.filter((r) => d === Math.min(r.day, lastDay)).map((r) => `🔔 ${r.text}`);
 }
 
 async function composeDigest() {
@@ -104,7 +117,6 @@ async function composeDigest() {
 
   const hd = happyDayLine(today);
   if (hd) lines.push(hd);
-  lines.push(...reminderLines(today));
 
   const [ty] = today.split("-").map(Number);
   for (const b of Array.isArray(birthdays) ? birthdays : []) {
@@ -162,13 +174,24 @@ export default async function handler(req, res) {
   webpush.setVapidDetails("mailto:markh.tan@gmail.com", pub, priv);
 
   const payload = await composeDigest();
-  if (dry) { res.status(200).json({ dry: true, payload }); return; }
+  if (dry) {
+    res.status(200).json({ dry: true, payload, wouldAddTodos: statementTodos(sgToday()).map((t) => t.text) });
+    return;
+  }
 
   const ghToken = (process.env.GITHUB_TOKEN || "").trim();
   if (!ghToken) { res.status(503).json({ error: "GITHUB_TOKEN not set" }); return; }
 
+  // Statement-filing to-dos land before the push goes out; a failure here
+  // must not block the digest (the dedupe makes tomorrow's retry safe).
+  let todosAdded = [];
+  const due = statementTodos(sgToday());
+  if (due.length) {
+    try { todosAdded = await appendTodos(ghToken, due); } catch (_) {}
+  }
+
   const { subs, sha } = await readSubs(ghToken);
-  if (!subs.length) { res.status(200).json({ sent: 0, note: "no devices registered" }); return; }
+  if (!subs.length) { res.status(200).json({ sent: 0, todosAdded, note: "no devices registered" }); return; }
 
   const json = JSON.stringify(payload);
   const gone = [];
@@ -188,5 +211,5 @@ export default async function handler(req, res) {
     } catch (_) { /* next run will retry the prune */ }
   }
 
-  res.status(200).json({ sent, pruned: gone.length, devices: subs.length - gone.length });
+  res.status(200).json({ sent, pruned: gone.length, devices: subs.length - gone.length, todosAdded });
 }
