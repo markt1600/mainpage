@@ -27,8 +27,9 @@ import { sessionKey, isOwner, reqToken } from "./_session.js";
 import { readTodos as readStore, writeTodos } from "./_todostore.js";
 
 const str = (v, max = 500) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
-// GTD-ish buckets; anything unrecognised (incl. legacy items) lands in today
-const BUCKETS = ["today", "next", "someday"];
+// GTD-ish buckets plus the shopping list; anything unrecognised (incl.
+// legacy items) lands in today
+const BUCKETS = ["today", "next", "someday", "shopping"];
 const bucketOf = (v) => (BUCKETS.includes(String(v)) ? String(v) : "today");
 
 function sanitize(data) {

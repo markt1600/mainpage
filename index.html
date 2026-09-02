@@ -534,14 +534,24 @@
   .tcard[data-b="today"]{background:#fefdfa;color:#26221b}
   .tcard[data-b="next"]{background:#f3edde;color:#2a251c}
   .tcard[data-b="someday"]{background:#c8b48f;color:#38301f;border-color:rgba(40,32,20,.14)}
+  .tcard[data-b="shopping"]{background:#e0e5d2;color:#2c3122;border-color:rgba(44,49,34,.12)}
   .thead{display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer;user-select:none;-webkit-user-select:none}
   .tlabel{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.1em;color:#8a7f6a}
   .tcard[data-b="someday"] .tlabel{color:#5d5138}
+  .tcard[data-b="shopping"] .tlabel{color:#5f6a48}
   .tdots{display:grid;grid-template-columns:6px 6px;gap:4px;margin-top:2px}
   .tdots i{width:6px;height:6px;border:1.2px solid rgba(90,80,60,.5);border-radius:50%}
   .tbody{margin-top:6px}
-  .tcard.min{width:94%;margin:0 auto -12px;padding-bottom:14px;z-index:1}
-  .tcard.min + .tcard.min{width:97%}
+  .shop-add{
+    width:100%;font-family:"JetBrains Mono",monospace;font-size:12.5px;color:inherit;
+    background:rgba(255,255,255,.55);border:1px solid rgba(44,49,34,.25);
+    border-radius:6px;padding:6px 9px;margin:4px 0 6px;
+  }
+  .shop-add:focus{outline:none;border-color:rgba(44,49,34,.55)}
+  .shop-add:disabled{opacity:.5}
+  .tcard.min{width:92%;margin:0 auto -12px;padding-bottom:14px;z-index:1}
+  .tcard.min + .tcard.min{width:95%}
+  .tcard.min + .tcard.min + .tcard.min{width:98%}
   .tcard.min .tbody{display:none}
   .tcard.front{z-index:3}
   .tcard .todo-row{border-bottom-color:rgba(40,32,20,.16)}
@@ -1540,15 +1550,17 @@ function todoDate(ts){
   const sameYear = d.getFullYear() === new Date().getFullYear();
   return new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short", ...(sameYear ? {} : { year:"numeric" }) }).format(d);
 }
-/* Buckets (Today / Next / Someday). The dashboard shows ONE bucket at a
-   time — the chip in the heading cycles the view — and each row's "→"
-   chip moves that item along the same cycle. */
-const TODO_BUCKETS = ["today","next","someday"];
+/* Buckets: the GTD three (Today / Next / Someday) plus the Shopping
+   List, which sits in the stack but OUTSIDE the "→" move cycle — its
+   rows have no move chip and nothing moves into it. Clicking a tucked
+   card's header brings it to the front. */
+const TODO_BUCKETS = ["today","next","someday","shopping"];
+const TODO_FLOW = ["today","next","someday"]; // the "→" cycle only
 let todoView = "today";
 const todoBucket = (t) => TODO_BUCKETS.includes(t && t.bucket) ? t.bucket : "today";
-const nextBucket = (b) => TODO_BUCKETS[(TODO_BUCKETS.indexOf(b) + 1) % TODO_BUCKETS.length];
+const nextBucket = (b) => TODO_FLOW[(TODO_FLOW.indexOf(b) + 1) % TODO_FLOW.length];
 
-const TODO_LABELS = { today:"Today", next:"Next", someday:"Someday" };
+const TODO_LABELS = { today:"Today", next:"Next", someday:"Someday", shopping:"Shopping List" };
 function renderTodos(){
   const el = $("todoList");
   if(!el) return;
@@ -1563,16 +1575,28 @@ function renderTodos(){
       .sort((a,c)=>(a.t.doing?1:0)-(c.t.doing?1:0));
     const front = b === todoView;
     const items = rows.length
-      ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${TODO_LABELS[nextBucket(b)]}">→ ${nextBucket(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
-      : `<div class="tempty">Nothing in ${TODO_LABELS[b].toLowerCase()} — add one in the box at the top of the page.</div>`;
+      ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span>${b==="shopping"?"":`<button class="todo-mv" data-i="${i}" title="Move to ${TODO_LABELS[nextBucket(b)]}">→ ${nextBucket(b)}</button>`}<button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+      : `<div class="tempty">${b==="shopping" ? "Nothing on the list yet — type above." : `Nothing in ${TODO_LABELS[b].toLowerCase()} — add one in the box at the top of the page.`}</div>`;
+    // the shopping card carries its own add box (shopping items are added
+    // here, not via the quick-add, which feeds Today)
+    const addBox = b==="shopping" ? `<input class="shop-add" placeholder="＋ add to shopping list… (Enter)" maxlength="500">` : "";
     return `<div class="tcard ${front?"front":"min"}" data-b="${b}">
       <div class="thead" data-b="${b}" title="${front?"":"Bring "+TODO_LABELS[b]+" to the front"}">
         <span class="tlabel">${TODO_LABELS[b]}${rows.length?` · ${rows.length}`:""}</span>
         <span class="tdots"><i></i><i></i><i></i><i></i></span>
       </div>
-      <div class="tbody">${items}</div>
+      <div class="tbody">${addBox}${items}</div>
     </div>`;
   }).join("");
+  el.querySelectorAll(".shop-add").forEach(inp=>inp.addEventListener("keydown", async (e)=>{
+    if(e.key !== "Enter") return;
+    const v = inp.value.trim(); if(!v) return;
+    inp.disabled = true;
+    try{
+      await addTodo(v, "shopping"); // reloads + re-renders
+      const again = el.querySelector(".shop-add"); if(again) again.focus();
+    }catch(_){ inp.disabled = false; }
+  }));
   el.querySelectorAll(".thead").forEach(h=>h.addEventListener("click", ()=>{
     if(h.dataset.b !== todoView){ todoView = h.dataset.b; renderTodos(); }
   }));
@@ -1623,12 +1647,12 @@ async function moveTodo(i, btn){
     TODOS = list; renderTodos();
   }catch(e){ if(btn) btn.disabled = false; }
 }
-async function addTodo(text){
+async function addTodo(text, bucket){
   const t = privateToken();
   if(!t || !text.trim()) return false;
   const res = await ownerFetch("/api/todos", {
     method:"POST", headers:{ "content-type":"application/json" },
-    body: JSON.stringify({ add: text.trim() }),
+    body: JSON.stringify({ add: text.trim(), ...(bucket ? { bucket } : {}) }),
   });
   if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
   await loadTodos();
