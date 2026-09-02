@@ -46,6 +46,10 @@
     {
       "source": "/todo",
       "destination": "/todo.html"
+    },
+    {
+      "source": "/list",
+      "destination": "/list.html"
     }
   ],
   "crons": [

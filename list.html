@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>List · marktan.ai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* The clean standalone to-do page: the same card stack as the
+     dashboard's private section, with nothing above it but a link home
+     and the add field — made for an iPhone-shortcut window. Same login
+     gate as /todo (the dashboard's Google session). */
+  :root{
+    --paper:#f4ede0; --paper-2:#ede4d3; --ink:#1c1812; --ink-soft:#5a5142;
+    --rule:#d8cdb8; --rule-strong:#b8ab90; --accent:#bb3b22; --accent-deep:#8a2b18;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:Georgia,serif;min-height:100vh}
+  .bar{height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-deep))}
+  .wrap{max-width:640px;margin:0 auto;padding:14px 16px 60px}
+  a{color:inherit}
+  button{font-family:"JetBrains Mono",monospace;cursor:pointer}
+
+  /* slim sticky top: home link + the add field, nothing else */
+  #top{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;gap:10px;
+    background:var(--paper-2);border-bottom:1px solid var(--rule-strong);
+    padding:8px 14px;
+  }
+  #home{
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);text-decoration:none;white-space:nowrap;
+  }
+  #home:hover{color:var(--accent-deep)}
+  #txt{
+    flex:1;font-family:"JetBrains Mono",monospace;font-size:16px;color:var(--ink);
+    background:var(--paper);border:1px solid var(--rule-strong);border-radius:2px;
+    padding:6px 10px;min-width:0;
+  }
+  #txt:focus{outline:none;border-color:var(--ink)}
+  #txt:disabled{opacity:.5}
+  #stat{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-soft);white-space:nowrap}
+  #stat.err{color:var(--accent-deep)}
+
+  #gate{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);margin-top:30px;line-height:1.8}
+  #app{display:none}
+
+  /* ---- rows + the stacked cards: identical system to the dashboard ---- */
+  .todo-row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule);transition:opacity .35s}
+  .todo-chk{
+    width:18px;height:18px;border-radius:50%;flex:none;align-self:center;
+    border:1.5px solid var(--rule-strong);background:transparent;cursor:pointer;
+    padding:0;color:transparent;font-size:11px;line-height:1;
+  }
+  .todo-chk:hover{border-color:var(--accent);color:var(--accent)}
+  .todo-text{cursor:pointer}
+  .todo-row.doing .todo-chk{
+    border-color:#b07820;
+    background:linear-gradient(90deg,#b07820 50%,transparent 50%);
+  }
+  .todo-doing-tag{
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.06em;
+    color:#b07820;white-space:nowrap;flex:none;
+  }
+  .todo-row.done{opacity:.45}
+  .todo-row.done .todo-chk{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+  .todo-row.done .todo-text{text-decoration:line-through;color:var(--ink-soft)}
+  .todo-text{flex:1;font-size:16px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+  .todo-date{font-family:"JetBrains Mono",monospace;font-size:10px;color:#b3a88e;white-space:nowrap;flex:none}
+  .todo-x{
+    font-size:11px;line-height:1;border:1px solid var(--rule-strong);border-radius:2px;
+    background:var(--paper-2);color:var(--ink-soft);padding:4px 8px;flex:none;align-self:center;
+  }
+  .todo-x:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  .todo-x:disabled{opacity:.4}
+
+  #stack{margin-top:22px}
+  .tcard{
+    border-radius:16px;padding:18px 22px 24px;
+    border:1px solid rgba(40,32,20,.08);
+    box-shadow:0 14px 34px rgba(40,32,20,.16), 0 2px 8px rgba(40,32,20,.08);
+    transition:margin .25s ease, width .25s ease;
+    position:relative;
+  }
+  .tcard[data-b="today"]{background:#fefdfa;color:#26221b}
+  .tcard[data-b="next"]{background:#f3edde;color:#2a251c}
+  .tcard[data-b="someday"]{background:#c8b48f;color:#38301f;border-color:rgba(40,32,20,.14)}
+  .tcard[data-b="shopping"]{background:#e0e5d2;color:#2c3122;border-color:rgba(44,49,34,.12)}
+  .thead{display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer;user-select:none;-webkit-user-select:none}
+  .tlabel{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.1em;color:#8a7f6a}
+  .tcard[data-b="someday"] .tlabel{color:#5d5138}
+  .tcard[data-b="shopping"] .tlabel{color:#5f6a48}
+  .tdots{display:grid;grid-template-columns:6px 6px;gap:4px;margin-top:3px}
+  .tdots i{width:6px;height:6px;border:1.2px solid rgba(90,80,60,.5);border-radius:50%}
+  .tbody{margin-top:10px}
+  .shop-add{
+    width:100%;font-family:"JetBrains Mono",monospace;font-size:16px;color:inherit;
+    background:rgba(255,255,255,.55);border:1px solid rgba(44,49,34,.25);
+    border-radius:6px;padding:7px 10px;margin:2px 0 8px;
+  }
+  .shop-add:focus{outline:none;border-color:rgba(44,49,34,.55)}
+  .shop-add:disabled{opacity:.5}
+  .tcard.min{width:92%;margin:0 auto -14px;padding-bottom:16px;z-index:1}
+  .tcard.min + .tcard.min{width:95%}
+  .tcard.min + .tcard.min + .tcard.min{width:98%}
+  .tcard.min .tbody{display:none}
+  .tcard.front{z-index:3;margin-top:0}
+  .tcard .todo-row{border-bottom-color:rgba(40,32,20,.16)}
+  .tcard[data-b="someday"] .todo-row{border-bottom-color:rgba(40,32,20,.22)}
+  .tcard .todo-chk{background:transparent;border-color:rgba(90,80,60,.5)}
+  .tcard .todo-date{color:rgba(90,80,60,.65)}
+  .tcard .todo-x{background:transparent;border-color:rgba(90,80,60,.4);color:rgba(90,80,60,.8)}
+  .todo-mv{
+    font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.04em;line-height:1;
+    border:1px solid rgba(90,80,60,.4);border-radius:9px;background:transparent;
+    color:rgba(90,80,60,.85);padding:3px 8px;cursor:pointer;flex:none;align-self:center;white-space:nowrap;
+  }
+  .todo-mv:hover{border-color:rgba(90,80,60,.8)}
+  .todo-mv:disabled{opacity:.4}
+  .tempty{font-family:"JetBrains Mono",monospace;font-size:11px;color:rgba(90,80,60,.6);padding:8px 0}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<div id="top">
+  <a id="home" href="/">← marktan.ai</a>
+  <input id="txt" type="text" placeholder="＋ add to-do… (Enter)" autocomplete="off" maxlength="500">
+  <span id="stat"></span>
+</div>
+<div class="wrap">
+  <div id="gate">checking your login…</div>
+  <div id="app">
+    <div id="stack"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let SESSION = null;
+let TODOS = [];
+
+function stat(msg, err){ const el = $("stat"); el.textContent = msg; el.className = err ? "err" : ""; }
+
+/* ---------- auth: the dashboard's Google-login session unlocks this page ---------- */
+(async function boot(){
+  try{ SESSION = localStorage.getItem("ownerSession") || null; }catch(e){}
+  if(SESSION){
+    try{
+      const r = await fetch("/api/login", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ session: SESSION }) });
+      if(!r.ok) SESSION = null;
+    }catch(e){ SESSION = null; }
+  }
+  if(!SESSION){
+    $("gate").innerHTML = 'This page is for the owner. <a href="/">Log in on the dashboard</a> first, then come back.';
+    $("txt").disabled = true;
+    return;
+  }
+  $("gate").style.display = "none";
+  $("app").style.display = "block";
+  loadList();
+})();
+
+function authFetch(url, opts){
+  opts = opts || {};
+  return fetch(url, { ...opts, headers: { ...(opts.headers||{}), authorization: "Bearer " + SESSION } });
+}
+
+/* ---------- list (same system as the dashboard pad) ---------- */
+async function loadList(){
+  try{
+    const d = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    TODOS = Array.isArray(d.todos) ? d.todos : [];
+    render();
+  }catch(e){}
+}
+// The GTD three plus the Shopping List — in the stack, but outside the
+// "→" move cycle (no move chip on its rows, nothing moves into it).
+const BUCKETS = ["today","next","someday","shopping"];
+const FLOW = ["today","next","someday"];
+const LABELS = { today:"Today", next:"Next", someday:"Someday", shopping:"Shopping List" };
+let ACTIVE = "today";
+const bucketOf = (t) => BUCKETS.includes(t && t.bucket) ? t.bucket : "today";
+const nextB = (b) => FLOW[(FLOW.indexOf(b)+1) % FLOW.length];
+
+function todoDate(ts){
+  if(!Number.isFinite(ts)) return "";
+  const d = new Date(ts);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-GB", { timeZone:"Asia/Singapore", day:"numeric", month:"short", ...(sameYear ? {} : { year:"numeric" }) }).format(d);
+}
+function render(){
+  const order = BUCKETS.filter(b=>b!==ACTIVE).reverse().concat([ACTIVE]);
+  $("stack").innerHTML = order.map(b=>{
+    // in-progress items sink to the bottom of their card (stable sort
+    // keeps insertion order within each group)
+    const rows = TODOS.map((t,i)=>({t,i})).filter(r=>bucketOf(r.t)===b)
+      .sort((a,c)=>(a.t.doing?1:0)-(c.t.doing?1:0));
+    const front = b === ACTIVE;
+    const items = rows.length
+      ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span>${b==="shopping"?"":`<button class="todo-mv" data-i="${i}" title="Move to ${LABELS[nextB(b)]}">→ ${nextB(b)}</button>`}<button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+      : `<div class="tempty">${b==="shopping" ? "Nothing on the list yet — type above." : `Nothing in ${LABELS[b].toLowerCase()}.`}</div>`;
+    // the shopping card carries its own add box — items land there directly
+    const addBox = b==="shopping" ? `<input class="shop-add" placeholder="＋ add to shopping list… (Enter)" maxlength="500">` : "";
+    return `<div class="tcard ${front?"front":"min"}" data-b="${b}">
+      <div class="thead" data-b="${b}" title="${front?"":"Bring "+LABELS[b]+" to the front"}">
+        <span class="tlabel">${LABELS[b]}${rows.length?` · ${rows.length}`:""}</span>
+        <span class="tdots"><i></i><i></i><i></i><i></i></span>
+      </div>
+      <div class="tbody">${addBox}${items}</div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".shop-add").forEach(inp=>inp.addEventListener("keydown", async (e)=>{
+    if(e.key !== "Enter") return;
+    const v = inp.value.trim(); if(!v) return;
+    inp.disabled = true;
+    try{
+      await add(v, "shopping"); // reloads + re-renders
+      const again = document.querySelector(".shop-add"); if(again) again.focus();
+    }catch(_){ inp.disabled = false; }
+  }));
+  $("txt").placeholder = `＋ add to ${LABELS[ACTIVE].toLowerCase()}… (Enter)`;
+  document.querySelectorAll(".thead").forEach(h=>h.addEventListener("click", ()=>{
+    if(h.dataset.b !== ACTIVE){ ACTIVE = h.dataset.b; render(); }
+  }));
+  document.querySelectorAll(".todo-x").forEach(b=>b.addEventListener("click", ()=>del(+b.dataset.i, b)));
+  document.querySelectorAll(".todo-mv").forEach(b=>b.addEventListener("click", ()=>move(+b.dataset.i, b)));
+  document.querySelectorAll(".todo-text").forEach(s=>s.addEventListener("click", ()=>{
+    if(String(window.getSelection && window.getSelection())) return; // selecting text, not toggling
+    toggleDoing(+s.dataset.i);
+  }));
+  document.querySelectorAll(".todo-chk").forEach(b=>b.addEventListener("click", ()=>{
+    b.closest(".todo-row").classList.add("done");
+    setTimeout(()=>del(+b.dataset.i, b), 450);
+  }));
+}
+
+/* Flip an item's in-progress marker — fresh-sha read-modify-write */
+async function toggleDoing(i){
+  const victim = TODOS[i]; if(!victim) return;
+  const to = !victim.doing;
+  TODOS[i] = { ...victim, doing: to }; render(); // optimistic
+  try{
+    const cur = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).map(x=>(x && x.text===victim.text && x.ts===victim.ts) ? { ...x, doing: to } : x);
+    const res = await authFetch("/api/todos", {
+      method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; render();
+  }catch(e){ loadList(); }
+}
+
+async function move(i, btn){
+  const victim = TODOS[i]; if(!victim) return;
+  const to = nextB(bucketOf(victim));
+  if(btn) btn.disabled = true;
+  try{
+    const cur = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).map(x=>(x && x.text===victim.text && x.ts===victim.ts) ? { ...x, bucket: to } : x);
+    const res = await authFetch("/api/todos", {
+      method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; render();
+  }catch(e){ if(btn) btn.disabled = false; }
+}
+async function add(text, bucket){
+  const res = await authFetch("/api/todos", {
+    method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text, bucket: bucket || ACTIVE }),
+  });
+  if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
+  await loadList();
+}
+async function del(i, btn){
+  const victim = TODOS[i]; if(!victim) return;
+  if(btn) btn.disabled = true;
+  try{
+    const cur = await authFetch("/api/todos", { cache:"no-store" }).then(r=>r.json());
+    const list = (cur.todos||[]).filter(x=>!(x && x.text===victim.text && x.ts===victim.ts));
+    const res = await authFetch("/api/todos", {
+      method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ todos: list, sha: cur.sha }),
+    });
+    if(!res.ok) throw new Error("save failed");
+    TODOS = list; render();
+  }catch(e){ if(btn) btn.disabled = false; }
+}
+
+/* ---------- the top add field (feeds the front card) ---------- */
+$("txt").addEventListener("keydown", async (e)=>{
+  if(e.key !== "Enter") return;
+  const v = $("txt").value.trim(); if(!v) return;
+  $("txt").disabled = true;
+  stat("saving…");
+  try{ await add(v); $("txt").value = ""; stat("✓ added"); setTimeout(()=>stat(""), 2000); }
+  catch(err){ stat("couldn't save — " + (err.message || err), true); }
+  finally{ $("txt").disabled = false; $("txt").focus(); }
+});
+
+/* fresh data when the shortcut window reopens */
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && SESSION) loadList(); });
+</script>
+</body>
+</html>
