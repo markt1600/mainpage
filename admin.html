@@ -612,7 +612,7 @@ function ruleDateValue(r){
 
 function renderTodosAdmin(){
   const body = $("tdBody"); body.innerHTML = "";
-  const order = { today:0, next:1, someday:2 };
+  const order = { today:0, next:1, someday:2, shopping:3 };
   const items = TD.todos.map((t,i)=>({t,i})).sort((a,b)=>(order[a.t.bucket]??0)-(order[b.t.bucket]??0));
   for(const {t,i} of items){
     const r = ruleFor(t.text);

@@ -117,15 +117,25 @@
   .tcard[data-b="today"]{background:#fefdfa;color:#26221b}
   .tcard[data-b="next"]{background:#f3edde;color:#2a251c}
   .tcard[data-b="someday"]{background:#c8b48f;color:#38301f;border-color:rgba(40,32,20,.14)}
+  .tcard[data-b="shopping"]{background:#e0e5d2;color:#2c3122;border-color:rgba(44,49,34,.12)}
   .thead{display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer;user-select:none;-webkit-user-select:none}
   .tlabel{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.1em;color:#8a7f6a}
   .tcard[data-b="someday"] .tlabel{color:#5d5138}
+  .tcard[data-b="shopping"] .tlabel{color:#5f6a48}
   .tdots{display:grid;grid-template-columns:6px 6px;gap:4px;margin-top:3px}
   .tdots i{width:6px;height:6px;border:1.2px solid rgba(90,80,60,.5);border-radius:50%}
   .tbody{margin-top:10px}
   /* tucked cards: only the header strip shows, narrower, slid up behind */
-  .tcard.min{width:94%;margin:0 auto -14px;padding-bottom:16px;z-index:1}
-  .tcard.min + .tcard.min{width:97%}
+  .shop-add{
+    width:100%;font-family:"JetBrains Mono",monospace;font-size:13px;color:inherit;
+    background:rgba(255,255,255,.55);border:1px solid rgba(44,49,34,.25);
+    border-radius:6px;padding:7px 10px;margin:2px 0 8px;
+  }
+  .shop-add:focus{outline:none;border-color:rgba(44,49,34,.55)}
+  .shop-add:disabled{opacity:.5}
+  .tcard.min{width:92%;margin:0 auto -14px;padding-bottom:16px;z-index:1}
+  .tcard.min + .tcard.min{width:95%}
+  .tcard.min + .tcard.min + .tcard.min{width:98%}
   .tcard.min .tbody{display:none}
   .tcard.front{z-index:3;margin-top:0}
   .tcard .todo-row{border-bottom-color:rgba(40,32,20,.16)}
@@ -227,11 +237,14 @@ async function loadList(){
     render();
   }catch(e){}
 }
-const BUCKETS = ["today","next","someday"];
-const LABELS = { today:"Today", next:"Next", someday:"Someday" };
+// The GTD three plus the Shopping List — in the stack, but outside the
+// "→" move cycle (no move chip on its rows, nothing moves into it).
+const BUCKETS = ["today","next","someday","shopping"];
+const FLOW = ["today","next","someday"];
+const LABELS = { today:"Today", next:"Next", someday:"Someday", shopping:"Shopping List" };
 let ACTIVE = "today";
 const bucketOf = (t) => BUCKETS.includes(t && t.bucket) ? t.bucket : "today";
-const nextB = (b) => BUCKETS[(BUCKETS.indexOf(b)+1) % BUCKETS.length];
+const nextB = (b) => FLOW[(FLOW.indexOf(b)+1) % FLOW.length];
 
 function todoDate(ts){
   if(!Number.isFinite(ts)) return "";
@@ -250,16 +263,27 @@ function render(){
       .sort((a,c)=>(a.t.doing?1:0)-(c.t.doing?1:0));
     const front = b === ACTIVE;
     const items = rows.length
-      ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span><button class="todo-mv" data-i="${i}" title="Move to ${LABELS[nextB(b)]}">→ ${nextB(b)}</button><button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
-      : `<div class="tempty">Nothing in ${LABELS[b].toLowerCase()}.</div>`;
+      ? rows.map(({t,i})=>`<div class="todo-row${t.doing?" doing":""}"><button class="todo-chk" data-i="${i}" title="Tick off">✓</button><span class="todo-text" data-i="${i}" title="${t.doing?"Clear in-progress":"Mark in progress"}">${esc(t.text)}</span>${t.doing?`<span class="todo-doing-tag">in progress</span>`:""}<span class="todo-date">${todoDate(t.ts)}</span>${b==="shopping"?"":`<button class="todo-mv" data-i="${i}" title="Move to ${LABELS[nextB(b)]}">→ ${nextB(b)}</button>`}<button class="todo-x" data-i="${i}" title="Delete">✕</button></div>`).join("")
+      : `<div class="tempty">${b==="shopping" ? "Nothing on the list yet — type above." : `Nothing in ${LABELS[b].toLowerCase()}.`}</div>`;
+    // the shopping card carries its own add box — items land there directly
+    const addBox = b==="shopping" ? `<input class="shop-add" placeholder="＋ add to shopping list… (Enter)" maxlength="500">` : "";
     return `<div class="tcard ${front?"front":"min"}" data-b="${b}">
       <div class="thead" data-b="${b}" title="${front?"":"Bring "+LABELS[b]+" to the front"}">
         <span class="tlabel">${LABELS[b]}${rows.length?` · ${rows.length}`:""}</span>
         <span class="tdots"><i></i><i></i><i></i><i></i></span>
       </div>
-      <div class="tbody">${items}</div>
+      <div class="tbody">${addBox}${items}</div>
     </div>`;
   }).join("");
+  document.querySelectorAll(".shop-add").forEach(inp=>inp.addEventListener("keydown", async (e)=>{
+    if(e.key !== "Enter") return;
+    const v = inp.value.trim(); if(!v) return;
+    inp.disabled = true;
+    try{
+      await add(v, "shopping"); // reloads + re-renders
+      const again = document.querySelector(".shop-add"); if(again) again.focus();
+    }catch(_){ inp.disabled = false; }
+  }));
   $("addTo1").textContent = `· adds to ${LABELS[ACTIVE]}`;
   $("addTo2").textContent = `· adds to ${LABELS[ACTIVE]}`;
   document.querySelectorAll(".thead").forEach(h=>h.addEventListener("click", ()=>{
@@ -307,9 +331,9 @@ async function move(i, btn){
     TODOS = list; render();
   }catch(e){ if(btn) btn.disabled = false; }
 }
-async function add(text){
+async function add(text, bucket){
   const res = await authFetch("/api/todos", {
-    method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text, bucket: ACTIVE }),
+    method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ add: text, bucket: bucket || ACTIVE }),
   });
   if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `error ${res.status}`);
   await loadList();
