@@ -26,6 +26,7 @@
 import webpush from "web-push";
 import { readSubs, writeSubs } from "./_pushstore.js";
 import { appendTodos, readTodos } from "./_todostore.js";
+import { readBirthdays } from "./_birthstore.js";
 
 const SITE = "https://marktan.ai";
 const MERIDIAN_STATUS = "https://raw.githubusercontent.com/markt1600/dailymag/main/status.json";
@@ -126,11 +127,13 @@ function happyDayLine(today) {
   return `♥ Happy Day ${years * 365}.${dayNum}`;
 }
 
-async function composeDigest() {
+async function composeDigest(ghToken) {
   const today = sgToday();
+  // Birthdays come from the encrypted store now (they're no longer a
+  // public file); the digest itself only reaches the owner's devices.
   const [status, birthdays, events] = await Promise.all([
     jfetch(MERIDIAN_STATUS),
-    jfetch(`${SITE}/data/birthdays.json`),
+    ghToken ? readBirthdays(ghToken).then((b) => b.list).catch(() => []) : [],
     jfetch(`${SITE}/data/events.json`),
   ]);
   const lines = [];
@@ -204,8 +207,8 @@ export default async function handler(req, res) {
   if (!pub || !priv) { res.status(503).json({ error: "VAPID keys not set" }); return; }
   webpush.setVapidDetails("mailto:markh.tan@gmail.com", pub, priv);
 
-  const payload = await composeDigest();
   const ghToken = (process.env.GITHUB_TOKEN || "").trim();
+  const payload = await composeDigest(ghToken);
 
   // Everything due on the list today: built-in statements/chores plus the
   // user's recurring rules from the encrypted store.

@@ -16,6 +16,7 @@
 
 import crypto from "node:crypto";
 import { sessionKey, isOwner, reqToken } from "./_session.js";
+import { readBirthdays } from "./_birthstore.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
@@ -124,8 +125,14 @@ export default async function handler(req, res) {
       const sha = await writeStore(ghToken, events, body.sha || null);
       res.status(200).json({ sha, count: events.length });
     } else {
-      const { events, sha } = await readStore(ghToken);
-      res.status(200).json({ events, sha });
+      // Birthdays ride along: they're owner-only now (moved off the public
+      // page), and the dashboard needs them for the Around Now strip + the
+      // calendar dots. Same encrypted-store pattern (_birthstore.js).
+      const [{ events, sha }, bd] = await Promise.all([
+        readStore(ghToken),
+        readBirthdays(ghToken).catch(() => ({ list: [] })),
+      ]);
+      res.status(200).json({ events, sha, birthdays: bd.list });
     }
   } catch (err) {
     if (err && err.conflict) { res.status(409).json({ error: "conflict — reload, the list changed" }); return; }
