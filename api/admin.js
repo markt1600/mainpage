@@ -1,10 +1,11 @@
 // api/admin.js
 // Backend for the /admin page: read + edit the Birthdays and Events lists.
 //
-// Storage is GitHub-committed JSON — each save is a commit to
-//   data/birthdays.json / data/events.json  on markt1600/mainpage,
-// which is both the version history and (after Vercel redeploys) the file
-// the live dashboard fetches. There is no database.
+// Storage is GitHub-committed — each save is a commit, which is also the
+// version history; there is no database. Events go to data/events.json
+// (public — the dashboard fetches it). Birthdays are personal info and go
+// to the ENCRYPTED data/birthdays.enc.json via _birthstore.js (owner-only
+// on the site, served through /api/private-events).
 //
 // Auth: every request must carry ?token=<...> — either the shared secret
 //   (ADMIN_SECRET, or DASHBOARD_SECRET if ADMIN_SECRET isn't set) or a valid
@@ -21,14 +22,16 @@
 //   GITHUB_BRANCH  - optional; defaults to "main".
 
 import { sessionKey, isOwner, reqToken } from "./_session.js";
+import { readBirthdays, writeBirthdays } from "./_birthstore.js";
 
 const REPO = (process.env.GITHUB_REPO || "markt1600/mainpage").trim();
 const BRANCH = (process.env.GITHUB_BRANCH || "main").trim();
 const GH = "https://api.github.com";
 
+// Events stay a public JSON file; birthdays moved to the ENCRYPTED store
+// (data/birthdays.enc.json via _birthstore.js) — they're personal info.
 const FILES = {
   events: "data/events.json",
-  birthdays: "data/birthdays.json",
 };
 
 function str(v, max = 300) {
@@ -171,13 +174,13 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const [events, birthdays] = await Promise.all([
         readFile(ghToken, FILES.events),
-        readFile(ghToken, FILES.birthdays),
+        readBirthdays(ghToken), // encrypted store; migrates the legacy plaintext file on first read
       ]);
       res.status(200).json({
         repo: REPO,
         branch: BRANCH,
         events: { list: sanitize("events", events.data), sha: events.sha },
-        birthdays: { list: sanitize("birthdays", birthdays.data), sha: birthdays.sha },
+        birthdays: { list: sanitize("birthdays", birthdays.list), sha: birthdays.sha },
       });
       return;
     }
@@ -185,6 +188,12 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const body = await readBody(req);
       const kind = body && body.type;
+      if (kind === "birthdays") {
+        const list = sanitize("birthdays", body.data);
+        const sha = await writeBirthdays(ghToken, list, body.sha || null);
+        res.status(200).json({ ok: true, type: kind, count: list.length, sha });
+        return;
+      }
       if (!FILES[kind]) {
         res.status(400).json({ error: "type must be 'events' or 'birthdays'" });
         return;
@@ -204,7 +213,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: "method not allowed" });
   } catch (e) {
     const msg = String(e && e.message || e);
-    const code = /409/.test(msg) ? 409 : 500;
+    const code = (e && e.conflict) || /409/.test(msg) ? 409 : 500;
     res.status(code).json({ error: msg });
   }
 }

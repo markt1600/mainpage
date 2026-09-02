@@ -872,14 +872,8 @@
 
     <div id="note"></div>
 
-    <!-- Birthdays: hidden unless one falls within the window -->
-    <section class="markets rise" id="birthdaysSec" style="display:none" aria-label="Birthdays">
-      <div class="sec-head">
-        <h2>Birthdays <span class="dot">·</span> Around Now</h2>
-        <span class="cnt" id="bdayCnt"></span>
-      </div>
-      <div id="birthdays"></div>
-    </section>
+    <!-- Birthdays moved into the For Mark private section — names + dates
+         are personal info, so they no longer render for visitors. -->
 
     <!-- Events watchlist: upcoming Singapore dates worth booking — concerts,
          races, fitness events, motorsport. Edit at /admin (data/events.json). -->
@@ -909,6 +903,13 @@
         <span class="cnt"></span>
       </div>
       <div id="ownerContent">
+        <!-- Birthdays: owner-only (loaded with the private calendar from the
+             encrypted store); hidden unless one falls within the window -->
+        <div id="birthdaysSec" style="display:none;margin-bottom:22px">
+          <div class="owner-sub">Birthdays · Around Now <span id="bdayCnt" style="text-transform:none;letter-spacing:.04em"></span></div>
+          <div id="birthdays"></div>
+        </div>
+
         <!-- Net worth: components live encrypted (data/networth.enc.json via
              /api/networth, edited in /admin); a snapshot is stored per SGT
              day, so the day / month / YTD changes are real history, moved by
@@ -1448,12 +1449,14 @@ function calDayFromISO(iso){ const [y,m,d] = iso.split("-").map(Number); return 
 let PRIVATE_EVENTS = [];
 async function loadPrivateEvents(){
   const t = privateToken();
-  if(!t){ PRIVATE_EVENTS = []; renderCalendar(); return; }
+  if(!t){ PRIVATE_EVENTS = []; BIRTHDAYS = []; renderBirthdays(); renderCalendar(); return; }
   try{
     const res = await ownerFetch("/api/private-events", { cache:"no-store" });
     if(!res.ok) return;
     const d = await res.json();
     PRIVATE_EVENTS = Array.isArray(d.events) ? d.events : [];
+    BIRTHDAYS = Array.isArray(d.birthdays) ? d.birthdays : []; // owner-only now — rides with the calendar
+    renderBirthdays();
     renderCalendar(); // private entries appear only in the calendar, never the watchlist cards
   }catch(e){ /* calendar just shows public events */ }
 }
@@ -2207,6 +2210,7 @@ function toggleLogin(e){
     setOwnerCookie(null);
     try{ window.google?.accounts?.id?.disableAutoSelect(); }catch(e2){}
     PRIVATE_EVENTS = [];
+    BIRTHDAYS = []; renderBirthdays();
     TODOS = null; renderTodos();
     $("nwBlock").style.display = "none";
     renderCalendar();
@@ -2300,37 +2304,13 @@ function renderHappyDay(){
    landing day, so there's no banner or localStorage tracking here. */
 
 /* ============================================================
-   BIRTHDAYS — shown from 7 days before to 3 days after the date.
-   Section hides itself when none fall in that window.
-   Add/edit entries here {name, month (1-12), day}.
-   This inline list is the FALLBACK; the live page fetches the
-   authoritative list from /data/birthdays.json (editable at /admin).
+   BIRTHDAYS — owner-only: names + dates are personal info, so the
+   list lives in the encrypted store (data/birthdays.enc.json) and
+   arrives with the private calendar (/api/private-events) after
+   login. Nothing is inlined here — this file is public source.
+   Shown from 7 days before to 3 days after; edit at /admin.
    ============================================================ */
-let BIRTHDAYS = [
-  { name: "Mom",            month: 12, day: 13 },
-  { name: "Jason Suh",      month: 2,  day: 21 },
-  { name: "Daniela Liscio", month: 8,  day: 18 },
-  { name: "MZM",            month: 6,  day: 12 },
-  { name: "Dad",            month: 6,  day: 15 },
-  { name: "Penny",          month: 7,  day: 27 },
-  { name: "Yoshi",          month: 8,  day: 19 },
-  { name: "Steve Schutte",  month: 3,  day: 13 },
-  { name: "Warren",         month: 6,  day: 21 },
-  { name: "Nicole",         month: 8,  day: 5  },
-  { name: "Mel",            month: 4,  day: 27 },
-  { name: "Daryl Chew",     month: 11, day: 26 },
-  { name: "Boat",           month: 12, day: 20 },
-  { name: "Amanda",         month: 2,  day: 11 },
-  { name: "Stephen Cheong", month: 2,  day: 21 },
-  { name: "Michelle Chan",  month: 3,  day: 15 },
-  { name: "Chris",          month: 5,  day: 2  },
-  { name: "Jeremy Wang",    month: 7,  day: 2  },
-  { name: "Clyde",          month: 7,  day: 24 },
-  { name: "Eling",          month: 8,  day: 16 },
-  { name: "Jean Choi",      month: 9,  day: 24 },
-  { name: "Phoebe Choi",    month: 9,  day: 27 },
-  { name: "Nick Johnson",   month: 2,  day: 3  },
-];
+let BIRTHDAYS = [];
 
 function birthdaysInWindow(){
   const DAY = 86400000;
@@ -2358,7 +2338,7 @@ function whenLabel(delta){
 
 function renderBirthdays(){
   const list = birthdaysInWindow();
-  if(!list.length) return; // section stays hidden
+  if(!list.length){ $("birthdaysSec").style.display = "none"; return; } // also hides on logout
   $("birthdaysSec").style.display = "";
   $("bdayCnt").textContent = list.length === 1 ? "1 coming up" : `${list.length} coming up`;
   $("birthdays").innerHTML = list.map(b=>{
@@ -2373,10 +2353,10 @@ function renderBirthdays(){
   }).join("");
 }
 
-/* Events & Birthdays are edited at /admin, which commits the lists to
-   data/events.json and data/birthdays.json. Fetch those authoritative
-   files, falling back to the inline arrays if they're missing/unparseable
-   (e.g. opening index.html locally). Then render. */
+/* Events are edited at /admin, which commits the list to
+   data/events.json. Fetch that authoritative file, falling back to the
+   inline array if it's missing/unparseable (e.g. opening index.html
+   locally). Birthdays are owner-only and arrive via loadPrivateEvents. */
 async function loadLists(){
   const pull = async (path) => {
     try{
@@ -2386,11 +2366,9 @@ async function loadLists(){
       return Array.isArray(d) ? d : null;
     }catch(e){ return null; }
   };
-  const [ev, bd] = await Promise.all([pull("/data/events.json"), pull("/data/birthdays.json")]);
+  const ev = await pull("/data/events.json");
   if(ev) EVENTS = ev; else noteIssue("events list (inline fallback)");
-  if(bd) BIRTHDAYS = bd; else noteIssue("birthdays list (inline fallback)");
   renderEvents();
-  renderBirthdays();
   renderCalendar();
 }
 
