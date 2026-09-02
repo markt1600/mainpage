@@ -29,12 +29,16 @@ jobs:
         run: |
           node -e '
             const fs = require("fs");
-            for (const f of ["data/events.json", "data/birthdays.json"]) {
+            for (const f of ["data/events.json"]) {
               const d = JSON.parse(fs.readFileSync(f, "utf8"));
               if (!Array.isArray(d)) throw new Error(f + " is not an array");
               for (const e of d) if (!e || typeof e !== "object") throw new Error(f + " has a non-object entry");
               console.log(f, "OK:", d.length, "entries");
             }
+            // Birthdays are personal info and live ONLY in the encrypted
+            // store now — a plaintext file reappearing is a privacy leak.
+            if (fs.existsSync("data/birthdays.json")) throw new Error("plaintext data/birthdays.json must not exist (use data/birthdays.enc.json)");
+            console.log("no plaintext birthdays file — OK");
             JSON.parse(fs.readFileSync("vercel.json", "utf8"));
             console.log("vercel.json OK");
           '
