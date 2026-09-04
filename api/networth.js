@@ -19,13 +19,14 @@
 //   POST { components, sha } → update components (409 on a stale sha);
 //        today's snapshot is refreshed so edits show up immediately.
 //
-// Changes (in SGD): day = vs the most recent snapshot before today; month =
+// Changes (in USD): day = vs the most recent snapshot before today; month =
 // vs the last snapshot of the previous calendar month; ytd = vs the last
 // snapshot of the previous year. Each falls back to the oldest snapshot
 // available, and is null until there is anything to compare against.
-// Each change also carries `drivers`: the per-component moves (valued at
-// today's FX) plus a "USD/SGD FX" line, summing to the total — available
-// once the compared snapshot carries per-component parts.
+// Each change also carries `drivers`: the per-component USD moves plus a
+// "USD/SGD FX" line (the rate effect on SGD-denominated holdings),
+// summing to the total — available once the compared snapshot carries
+// per-component parts.
 //
 // Pricing is all-or-nothing: if FX or any share price can't be fetched the
 // request fails rather than recording a snapshot with a hole in it.
@@ -200,12 +201,14 @@ function snapParts(rows, fx) {
   }));
 }
 
-/* Decompose the SGD change vs a snapshot into drivers: each component's
-   own move valued at TODAY's FX, plus one "USD/SGD FX" line carrying the
-   rate move on the old USD holdings — the parts sum exactly to the total
+/* Decompose the USD change vs a snapshot into drivers: each component's
+   own move (in USD; SGD-denominated components valued at TODAY's rate),
+   plus one "USD/SGD FX" line carrying the rate move on the old
+   SGD-denominated holdings — the parts sum exactly to the total USD
    change. Null when the snapshot predates part tracking. */
 function driversFor(snap, rows, fx) {
   if (!snap || !Array.isArray(snap.parts) || !snap.parts.length) return null;
+  const oldFx = Number.isFinite(snap.fx) && snap.fx > 0 ? snap.fx : fx;
   const old = new Map(snap.parts.map((p) => [p.label, p]));
   const nw = new Map(rows.map((r) => [r.label, r]));
   let fxPart = 0;
@@ -213,29 +216,33 @@ function driversFor(snap, rows, fx) {
   for (const label of new Set([...old.keys(), ...nw.keys()])) {
     const o = old.get(label), n = nw.get(label);
     const ccy = (n ? n.ccy : o.ccy) || "SGD";
-    const asset = ((n ? n.amount : 0) - (o ? o.native : 0)) * (ccy === "USD" ? fx : 1);
-    if (o && ccy === "USD") fxPart += o.native * (fx - (Number.isFinite(snap.fx) ? snap.fx : fx));
-    if (Math.abs(asset) >= 0.5) out.push({ label, sgd: asset });
+    const asset = ((n ? n.amount : 0) - (o ? o.native : 0)) / (ccy === "USD" ? 1 : fx);
+    if (o && ccy !== "USD") fxPart += o.native * (1 / fx - 1 / oldFx);
+    if (Math.abs(asset) >= 0.5) out.push({ label, usd: asset });
   }
-  if (Math.abs(fxPart) >= 0.5) out.push({ label: "USD/SGD FX", sgd: fxPart, fx: true });
-  return out.sort((a, b) => Math.abs(b.sgd) - Math.abs(a.sgd));
+  if (Math.abs(fxPart) >= 0.5) out.push({ label: "USD/SGD FX", usd: fxPart, fx: true });
+  return out.sort((a, b) => Math.abs(b.usd) - Math.abs(a.usd));
 }
 
-// changes vs history, in SGD (abs + pct + driver breakdown)
+// changes vs history, in USD (abs + pct + driver breakdown)
 function changesFor(history, today, totals, rows) {
-  const nowSgd = totals.sgd;
+  const nowUsd = totals.usd;
   const prior = history.filter((h) => h && h.d && h.d < today).sort((a, b) => (a.d < b.d ? -1 : 1));
   const pick = (pred) => {
     const c = prior.filter(pred);
     return c.length ? c[c.length - 1] : (prior.length ? prior[0] : null);
   };
   const month = today.slice(0, 7), year = today.slice(0, 4);
-  const mk = (snap) => snap ? {
-    sgd: nowSgd - snap.sgd,
-    pct: snap.sgd ? ((nowSgd - snap.sgd) / Math.abs(snap.sgd)) * 100 : null,
-    since: snap.d,
-    drivers: driversFor(snap, rows, totals.fx),
-  } : null;
+  const mk = (snap) => {
+    if (!snap) return null;
+    const snapUsd = Number.isFinite(snap.usd) ? snap.usd : snap.sgd / (snap.fx || totals.fx);
+    return {
+      usd: nowUsd - snapUsd,
+      pct: snapUsd ? ((nowUsd - snapUsd) / Math.abs(snapUsd)) * 100 : null,
+      since: snap.d,
+      drivers: driversFor(snap, rows, totals.fx),
+    };
+  };
   return {
     day: mk(prior.length ? prior[prior.length - 1] : null),
     month: mk(pick((h) => h.d.slice(0, 7) < month)),

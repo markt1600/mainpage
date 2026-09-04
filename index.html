@@ -1483,10 +1483,10 @@ async function loadNetWorth(){
     $("nwSgd").textContent = "(S$" + Math.round(d.totals.sgd).toLocaleString("en-US") + ")";
     const chg = (lbl, c) => {
       if(!c) return `<span class="nw-chg flat"><b>${lbl}</b>—</span>`;
-      const cls = c.sgd > 0.5 ? "up" : c.sgd < -0.5 ? "down" : "flat";
+      const cls = c.usd > 0.5 ? "up" : c.usd < -0.5 ? "down" : "flat";
       const arrow = cls === "up" ? "▲" : cls === "down" ? "▼" : "＝";
       const pct = c.pct == null ? "" : ` (${c.pct >= 0 ? "+" : ""}${c.pct.toFixed(2)}%)`;
-      return `<span class="nw-chg ${cls}" title="since ${esc(c.since)}"><b>${lbl}</b>${arrow} ${c.sgd >= 0 ? "+" : "−"}S$${Math.abs(Math.round(c.sgd)).toLocaleString("en-US")}${pct}</span>`;
+      return `<span class="nw-chg ${cls}" title="since ${esc(c.since)}"><b>${lbl}</b>${arrow} ${c.usd >= 0 ? "+" : "−"}$${Math.abs(Math.round(c.usd)).toLocaleString("en-US")}${pct}</span>`;
     };
     $("nwChanges").innerHTML = chg("1D", d.changes.day) + chg("MONTH", d.changes.month) + chg("YTD", d.changes.ytd);
     // What moved it: per-component + FX driver lists under the chips (top
@@ -1495,9 +1495,9 @@ async function loadNetWorth(){
     const drv = (lbl, c) => {
       if(!c || !c.drivers || !c.drivers.length) return "";
       const top = c.drivers.slice(0, 6);
-      const rest = c.drivers.slice(6).reduce((s, x) => s + x.sgd, 0);
-      const row = (label, v) => `<div class="nw-drv-row"><span>${esc(label)}</span><span class="${v > 0.5 ? "up" : v < -0.5 ? "down" : ""}">${v >= 0 ? "+" : "−"}S$${Math.abs(Math.round(v)).toLocaleString("en-US")}</span></div>`;
-      return `<div class="nw-drv"><div class="nw-drv-h">${lbl} DRIVERS</div>${top.map(x=>row(x.label, x.sgd)).join("")}${Math.abs(rest) >= 1 ? row("other", rest) : ""}</div>`;
+      const rest = c.drivers.slice(6).reduce((s, x) => s + x.usd, 0);
+      const row = (label, v) => `<div class="nw-drv-row"><span>${esc(label)}</span><span class="${v > 0.5 ? "up" : v < -0.5 ? "down" : ""}">${v >= 0 ? "+" : "−"}$${Math.abs(Math.round(v)).toLocaleString("en-US")}</span></div>`;
+      return `<div class="nw-drv"><div class="nw-drv-h">${lbl} DRIVERS</div>${top.map(x=>row(x.label, x.usd)).join("")}${Math.abs(rest) >= 1 ? row("other", rest) : ""}</div>`;
     };
     $("nwDrivers").innerHTML = drv("1D", d.changes.day) + drv("MONTH", d.changes.month);
     const bk = d.breakeven;
@@ -1525,7 +1525,7 @@ async function loadNetWorth(){
       $("nwImpact").innerHTML = "";
     }
     const noDrv = d.changes.day && !(d.changes.day.drivers && d.changes.day.drivers.length);
-    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in SGD vs stored daily snapshots · components in /admin${noDrv ? " · driver breakdown starts with the next snapshot" : ""}`;
+    $("nwNote").textContent = `USD/SGD ${d.totals.fx.toFixed(4)} · snapshot ${d.asOf} SGT · changes in USD vs stored daily snapshots · components in /admin${noDrv ? " · driver breakdown starts with the next snapshot" : ""}`;
     blk.style.display = "";
   }catch(e){ /* leave hidden */ }
 }
