@@ -65,12 +65,20 @@ const str = (v, max = 80) => String(v == null ? "" : v).replace(/\s+/g, " ").tri
 // Settings ride in the same encrypted blob — the breakeven number is as
 // sensitive as the balances. breakeven = the net worth at which the owner's
 // budget is exactly covered at the chosen withdrawal rate.
+//
+// A USD breakeven is really an SGD budget converted at a struck rate
+// (breakevenFx): the true anchor is breakeven × breakevenFx in SGD, and
+// the USD target FLOATS with today's rate — SGD strengthening raises it,
+// weakening lowers it.
+const DEFAULT_BREAKEVEN_FX = 1.28; // the rate the USD breakeven was struck at
 function sanitizeSettings(s) {
   const amount = Number(s && s.breakeven);
   if (!Number.isFinite(amount) || amount <= 0) return null;
+  const bfx = Number(s && s.breakevenFx);
   return {
     breakeven: amount,
     breakevenCcy: String(s && s.breakevenCcy).toUpperCase() === "USD" ? "USD" : "SGD",
+    breakevenFx: Number.isFinite(bfx) && bfx > 0 ? bfx : null,
     withdrawalRate: Number.isFinite(Number(s && s.withdrawalRate)) ? Number(s.withdrawalRate) : null,
   };
 }
@@ -183,12 +191,22 @@ async function priceAndTotal(components) {
   return { rows, totals: { sgd, usd: sgd / fx, fx } };
 }
 
-// Surplus/deficit vs the breakeven budget, in SGD terms.
+// Surplus/deficit vs the breakeven budget — a MOVING target: the anchor
+// is fixed in SGD (a USD breakeven × the rate it was struck at), so the
+// USD breakeven shown floats with today's rate.
 function breakevenFor(settings, totals) {
   const s = sanitizeSettings(settings);
   if (!s) return null;
-  const bkSgd = s.breakevenCcy === "USD" ? s.breakeven * totals.fx : s.breakeven;
-  return { ...s, surplusSgd: totals.sgd - bkSgd, surplusUsd: (totals.sgd - bkSgd) / totals.fx };
+  const bkSgd = s.breakevenCcy === "USD"
+    ? s.breakeven * (s.breakevenFx || DEFAULT_BREAKEVEN_FX)
+    : s.breakeven;
+  return {
+    ...s,
+    breakevenSgd: bkSgd,               // the fixed SGD anchor
+    breakevenUsdNow: bkSgd / totals.fx, // today's floating USD target
+    surplusSgd: totals.sgd - bkSgd,
+    surplusUsd: (totals.sgd - bkSgd) / totals.fx,
+  };
 }
 
 // Per-component values a snapshot carries so later changes can be

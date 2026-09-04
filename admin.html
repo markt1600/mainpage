@@ -282,12 +282,14 @@
       </div>
       <div class="hint">Edit the field in each component's own currency — the grey figure in the other column converts automatically at the live rate (<b id="nwFxLbl">—</b>), and the total updates as you type. Liabilities as <b>negative</b> numbers. Rows with a <b>symbol × shares</b> are valued at the live market price; edit the share count. Stored <b>encrypted</b> (data/networth.enc.json); saving refreshes today's snapshot so the day/month/YTD changes stay honest.</div>
       <div class="bar">
-        <label style="display:flex;align-items:center;gap:7px;margin:0;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:12px">Breakeven
+        <label style="display:flex;align-items:center;gap:7px;margin:0;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap">Breakeven
           <input id="nwBk" type="number" step="any" placeholder="—" style="width:150px">
           <select id="nwBkCcy" style="width:auto"><option value="SGD">SGD</option><option value="USD">USD</option></select>
-          @ <input id="nwBkRate" type="number" step="any" placeholder="—" style="width:64px">% withdrawal
+          struck @ <input id="nwBkFx" type="number" step="any" placeholder="1.28" style="width:74px" title="USD/SGD rate the USD breakeven was converted at — the SGD anchor is breakeven × this, and the USD target floats with the live rate"> USD/SGD
+          · <input id="nwBkRate" type="number" step="any" placeholder="—" style="width:64px">% withdrawal
         </label>
       </div>
+      <div class="hint">A USD breakeven is an SGD budget converted at the struck rate: the anchor stays fixed in SGD, so the USD target on the main page <b>moves with the live rate</b> (SGD stronger → higher USD breakeven). Leave the struck rate blank for the 1.28 default. For an SGD breakeven the struck rate is ignored.</div>
       <div class="bar">
         <button class="ghost" id="nwAdd">+ Add component</button>
         <button class="ghost" id="nwAddMkt">+ Add market row (symbol × qty)</button>
@@ -841,11 +843,12 @@ function nwRender(j){
   body.appendChild(nwSubRow("Liabilities subtotal", "nwSubLU", "nwSubLS"));
   $("nwBk").value = j.breakeven ? j.breakeven.breakeven : "";
   $("nwBkCcy").value = j.breakeven ? j.breakeven.breakevenCcy : "SGD";
+  $("nwBkFx").value = (j.breakeven && j.breakeven.breakevenFx != null) ? j.breakeven.breakevenFx : "";
   $("nwBkRate").value = (j.breakeven && j.breakeven.withdrawalRate != null) ? j.breakeven.withdrawalRate : "";
   $("nwMeta").textContent = `${(j.components||[]).length} components · snapshot ${j.asOf}`;
   nwRecalc();
 }
-["nwBk","nwBkCcy","nwBkRate"].forEach(id=>$(id).addEventListener("input", ()=>setDirty("networth", true)));
+["nwBk","nwBkCcy","nwBkFx","nwBkRate"].forEach(id=>$(id).addEventListener("input", ()=>setDirty("networth", true)));
 async function loadNetworth(){
   try{
     const res = await authFetch("/api/networth", { cache:"no-store" });
@@ -881,7 +884,7 @@ $("nwSave").addEventListener("click", async ()=>{
   }).filter(c=>c.label);
   try{
     const settings = parseFloat($("nwBk").value) > 0
-      ? { breakeven: parseFloat($("nwBk").value), breakevenCcy: $("nwBkCcy").value, withdrawalRate: parseFloat($("nwBkRate").value) || null }
+      ? { breakeven: parseFloat($("nwBk").value), breakevenCcy: $("nwBkCcy").value, breakevenFx: parseFloat($("nwBkFx").value) || null, withdrawalRate: parseFloat($("nwBkRate").value) || null }
       : null;
     const res = await authFetch("/api/networth", {
       method:"POST", headers:{ "content-type":"application/json" },

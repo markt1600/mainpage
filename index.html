@@ -1507,9 +1507,14 @@ async function loadNetWorth(){
       // USD breakeven); the budget impact reads in SGD — life runs in SG.
       const inBkCcy = bk.breakevenCcy === "USD";
       const sShown = inBkCcy ? bk.surplusUsd : s;
+      // A USD breakeven is a MOVING target: the anchor is fixed in SGD
+      // (struck at bk.breakevenFx), so the USD figure floats with today's
+      // rate — SGD strengthening raises it, weakening lowers it.
+      const bkShown = inBkCcy ? (bk.breakevenUsdNow ?? bk.breakeven) : (bk.breakevenSgd ?? bk.breakeven);
+      const anchor = inBkCcy && bk.breakevenSgd ? ` (S$${(bk.breakevenSgd/1e6).toFixed(2)}M anchor)` : "";
       $("nwBudget").innerHTML =
         `<span class="nw-chg ${cls}"><b>${s >= 0 ? "SURPLUS" : "DEFICIT"}</b>${s >= 0 ? "+" : "−"}${inBkCcy ? "$" : "S$"}${Math.abs(Math.round(sShown)).toLocaleString("en-US")}` +
-        ` vs breakeven ${inBkCcy ? "$" : "S$"}${(bk.breakeven/1e6).toFixed(2)}M${bk.withdrawalRate ? ` @ ${bk.withdrawalRate}% withdrawal` : ""}</span>`;
+        ` vs breakeven ${inBkCcy ? "$" : "S$"}${(bkShown/1e6).toFixed(2)}M${anchor}${bk.withdrawalRate ? ` @ ${bk.withdrawalRate}% withdrawal` : ""}</span>`;
       // What the surplus/deficit means for spending: |surplus| × withdrawal
       // rate = the sustainable annual budget adjustment; /12 for monthly.
       if(bk.withdrawalRate){
