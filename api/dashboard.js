@@ -343,16 +343,42 @@ async function getHolidays() {
 const MERIDIAN_FEED = "https://raw.githubusercontent.com/markt1600/dailymag/main/feed.json";
 const MERIDIAN_SITE = "https://dailymag.marktan.ai";
 
+// The feed sometimes carries HTML entities (&ldquo; &rsquo; …) — the page
+// renders plain text, so decode them here or they show literally.
+const ENTITIES = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  ldquo: "“", rdquo: "”", lsquo: "‘", rsquo: "’",
+  mdash: "—", ndash: "–", hellip: "…", middot: "·",
+  eacute: "é", egrave: "è", agrave: "à", ccedil: "ç",
+  uuml: "ü", ouml: "ö", auml: "ä", ntilde: "ñ",
+  deg: "°", frac12: "½", times: "×", laquo: "«", raquo: "»",
+};
+const decodeEntities = (s) =>
+  s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
+    .replace(/&([a-z]+[0-9]*);/gi, (m, name) => ENTITIES[name.toLowerCase()] ?? m);
+
 // Sanitise any stray markup/citation cruft; keep values as clean plain text.
+// Tags are stripped BEFORE entities decode, so "&lt;b&gt;" stays visible text.
 const clean = (s) =>
   typeof s === "string"
-    ? s
-        .replace(/<\/?cite[^>]*>/gi, "")
-        .replace(/<[^>]+>/g, "")
-        .replace(/\[\d+(?:[-,:]\d+)*\]/g, "")
+    ? decodeEntities(
+        s
+          .replace(/<\/?cite[^>]*>/gi, "")
+          .replace(/<[^>]+>/g, "")
+          .replace(/\[\d+(?:[-,:]\d+)*\]/g, "")
+      )
         .replace(/\s+/g, " ")
         .trim()
     : s;
+
+// clean() every string inside a nested structure (used for feed.macro)
+const cleanDeep = (v) =>
+  typeof v === "string" ? clean(v)
+  : Array.isArray(v) ? v.map(cleanDeep)
+  : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, cleanDeep(x)]))
+  : v;
 
 const meridianLink = (s) =>
   s && s.anchor ? `${MERIDIAN_SITE}/#${String(s.anchor).replace(/^#/, "")}` : MERIDIAN_SITE;
@@ -396,7 +422,7 @@ async function getEdition() {
   return {
     briefs,
     features,
-    macro: feed.macro && Array.isArray(feed.macro.reads) && feed.macro.reads.length ? feed.macro : null,
+    macro: feed.macro && Array.isArray(feed.macro.reads) && feed.macro.reads.length ? cleanDeep(feed.macro) : null,
     // Provenance line (fills the bottom band); notes which edition these are from.
     onThisDay: feed.issue
       ? `Today's stories are drawn from MERIDIAN No. ${feed.issue}${feed.date ? " · " + clean(feed.date) : ""} — read the full twelve-desk edition at dailymag.marktan.ai.`
