@@ -308,14 +308,31 @@ function pruneParts(history) {
    Dry run unless apply === true. */
 function restateHistory(history, label, value, ccy, opts = {}) {
   const from = opts.from || null, to = opts.to || null;
-  const affected = [], skipped = [];
+  const oldValue = Number.isFinite(opts.oldValue) ? opts.oldValue : null;
+  const fixPruned = opts.fixPrunedTotals === true && oldValue !== null;
+  const affected = [], skipped = [], assumed = [];
   const next = history.map((h) => {
     if (!h || !h.d) return h;
     if (from && h.d < from) return h;
     if (to && h.d > to) return h;
     if (!Array.isArray(h.parts) || !h.parts.length) {
-      if (!from || h.d >= from) skipped.push({ d: h.d, reason: "parts pruned — total not line-correctable" });
-      return h;
+      // No parts: the line is unrecoverable, but the TOTAL is still wrong and
+      // is what day/month/YTD actually compare against. With an explicit
+      // oldValue — what the line wrongly read — the total can be corrected
+      // deterministically. This is an ASSUMPTION (that the same wrong figure
+      // stood on that date), so it is opt-in and reported separately.
+      if (!fixPruned) {
+        skipped.push({ d: h.d, reason: "parts pruned — total not line-correctable without an explicit oldValue" });
+        return h;
+      }
+      const snapFx = Number.isFinite(h.fx) && h.fx > 0 ? h.fx : null;
+      const deltaSgd = ccy === "USD" ? (value - oldValue) * (snapFx || 1) : (value - oldValue);
+      if (Math.abs(deltaSgd) < 0.005) return h;
+      const sgd = (Number.isFinite(h.sgd) ? h.sgd : 0) + deltaSgd;
+      const usd = snapFx ? sgd / snapFx : h.usd;
+      assumed.push({ d: h.d, assumedOldNative: oldValue, newNative: value, ccy, deltaSgd,
+                     oldTotalSgd: h.sgd, newTotalSgd: sgd, oldTotalUsd: h.usd, newTotalUsd: usd });
+      return { ...h, sgd, usd };
     }
     const i = h.parts.findIndex((p) => p && p.label === label);
     if (i < 0) return h;
@@ -336,7 +353,67 @@ function restateHistory(history, label, value, ccy, opts = {}) {
                     oldTotalUsd: h.usd, newTotalUsd: usd });
     return { ...h, parts, sgd, usd };
   });
-  return { history: next, affected, skipped };
+  return { history: next, affected, skipped, assumed };
+}
+
+/* Which snapshots do day / month / YTD actually compare against, and is each
+   one correctable? Added 14 Sep 2026 after a restatement left the front-page
+   figures unchanged: the comparison anchors are month-end and year-end
+   snapshots, and any whose `parts` were pruned — or that predate part
+   tracking altogether — carry a total that a line-by-line restatement cannot
+   reach. This says so plainly instead of leaving it to be guessed. */
+function diagnoseAnchors(history, today, totals, label) {
+  const prior = history.filter((h) => h && h.d && h.d < today).sort((a, b) => (a.d < b.d ? -1 : 1));
+  const pick = (pred) => {
+    const c = prior.filter(pred);
+    return c.length ? c[c.length - 1] : (prior.length ? prior[0] : null);
+  };
+  const month = today.slice(0, 7), year = today.slice(0, 4);
+  const anchors = {
+    day: prior.length ? prior[prior.length - 1] : null,
+    month: pick((h) => h.d.slice(0, 7) < month),
+    ytd: pick((h) => h.d.slice(0, 4) < year),
+  };
+  const describe = (snap) => {
+    if (!snap) return null;
+    const parts = Array.isArray(snap.parts) ? snap.parts : null;
+    const part = parts ? parts.find((p) => p && p.label === label) : null;
+    return {
+      d: snap.d,
+      totalSgd: snap.sgd, totalUsd: snap.usd, fx: snap.fx,
+      hasParts: !!(parts && parts.length),
+      hasLabel: !!part,
+      labelNative: part ? part.native : null,
+      labelCcy: part ? part.ccy : null,
+      correctable: !!part,
+      why: part ? "line-correctable"
+         : (parts && parts.length) ? "snapshot has parts but no line with that label — check the exact label"
+         : "parts pruned or predate part tracking — total can only be corrected with an explicit oldValue",
+    };
+  };
+  // A hint for the delta the pruned snapshots are still carrying: the step in
+  // stored totals across the boundary between the last snapshot that could not
+  // be line-corrected and the first that could. Genuine day-to-day movement is
+  // in there too, so it is an ESTIMATE offered for sanity-checking, never
+  // applied automatically.
+  let boundaryHint = null;
+  for (let i = 1; i < prior.length; i++) {
+    const a = prior[i - 1], b = prior[i];
+    const aHas = Array.isArray(a.parts) && a.parts.some((p) => p && p.label === label);
+    const bHas = Array.isArray(b.parts) && b.parts.some((p) => p && p.label === label);
+    if (!aHas && bHas && Number.isFinite(a.sgd) && Number.isFinite(b.sgd)) {
+      boundaryHint = { between: [a.d, b.d], stepSgd: b.sgd - a.sgd,
+                       note: "approximate — includes that day's genuine movement" };
+      break;
+    }
+  }
+  return {
+    boundaryHint,
+    snapshots: history.length,
+    withParts: history.filter((h) => h && Array.isArray(h.parts) && h.parts.length).length,
+    oldest: prior.length ? prior[0].d : null,
+    day: describe(anchors.day), month: describe(anchors.month), ytd: describe(anchors.ytd),
+  };
 }
 
 export default async function handler(req, res) {
@@ -374,18 +451,21 @@ export default async function handler(req, res) {
         }
         const row = matches[0];
         const value = Number.isFinite(Number(body.value)) ? Number(body.value) : row.amount;
-        const { history, affected, skipped } = restateHistory(
+        const oldValue = Number.isFinite(Number(body.oldValue)) ? Number(body.oldValue) : null;
+        const { history, affected, skipped, assumed } = restateHistory(
           cur.history, label, value, row.ccy,
-          { from: str(body.from, 10) || null, to: str(body.to, 10) || null }
+          { from: str(body.from, 10) || null, to: str(body.to, 10) || null,
+            oldValue, fixPrunedTotals: body.fixPrunedTotals === true }
         );
+        const anchors = diagnoseAnchors(cur.history, today, totals, label);
         if (body.apply !== true) {
-          res.status(200).json({ dryRun: true, label, ccy: row.ccy, value, affected, skipped });
+          res.status(200).json({ dryRun: true, label, ccy: row.ccy, value, oldValue, affected, skipped, assumed, anchors });
           return;
         }
         const sha = await writeStore(ghToken, cur.components, history, cur.settings, body.sha || cur.sha,
           `networth: restate ${label} across ${affected.length} snapshot(s)`);
         res.status(200).json({
-          restated: affected.length, label, ccy: row.ccy, value, affected, skipped,
+          restated: affected.length, label, ccy: row.ccy, value, affected, skipped, assumed, anchors,
           components: rows, totals, changes: changesFor(history, today, totals, rows),
           breakeven: breakevenFor(cur.settings, totals), sha, asOf: today,
         });

@@ -295,12 +295,14 @@
           <select id="nwRsLabel" style="width:auto;max-width:260px"><option value="">— component —</option></select>
           to <input id="nwRsValue" type="number" step="any" placeholder="current value" style="width:130px" title="Leave blank to use the component's CURRENT value">
           from <input id="nwRsFrom" type="date" style="width:150px" title="Optional — only snapshots on or after this date">
+          was <input id="nwRsOld" type="number" step="any" placeholder="old (wrong) value" style="width:150px" title="What the line WRONGLY read. Needed only to correct snapshots whose per-line detail was pruned — their totals are still wrong and cannot be fixed without it.">
+          <label style="display:inline-flex;align-items:center;gap:4px;margin:0"><input id="nwRsPruned" type="checkbox" style="width:auto"> fix pruned totals</label>
         </label>
         <button class="ghost" id="nwRsCheck">Preview</button>
         <button class="ghost" id="nwRsApply" disabled>Apply</button>
         <span class="status" id="nwRsStatus"></span>
       </div>
-      <div class="hint">Fixes a <b>mistyped balance in past snapshots</b>. A wrong figure sits in both the snapshot's component line and the total computed from it, so day/month/YTD compare today against a number that never existed — correcting the live component alone leaves every past comparison wrong. This rewrites the line <em>and</em> the totals together across history. <b>Preview first</b>; nothing is written until you press Apply. Note it rewrites the line to one value for the whole range, so any <b>genuine</b> movement in that line over the range is flattened too — scope it with <b>from</b> if only part of the history was wrong.</div>
+      <div class="hint">Fixes a <b>mistyped balance in past snapshots</b>. A wrong figure sits in both the snapshot's component line and the total computed from it, so day/month/YTD compare today against a number that never existed — correcting the live component alone leaves every past comparison wrong. This rewrites the line <em>and</em> the totals together across history. <b>Preview first</b>; nothing is written until you press Apply. Note it rewrites the line to one value for the whole range, so any <b>genuine</b> movement in that line over the range is flattened too — scope it with <b>from</b> if only part of the history was wrong.<br><b>If the preview says an anchor is STILL WRONG:</b> that snapshot's per-line detail was pruned, so only its total carries the error and the line cannot be reached. Enter what the line wrongly read in <b>was</b> and tick <b>fix pruned totals</b> — the total is then corrected by that difference. It assumes the same wrong figure stood on those dates, so those rows are reported separately as assumed.</div>
       <div id="nwRsOut" class="hint" style="display:none;font-family:'JetBrains Mono',monospace;white-space:pre-wrap"></div>
       <div class="bar">
         <button class="ghost" id="nwAdd">+ Add component</button>
@@ -868,7 +870,7 @@ function nwRender(j){
    disarms it again, so you cannot rewrite history on a stale preview. */
 let nwRsArmed = null;                       // JSON key of the previewed request
 function nwRsKey(){
-  return JSON.stringify([$("nwRsLabel").value, $("nwRsValue").value, $("nwRsFrom").value]);
+  return JSON.stringify([$("nwRsLabel").value, $("nwRsValue").value, $("nwRsFrom").value, $("nwRsOld").value, $("nwRsPruned").checked]);
 }
 function nwFillRestate(comps){
   const sel = $("nwRsLabel"); const cur = sel.value;
@@ -881,11 +883,14 @@ function nwFillRestate(comps){
   nwRsDisarm();
 }
 function nwRsDisarm(){ nwRsArmed = null; $("nwRsApply").disabled = true; }
-["nwRsLabel","nwRsValue","nwRsFrom"].forEach(id=>$(id).addEventListener("input", nwRsDisarm));
+["nwRsLabel","nwRsValue","nwRsFrom","nwRsOld","nwRsPruned"].forEach(id=>$(id).addEventListener("input", nwRsDisarm));
+$("nwRsPruned").addEventListener("change", nwRsDisarm);
 function nwRsBody(apply){
   const b = { action:"restate", label:$("nwRsLabel").value, apply: apply===true };
   const v = $("nwRsValue").value.trim(); if (v !== "") b.value = Number(v);
   const f = $("nwRsFrom").value; if (f) b.from = f;
+  const o = $("nwRsOld").value.trim(); if (o !== "") b.oldValue = Number(o);
+  if ($("nwRsPruned").checked) b.fixPrunedTotals = true;
   if (apply) b.sha = nwSha;
   return b;
 }
@@ -900,8 +905,26 @@ function nwRsReport(j){
                `   total SGD ${money(a.oldTotalSgd)} → ${money(a.newTotalSgd)}`);
   });
   if ((j.affected||[]).length > 12) lines.push(`  … and ${j.affected.length-12} more`);
-  (j.skipped||[]).forEach(s=>lines.push(`  ${s.d}  SKIPPED — ${s.reason}`));
-  if (!(j.affected||[]).length) lines.push("  (nothing to change — history already matches)");
+  if ((j.assumed||[]).length){
+    lines.push(`${j.assumed.length} snapshot(s) with no per-line detail — total corrected using the "was" value (ASSUMED):`);
+    j.assumed.slice(0,12).forEach(a=>lines.push(`  ${a.d}  assumed ${money(a.assumedOldNative)} → ${money(a.newNative)} ${a.ccy}   total SGD ${money(a.oldTotalSgd)} → ${money(a.newTotalSgd)}`));
+    if (j.assumed.length > 12) lines.push(`  … and ${j.assumed.length-12} more`);
+  }
+  const sk = j.skipped||[];
+  sk.slice(0,8).forEach(s=>lines.push(`  ${s.d}  SKIPPED — ${s.reason}`));
+  if (sk.length > 8) lines.push(`  … and ${sk.length-8} more skipped`);
+  if (!(j.affected||[]).length && !(j.assumed||[]).length) lines.push("  (no line-level change — see the anchors below)");
+  const a = j.anchors;
+  if (a){
+    lines.push("");
+    lines.push(`what the front page compares against (${a.withParts} of ${a.snapshots} snapshots keep per-line detail):`);
+    ["day","month","ytd"].forEach(k=>{
+      const x = a[k];
+      if (!x) { lines.push(`  ${k.padEnd(5)} — none`); return; }
+      lines.push(`  ${k.padEnd(5)} ${x.d}  ${x.correctable ? "OK — line-correctable" : "STILL WRONG — " + x.why}`);
+    });
+    if (a.boundaryHint) lines.push(`  hint: totals step ${money(a.boundaryHint.stepSgd)} SGD between ${a.boundaryHint.between[0]} and ${a.boundaryHint.between[1]} (${a.boundaryHint.note})`);
+  }
   out.textContent = lines.join("\n");
 }
 $("nwRsCheck").addEventListener("click", async ()=>{
