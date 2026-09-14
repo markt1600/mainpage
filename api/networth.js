@@ -286,6 +286,59 @@ function pruneParts(history) {
   });
 }
 
+/* RESTATE a component's value in HISTORY (editor, 14 Sep 2026 — owner-reported).
+   A mistyped balance does not just sit in one row: the snapshot it was taken
+   in carries BOTH the wrong per-component part AND a total computed from it,
+   so the day/month/YTD figures compare today against an amount that never
+   existed. Correcting the live component fixes the present and leaves every
+   past comparison wrong.
+
+   This rewrites a named component across historical snapshots to `value` in
+   its own currency — by default the component's CURRENT value, which is the
+   right answer when the old number was simply a typo for what is there now.
+   Both halves move together: the part, and the snapshot's sgd/usd totals by
+   exactly the same delta. Change them apart and the driver line looks right
+   while the headline stays wrong.
+
+   Snapshots whose parts were pruned away carry a total that cannot be
+   corrected line-by-line; they are reported, not silently touched. In
+   practice the month-end and year-end snapshots that day/month/YTD actually
+   compare against keep their parts, so the figures that matter are fixable.
+
+   Dry run unless apply === true. */
+function restateHistory(history, label, value, ccy, opts = {}) {
+  const from = opts.from || null, to = opts.to || null;
+  const affected = [], skipped = [];
+  const next = history.map((h) => {
+    if (!h || !h.d) return h;
+    if (from && h.d < from) return h;
+    if (to && h.d > to) return h;
+    if (!Array.isArray(h.parts) || !h.parts.length) {
+      if (!from || h.d >= from) skipped.push({ d: h.d, reason: "parts pruned — total not line-correctable" });
+      return h;
+    }
+    const i = h.parts.findIndex((p) => p && p.label === label);
+    if (i < 0) return h;
+    const snapFx = Number.isFinite(h.fx) && h.fx > 0 ? h.fx : null;
+    const oldPart = h.parts[i];
+    const oldSgd = Number.isFinite(oldPart.sgd)
+      ? oldPart.sgd
+      : (oldPart.ccy === "USD" ? oldPart.native * (snapFx || 1) : oldPart.native);
+    const newSgd = ccy === "USD" ? value * (snapFx || 1) : value;
+    const deltaSgd = newSgd - oldSgd;
+    if (Math.abs(deltaSgd) < 0.005) return h;               // already right
+    const parts = h.parts.slice();
+    parts[i] = { ...oldPart, ccy, native: value, sgd: newSgd };
+    const sgd = (Number.isFinite(h.sgd) ? h.sgd : 0) + deltaSgd;
+    const usd = snapFx ? sgd / snapFx : h.usd;
+    affected.push({ d: h.d, oldNative: oldPart.native, newNative: value, ccy,
+                    deltaSgd, oldTotalSgd: h.sgd, newTotalSgd: sgd,
+                    oldTotalUsd: h.usd, newTotalUsd: usd });
+    return { ...h, parts, sgd, usd };
+  });
+  return { history: next, affected, skipped };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -307,6 +360,38 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       let body = {};
       try { body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {}); } catch (_) {}
+
+      // Restate a mistyped component across history. Dry run unless apply===true.
+      if (body.action === "restate") {
+        const label = str(body.label);
+        if (!label) { res.status(400).json({ error: "label required" }); return; }
+        const cur = await readStore(ghToken);
+        const { rows, totals } = await priceAndTotal(cur.components);
+        const matches = rows.filter((r) => r.label === label);
+        if (matches.length !== 1) {
+          res.status(400).json({ error: matches.length ? "label matches more than one component" : "no component with that label" });
+          return;
+        }
+        const row = matches[0];
+        const value = Number.isFinite(Number(body.value)) ? Number(body.value) : row.amount;
+        const { history, affected, skipped } = restateHistory(
+          cur.history, label, value, row.ccy,
+          { from: str(body.from, 10) || null, to: str(body.to, 10) || null }
+        );
+        if (body.apply !== true) {
+          res.status(200).json({ dryRun: true, label, ccy: row.ccy, value, affected, skipped });
+          return;
+        }
+        const sha = await writeStore(ghToken, cur.components, history, cur.settings, body.sha || cur.sha,
+          `networth: restate ${label} across ${affected.length} snapshot(s)`);
+        res.status(200).json({
+          restated: affected.length, label, ccy: row.ccy, value, affected, skipped,
+          components: rows, totals, changes: changesFor(history, today, totals, rows),
+          breakeven: breakevenFor(cur.settings, totals), sha, asOf: today,
+        });
+        return;
+      }
+
       const components = sanitizeComponents(body.components);
       const cur = await readStore(ghToken);
       const settings = body.settings !== undefined ? sanitizeSettings(body.settings) : cur.settings;

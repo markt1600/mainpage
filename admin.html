@@ -290,6 +290,18 @@
         </label>
       </div>
       <div class="hint">A USD breakeven is an SGD budget converted at the struck rate: the anchor stays fixed in SGD, so the USD target on the main page <b>moves with the live rate</b> (SGD stronger → higher USD breakeven). Leave the struck rate blank for the 1.28 default. For an SGD breakeven the struck rate is ignored.</div>
+      <div class="bar" style="flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:7px;margin:0;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap">Restate history
+          <select id="nwRsLabel" style="width:auto;max-width:260px"><option value="">— component —</option></select>
+          to <input id="nwRsValue" type="number" step="any" placeholder="current value" style="width:130px" title="Leave blank to use the component's CURRENT value">
+          from <input id="nwRsFrom" type="date" style="width:150px" title="Optional — only snapshots on or after this date">
+        </label>
+        <button class="ghost" id="nwRsCheck">Preview</button>
+        <button class="ghost" id="nwRsApply" disabled>Apply</button>
+        <span class="status" id="nwRsStatus"></span>
+      </div>
+      <div class="hint">Fixes a <b>mistyped balance in past snapshots</b>. A wrong figure sits in both the snapshot's component line and the total computed from it, so day/month/YTD compare today against a number that never existed — correcting the live component alone leaves every past comparison wrong. This rewrites the line <em>and</em> the totals together across history. <b>Preview first</b>; nothing is written until you press Apply. Note it rewrites the line to one value for the whole range, so any <b>genuine</b> movement in that line over the range is flattened too — scope it with <b>from</b> if only part of the history was wrong.</div>
+      <div id="nwRsOut" class="hint" style="display:none;font-family:'JetBrains Mono',monospace;white-space:pre-wrap"></div>
       <div class="bar">
         <button class="ghost" id="nwAdd">+ Add component</button>
         <button class="ghost" id="nwAddMkt">+ Add market row (symbol × qty)</button>
@@ -846,8 +858,82 @@ function nwRender(j){
   $("nwBkFx").value = (j.breakeven && j.breakeven.breakevenFx != null) ? j.breakeven.breakevenFx : "";
   $("nwBkRate").value = (j.breakeven && j.breakeven.withdrawalRate != null) ? j.breakeven.withdrawalRate : "";
   $("nwMeta").textContent = `${(j.components||[]).length} components · snapshot ${j.asOf}`;
+  nwFillRestate(comps);
   nwRecalc();
 }
+
+/* ---------- restate a mistyped component across history ----------
+   Preview is mandatory in practice: Apply stays disabled until a preview
+   for the CURRENT selection has come back, and any edit to the selection
+   disarms it again, so you cannot rewrite history on a stale preview. */
+let nwRsArmed = null;                       // JSON key of the previewed request
+function nwRsKey(){
+  return JSON.stringify([$("nwRsLabel").value, $("nwRsValue").value, $("nwRsFrom").value]);
+}
+function nwFillRestate(comps){
+  const sel = $("nwRsLabel"); const cur = sel.value;
+  sel.innerHTML = '<option value="">— component —</option>';
+  (comps||[]).forEach(c=>{
+    const o = document.createElement("option");
+    o.value = c.label; o.textContent = c.label; sel.appendChild(o);
+  });
+  if (cur && [...sel.options].some(o=>o.value===cur)) sel.value = cur;
+  nwRsDisarm();
+}
+function nwRsDisarm(){ nwRsArmed = null; $("nwRsApply").disabled = true; }
+["nwRsLabel","nwRsValue","nwRsFrom"].forEach(id=>$(id).addEventListener("input", nwRsDisarm));
+function nwRsBody(apply){
+  const b = { action:"restate", label:$("nwRsLabel").value, apply: apply===true };
+  const v = $("nwRsValue").value.trim(); if (v !== "") b.value = Number(v);
+  const f = $("nwRsFrom").value; if (f) b.from = f;
+  if (apply) b.sha = nwSha;
+  return b;
+}
+function nwRsReport(j){
+  const out = $("nwRsOut"); out.style.display = "block";
+  const money = n => (n==null?"—":n.toLocaleString(undefined,{maximumFractionDigits:0}));
+  const lines = [];
+  lines.push(`${j.label} → ${money(j.value)} ${j.ccy}`);
+  lines.push(`${(j.affected||[]).length} snapshot(s) would change:`);
+  (j.affected||[]).slice(0,12).forEach(a=>{
+    lines.push(`  ${a.d}  ${money(a.oldNative)} → ${money(a.newNative)} ${a.ccy}` +
+               `   total SGD ${money(a.oldTotalSgd)} → ${money(a.newTotalSgd)}`);
+  });
+  if ((j.affected||[]).length > 12) lines.push(`  … and ${j.affected.length-12} more`);
+  (j.skipped||[]).forEach(s=>lines.push(`  ${s.d}  SKIPPED — ${s.reason}`));
+  if (!(j.affected||[]).length) lines.push("  (nothing to change — history already matches)");
+  out.textContent = lines.join("\n");
+}
+$("nwRsCheck").addEventListener("click", async ()=>{
+  if(!$("nwRsLabel").value){ $("nwRsStatus").textContent = "pick a component"; $("nwRsStatus").className="status err"; return; }
+  $("nwRsStatus").textContent = "checking…"; $("nwRsStatus").className = "status";
+  try{
+    const res = await authFetch("/api/networth", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(nwRsBody(false)) });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){ $("nwRsStatus").textContent = j.error || `error ${res.status}`; $("nwRsStatus").className="status err"; nwRsDisarm(); return; }
+    nwRsReport(j);
+    const n = (j.affected||[]).length;
+    nwRsArmed = n ? nwRsKey() : null;
+    $("nwRsApply").disabled = !n;
+    $("nwRsStatus").textContent = n ? `preview — ${n} snapshot(s); press Apply to write` : "nothing to change";
+    $("nwRsStatus").className = "status";
+  }catch(e){ $("nwRsStatus").textContent = String(e); $("nwRsStatus").className="status err"; nwRsDisarm(); }
+});
+$("nwRsApply").addEventListener("click", async ()=>{
+  if(nwRsArmed !== nwRsKey()){ $("nwRsStatus").textContent = "selection changed — preview again"; $("nwRsStatus").className="status err"; nwRsDisarm(); return; }
+  if(!confirm("Rewrite history for “"+$("nwRsLabel").value+"”?\n\nThis changes past snapshots and the day/month/YTD figures computed from them. It cannot be undone from here.")) return;
+  $("nwRsStatus").textContent = "writing…"; $("nwRsStatus").className = "status";
+  try{
+    const res = await authFetch("/api/networth", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(nwRsBody(true)) });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok){ $("nwRsStatus").textContent = j.error || `error ${res.status}`; $("nwRsStatus").className="status err"; return; }
+    nwRsReport(j);
+    nwRender(j);
+    $("nwRsStatus").textContent = `restated ${j.restated} snapshot(s)`;
+    $("nwRsStatus").className = "status ok";
+    nwRsDisarm();
+  }catch(e){ $("nwRsStatus").textContent = String(e); $("nwRsStatus").className="status err"; }
+});
 ["nwBk","nwBkCcy","nwBkFx","nwBkRate"].forEach(id=>$(id).addEventListener("input", ()=>setDirty("networth", true)));
 async function loadNetworth(){
   try{
