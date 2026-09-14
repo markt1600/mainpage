@@ -297,12 +297,13 @@
           from <input id="nwRsFrom" type="date" style="width:150px" title="Optional — only snapshots on or after this date">
           was <input id="nwRsOld" type="number" step="any" placeholder="old (wrong) value" style="width:150px" title="What the line WRONGLY read. Needed only to correct snapshots whose per-line detail was pruned — their totals are still wrong and cannot be fixed without it.">
           <label style="display:inline-flex;align-items:center;gap:4px;margin:0"><input id="nwRsPruned" type="checkbox" style="width:auto"> fix pruned totals</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;margin:0" title="For snapshots that cannot be corrected: stop using them as a comparison anchor. Nothing is deleted."><input id="nwRsMark" type="checkbox" style="width:auto"> ignore un-fixable snapshots</label>
         </label>
         <button class="ghost" id="nwRsCheck">Preview</button>
         <button class="ghost" id="nwRsApply" disabled>Apply</button>
         <span class="status" id="nwRsStatus"></span>
       </div>
-      <div class="hint">Fixes a <b>mistyped balance in past snapshots</b>. A wrong figure sits in both the snapshot's component line and the total computed from it, so day/month/YTD compare today against a number that never existed — correcting the live component alone leaves every past comparison wrong. This rewrites the line <em>and</em> the totals together across history. <b>Preview first</b>; nothing is written until you press Apply. Note it rewrites the line to one value for the whole range, so any <b>genuine</b> movement in that line over the range is flattened too — scope it with <b>from</b> if only part of the history was wrong.<br><b>If the preview says an anchor is STILL WRONG:</b> that snapshot's per-line detail was pruned, so only its total carries the error and the line cannot be reached. Enter what the line wrongly read in <b>was</b> and tick <b>fix pruned totals</b> — the total is then corrected by that difference. It assumes the same wrong figure stood on those dates, so those rows are reported separately as assumed.</div>
+      <div class="hint">Fixes a <b>mistyped balance in past snapshots</b>. A wrong figure sits in both the snapshot's component line and the total computed from it, so day/month/YTD compare today against a number that never existed — correcting the live component alone leaves every past comparison wrong. This rewrites the line <em>and</em> the totals together across history. <b>Preview first</b>; nothing is written until you press Apply. Note it rewrites the line to one value for the whole range, so any <b>genuine</b> movement in that line over the range is flattened too — scope it with <b>from</b> if only part of the history was wrong.<br><b>If the preview says an anchor is STILL WRONG:</b> that snapshot's per-line detail was pruned, so only its total carries the error and the line cannot be reached. Enter what the line wrongly read in <b>was</b> and tick <b>fix pruned totals</b> — the total is then corrected by that difference. It assumes the same wrong figure stood on those dates, so those rows are reported separately as assumed.<br><b>If you do not know what it wrongly read:</b> tick <b>ignore un-fixable snapshots</b> instead. Those snapshots keep their data but stop being used as a comparison anchor, so day / month / YTD fall back to the nearest snapshot that is trustworthy — the front page then says <i>since</i> that later date. Nothing is invented and nothing is deleted.</div>
       <div id="nwRsOut" class="hint" style="display:none;font-family:'JetBrains Mono',monospace;white-space:pre-wrap"></div>
       <div class="bar">
         <button class="ghost" id="nwAdd">+ Add component</button>
@@ -870,7 +871,7 @@ function nwRender(j){
    disarms it again, so you cannot rewrite history on a stale preview. */
 let nwRsArmed = null;                       // JSON key of the previewed request
 function nwRsKey(){
-  return JSON.stringify([$("nwRsLabel").value, $("nwRsValue").value, $("nwRsFrom").value, $("nwRsOld").value, $("nwRsPruned").checked]);
+  return JSON.stringify([$("nwRsLabel").value, $("nwRsValue").value, $("nwRsFrom").value, $("nwRsOld").value, $("nwRsPruned").checked, $("nwRsMark").checked]);
 }
 function nwFillRestate(comps){
   const sel = $("nwRsLabel"); const cur = sel.value;
@@ -883,14 +884,16 @@ function nwFillRestate(comps){
   nwRsDisarm();
 }
 function nwRsDisarm(){ nwRsArmed = null; $("nwRsApply").disabled = true; }
-["nwRsLabel","nwRsValue","nwRsFrom","nwRsOld","nwRsPruned"].forEach(id=>$(id).addEventListener("input", nwRsDisarm));
+["nwRsLabel","nwRsValue","nwRsFrom","nwRsOld","nwRsPruned","nwRsMark"].forEach(id=>$(id).addEventListener("input", nwRsDisarm));
 $("nwRsPruned").addEventListener("change", nwRsDisarm);
+$("nwRsMark").addEventListener("change", nwRsDisarm);
 function nwRsBody(apply){
   const b = { action:"restate", label:$("nwRsLabel").value, apply: apply===true };
   const v = $("nwRsValue").value.trim(); if (v !== "") b.value = Number(v);
   const f = $("nwRsFrom").value; if (f) b.from = f;
   const o = $("nwRsOld").value.trim(); if (o !== "") b.oldValue = Number(o);
   if ($("nwRsPruned").checked) b.fixPrunedTotals = true;
+  if ($("nwRsMark").checked) b.markUnreliable = true;
   if (apply) b.sha = nwSha;
   return b;
 }
@@ -910,6 +913,11 @@ function nwRsReport(j){
     j.assumed.slice(0,12).forEach(a=>lines.push(`  ${a.d}  assumed ${money(a.assumedOldNative)} → ${money(a.newNative)} ${a.ccy}   total SGD ${money(a.oldTotalSgd)} → ${money(a.newTotalSgd)}`));
     if (j.assumed.length > 12) lines.push(`  … and ${j.assumed.length-12} more`);
   }
+  if ((j.marked||[]).length){
+    lines.push(`${j.marked.length} snapshot(s) cannot be corrected — they will stop being used as a comparison anchor (kept, not deleted):`);
+    j.marked.slice(0,12).forEach(m=>lines.push(`  ${m.d}  total SGD ${money(m.totalSgd)} — ignored from here on`));
+    if (j.marked.length > 12) lines.push(`  … and ${j.marked.length-12} more`);
+  }
   const sk = j.skipped||[];
   sk.slice(0,8).forEach(s=>lines.push(`  ${s.d}  SKIPPED — ${s.reason}`));
   if (sk.length > 8) lines.push(`  … and ${sk.length-8} more skipped`);
@@ -924,6 +932,15 @@ function nwRsReport(j){
       lines.push(`  ${k.padEnd(5)} ${x.d}  ${x.correctable ? "OK — line-correctable" : "STILL WRONG — " + x.why}`);
     });
     if (a.boundaryHint) lines.push(`  hint: totals step ${money(a.boundaryHint.stepSgd)} SGD between ${a.boundaryHint.between[0]} and ${a.boundaryHint.between[1]} (${a.boundaryHint.note})`);
+  }
+  const aa = j.anchorsAfter;
+  if (aa){
+    lines.push("");
+    lines.push("after this change it would compare against:");
+    ["day","month","ytd"].forEach(k=>{
+      const x = aa[k];
+      lines.push(`  ${k.padEnd(5)} ${x ? x.d + "  " + (x.correctable ? "OK" : "still not line-correctable") : "— none left"}`);
+    });
   }
   out.textContent = lines.join("\n");
 }

@@ -245,7 +245,11 @@ function driversFor(snap, rows, fx) {
 // changes vs history, in USD (abs + pct + driver breakdown)
 function changesFor(history, today, totals, rows) {
   const nowUsd = totals.usd;
-  const prior = history.filter((h) => h && h.d && h.d < today).sort((a, b) => (a.d < b.d ? -1 : 1));
+  // `noCompare` snapshots stay in history but are never used as a comparison
+  // anchor: they carry a known-wrong total that cannot be corrected (see
+  // restateHistory's markUnreliable). Comparing against a number you know to
+  // be wrong is worse than comparing against an older, honest one.
+  const prior = history.filter((h) => h && h.d && h.d < today && !h.noCompare).sort((a, b) => (a.d < b.d ? -1 : 1));
   const pick = (pred) => {
     const c = prior.filter(pred);
     return c.length ? c[c.length - 1] : (prior.length ? prior[0] : null);
@@ -310,7 +314,7 @@ function restateHistory(history, label, value, ccy, opts = {}) {
   const from = opts.from || null, to = opts.to || null;
   const oldValue = Number.isFinite(opts.oldValue) ? opts.oldValue : null;
   const fixPruned = opts.fixPrunedTotals === true && oldValue !== null;
-  const affected = [], skipped = [], assumed = [];
+  const affected = [], skipped = [], assumed = [], marked = [];
   const next = history.map((h) => {
     if (!h || !h.d) return h;
     if (from && h.d < from) return h;
@@ -322,7 +326,17 @@ function restateHistory(history, label, value, ccy, opts = {}) {
       // deterministically. This is an ASSUMPTION (that the same wrong figure
       // stood on that date), so it is opt-in and reported separately.
       if (!fixPruned) {
-        skipped.push({ d: h.d, reason: "parts pruned — total not line-correctable without an explicit oldValue" });
+        // No per-line detail and no oldValue to reconstruct one. The honest
+        // move is not to invent a figure but to stop comparing against a
+        // total known to be wrong: mark it uncomparable and let the change
+        // figures fall back to the nearest snapshot that IS trustworthy. The
+        // snapshot itself is kept — only its use as an anchor is withdrawn.
+        if (opts.markUnreliable === true) {
+          if (h.noCompare) return h;
+          marked.push({ d: h.d, totalSgd: h.sgd, totalUsd: h.usd });
+          return { ...h, noCompare: true };
+        }
+        skipped.push({ d: h.d, reason: "parts pruned — not line-correctable; give an oldValue, or mark it uncomparable" });
         return h;
       }
       const snapFx = Number.isFinite(h.fx) && h.fx > 0 ? h.fx : null;
@@ -353,7 +367,7 @@ function restateHistory(history, label, value, ccy, opts = {}) {
                     oldTotalUsd: h.usd, newTotalUsd: usd });
     return { ...h, parts, sgd, usd };
   });
-  return { history: next, affected, skipped, assumed };
+  return { history: next, affected, skipped, assumed, marked };
 }
 
 /* Which snapshots do day / month / YTD actually compare against, and is each
@@ -363,7 +377,7 @@ function restateHistory(history, label, value, ccy, opts = {}) {
    tracking altogether — carry a total that a line-by-line restatement cannot
    reach. This says so plainly instead of leaving it to be guessed. */
 function diagnoseAnchors(history, today, totals, label) {
-  const prior = history.filter((h) => h && h.d && h.d < today).sort((a, b) => (a.d < b.d ? -1 : 1));
+  const prior = history.filter((h) => h && h.d && h.d < today && !h.noCompare).sort((a, b) => (a.d < b.d ? -1 : 1));
   const pick = (pred) => {
     const c = prior.filter(pred);
     return c.length ? c[c.length - 1] : (prior.length ? prior[0] : null);
@@ -452,20 +466,21 @@ export default async function handler(req, res) {
         const row = matches[0];
         const value = Number.isFinite(Number(body.value)) ? Number(body.value) : row.amount;
         const oldValue = Number.isFinite(Number(body.oldValue)) ? Number(body.oldValue) : null;
-        const { history, affected, skipped, assumed } = restateHistory(
+        const { history, affected, skipped, assumed, marked } = restateHistory(
           cur.history, label, value, row.ccy,
           { from: str(body.from, 10) || null, to: str(body.to, 10) || null,
-            oldValue, fixPrunedTotals: body.fixPrunedTotals === true }
+            oldValue, fixPrunedTotals: body.fixPrunedTotals === true,
+            markUnreliable: body.markUnreliable === true }
         );
         const anchors = diagnoseAnchors(cur.history, today, totals, label);
         if (body.apply !== true) {
-          res.status(200).json({ dryRun: true, label, ccy: row.ccy, value, oldValue, affected, skipped, assumed, anchors });
+          res.status(200).json({ dryRun: true, label, ccy: row.ccy, value, oldValue, affected, skipped, assumed, marked, anchors, anchorsAfter: diagnoseAnchors(history, today, totals, label) });
           return;
         }
         const sha = await writeStore(ghToken, cur.components, history, cur.settings, body.sha || cur.sha,
           `networth: restate ${label} across ${affected.length} snapshot(s)`);
         res.status(200).json({
-          restated: affected.length, label, ccy: row.ccy, value, affected, skipped, assumed, anchors,
+          restated: affected.length, label, ccy: row.ccy, value, affected, skipped, assumed, marked, anchors,
           components: rows, totals, changes: changesFor(history, today, totals, rows),
           breakeven: breakevenFor(cur.settings, totals), sha, asOf: today,
         });
