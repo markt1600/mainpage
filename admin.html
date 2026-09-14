@@ -902,7 +902,7 @@ function nwRsReport(j){
   const money = n => (n==null?"—":n.toLocaleString(undefined,{maximumFractionDigits:0}));
   const lines = [];
   lines.push(`${j.label} → ${money(j.value)} ${j.ccy}`);
-  lines.push(`${(j.affected||[]).length} snapshot(s) would change:`);
+  if ((j.affected||[]).length) lines.push(`${j.affected.length} snapshot(s) line-corrected:`);
   (j.affected||[]).slice(0,12).forEach(a=>{
     lines.push(`  ${a.d}  ${money(a.oldNative)} → ${money(a.newNative)} ${a.ccy}` +
                `   total SGD ${money(a.oldTotalSgd)} → ${money(a.newTotalSgd)}`);
@@ -952,10 +952,20 @@ $("nwRsCheck").addEventListener("click", async ()=>{
     const j = await res.json().catch(()=>({}));
     if(!res.ok){ $("nwRsStatus").textContent = j.error || `error ${res.status}`; $("nwRsStatus").className="status err"; nwRsDisarm(); return; }
     nwRsReport(j);
-    const n = (j.affected||[]).length;
+    // A preview counts as actionable if ANY of the three kinds of change is
+    // pending — line corrections, assumed total corrections, or snapshots
+    // being withdrawn as comparison anchors. Counting only the first left
+    // Apply disabled on a marking-only run, which is the exact case you reach
+    // when the old figure is unknown.
+    const nA = (j.affected||[]).length, nS = (j.assumed||[]).length, nM = (j.marked||[]).length;
+    const n = nA + nS + nM;
     nwRsArmed = n ? nwRsKey() : null;
     $("nwRsApply").disabled = !n;
-    $("nwRsStatus").textContent = n ? `preview — ${n} snapshot(s); press Apply to write` : "nothing to change";
+    const bits = [];
+    if (nA) bits.push(`${nA} line-corrected`);
+    if (nS) bits.push(`${nS} total-corrected`);
+    if (nM) bits.push(`${nM} ignored as anchor`);
+    $("nwRsStatus").textContent = n ? `preview — ${bits.join(", ")}; press Apply to write` : "nothing to change";
     $("nwRsStatus").className = "status";
   }catch(e){ $("nwRsStatus").textContent = String(e); $("nwRsStatus").className="status err"; nwRsDisarm(); }
 });
@@ -969,7 +979,12 @@ $("nwRsApply").addEventListener("click", async ()=>{
     if(!res.ok){ $("nwRsStatus").textContent = j.error || `error ${res.status}`; $("nwRsStatus").className="status err"; return; }
     nwRsReport(j);
     nwRender(j);
-    $("nwRsStatus").textContent = `restated ${j.restated} snapshot(s)`;
+    const dA = j.restated||0, dS = (j.assumed||[]).length, dM = (j.marked||[]).length;
+    const done = [];
+    if (dA) done.push(`${dA} line-corrected`);
+    if (dS) done.push(`${dS} total-corrected`);
+    if (dM) done.push(`${dM} ignored as anchor`);
+    $("nwRsStatus").textContent = done.length ? done.join(", ") : "no change";
     $("nwRsStatus").className = "status ok";
     nwRsDisarm();
   }catch(e){ $("nwRsStatus").textContent = String(e); $("nwRsStatus").className="status err"; }
