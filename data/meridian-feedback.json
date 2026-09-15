@@ -616,6 +616,13 @@
    "desk": "Atelier Next",
    "topic": "Glassware & stemware",
    "vote": 1
+  },
+  {
+   "ts": "2026-09-15T02:28:07.005Z",
+   "issue": "103",
+   "desk": "Rabbit Hole Next",
+   "topic": "Home espresso",
+   "vote": -1
   }
  ],
  "notes": [
