@@ -14,6 +14,7 @@
 // ADMIN_SECRET / DASHBOARD_SECRET for the session HMAC key.
 
 import { sessionKey, mintSession, checkSession, OWNER_EMAIL, SPECIALS_SCOPE } from "./_session.js";
+import { setCameraCookie, clearCameraCookie } from "./_camera-session.js";
 
 async function verifyGoogleCredential(credential, clientId) {
   const res = await fetch(
@@ -52,6 +53,14 @@ export default async function handler(req, res) {
   }
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
 
+  if (req.method === "DELETE") {
+    if (!new Set(['https://marktan.ai', 'https://www.marktan.ai']).has(origin)) {
+      res.status(403).json({ error: 'forbidden' }); return;
+    }
+    clearCameraCookie(res);
+    res.status(200).json({ ok: true }); return;
+  }
+
   const clientId = (process.env.GOOGLE_CLIENT_ID || "").trim() || null;
 
   if (req.method !== "POST") {
@@ -70,6 +79,7 @@ export default async function handler(req, res) {
   if (body.session) {
     const payload = checkSession(body.session, key);
     if (payload === OWNER_EMAIL) {
+      setCameraCookie(res, Number(String(body.session).split('.')[1]));
       // A full session also gets a fresh LIMITED token for the .marktan.ai
       // cookie (specials access only — see _session.js).
       res.status(200).json({ ok: true, user: OWNER_EMAIL, specialsToken: mintSession(SPECIALS_SCOPE, key) });
@@ -87,6 +97,7 @@ export default async function handler(req, res) {
     try {
       const v = await verifyGoogleCredential(body.credential, clientId);
       if (v.email) {
+        setCameraCookie(res);
         res.status(200).json({ ok: true, user: v.email, session: mintSession(v.email, key), specialsToken: mintSession(SPECIALS_SCOPE, key) });
       } else {
         res.status(v.error).json({ error: v.error === 403 ? "not the owner" : "unauthorized" });

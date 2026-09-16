@@ -903,6 +903,7 @@
         <span class="cnt"></span>
       </div>
       <div id="ownerContent">
+        <p style="margin:0 0 22px"><a class="chip" href="https://security.marktan.ai" target="_blank" rel="noopener"><span class="nm">The Watch · Camera recordings</span><span class="arr">↗</span></a></p>
         <!-- Birthdays: owner-only (loaded with the private calendar from the
              encrypted store); hidden unless one falls within the window -->
         <div id="birthdaysSec" style="display:none;margin-bottom:22px">
@@ -2208,9 +2209,14 @@ async function beginLogin(){
   }
 }
 
-function toggleLogin(e){
+async function toggleLogin(e){
   if(e) e.preventDefault();
   if(ownerUser){
+    // Clear the HttpOnly camera cookie before reporting a completed sign-out.
+    try {
+      const out = await fetch('/api/login', { method: 'DELETE' });
+      if (!out.ok) throw new Error('sign out failed');
+    } catch (_) { alert('Could not sign out. Please check your connection and try again.'); return; }
     ownerUser = null;
     try{ localStorage.removeItem(OWNER_KEY); }catch(e2){}
     setOwnerCookie(null);

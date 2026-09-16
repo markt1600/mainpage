@@ -25,6 +25,9 @@ jobs:
           for f in api/*.js scripts/*.mjs; do node --check "$f"; done
           echo "all API files parse"
 
+      - name: Verify camera SSO scope and logout
+        run: node scripts/test-camera-sso.mjs
+
       - name: Validate data + config JSON
         run: |
           node -e '
