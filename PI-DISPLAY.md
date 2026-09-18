@@ -64,3 +64,5 @@ Install the three files in `pi-device` under `~/.local/lib/marktan-memory-cache`
 
 ## South Singapore air quality
 The header displays station 1663 (Singapore/South) from AQICN, attributed to NEA / WAQI, with source AQI colour bands and the observation time in Singapore time. Refreshes every five minutes. Data older than three hours is marked Old; failed requests display Unavailable rather than retaining an apparently current number.
+
+The cache creates H.264/AAC MP4 playback copies for HEVC/10-bit phone footage and oversized or incompatible pixel formats. Copies fit the 640 x 360 video area, preserve aspect ratio, and tone-map HDR to SDR. Source files stay intact; updated redirects take effect automatically.
