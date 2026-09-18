@@ -134,7 +134,11 @@ if(typeof document !== 'undefined') {
   loadBirthdays();setInterval(loadBirthdays,300000);setInterval(rotateNotice,10000);
   window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){if(!birthdayDevice)birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
 
-  let source=read('pi-source')==='memories'?'memories':'youtube', muted=true;
+  let source=['youtube','memories','game'].includes(read('pi-source'))?read('pi-source'):'youtube', muted=true;
+  let gameFrame=null;
+  const gameOrigin='https://athomepenny.marktan.ai';
+  const gameSound=()=>gameFrame?.contentWindow?.postMessage({type:'pi-game-sound',muted},gameOrigin);
+  window.addEventListener('message',event=>{if(source==='game'&&event.origin===gameOrigin&&event.source===gameFrame?.contentWindow&&event.data?.type==='pi-game-ready'){message('');gameSound();}});
   const memories=createMemories({host:$('memoryHost'),caption:(title,count)=>{$('videoTitle').textContent=title;$('videoCount').textContent=count;},message,onControls:enabled=>{$('next').disabled=!enabled;$('sound').disabled=false;}});
   let videos=[], pendingVideos=null, player=null, ready=false, index=0, errors=0, skipTimer;
   function captionsOff(target=player){
@@ -164,12 +168,20 @@ if(typeof document !== 'undefined') {
     source=value;save('pi-source',source);clearTimeout(skipTimer);
     document.querySelectorAll('[data-source]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.source===source)));
     $('youtubeHost').hidden=source!=='youtube';
+    $('gameHost').hidden=source!=='game';
+    $('next').textContent=source==='game'?'Restart':'Next \u25b7';
+    if(source!=='game'&&gameFrame){gameFrame.remove();gameFrame=null;}
+    if(source==='game'){
+      if(ready)player.pauseVideo();memories.stop();$('videoTitle').textContent='At Home Penny - full auto';$('videoCount').textContent='';$('sound').disabled=false;$('next').disabled=false;message('Loading the house...');
+      if(!gameFrame){gameFrame=document.createElement('iframe');gameFrame.title='At Home Penny on autopilot';gameFrame.allow='autoplay';gameFrame.src=gameOrigin+'/?pi=1&lite=1';$('gameHost').replaceChildren(gameFrame);}
+      return;
+    }
     if(source==='memories'){if(ready)player.pauseVideo();memories.setMuted(muted);memories.start();}
     else{memories.stop();$('sound').disabled=!ready;$('next').disabled=!ready;message(ready?'':'Loading latest uploads…');caption();if(ready)play();else bootPlayer();}
   }
   document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>selectSource(b.dataset.source));
-  $('next').onclick=()=>source==='memories'?memories.next():advance();
-  $('sound').onclick=()=>{muted=!muted;$('sound').textContent=muted?'Sound off':'Sound on';memories.setMuted(muted);if(ready){muted?player.mute():player.unMute();}};
+  $('next').onclick=()=>{if(source==='game')gameFrame?.contentWindow?.postMessage({type:'pi-game-restart'},gameOrigin);else if(source==='memories')memories.next();else advance();};
+  $('sound').onclick=()=>{muted=!muted;$('sound').textContent=muted?'Sound off':'Sound on';memories.setMuted(muted);gameSound();if(ready){muted?player.mute():player.unMute();}};
   selectSource(source);setInterval(()=>memories.refresh(),60000);
   async function loadVideos(){
     try{

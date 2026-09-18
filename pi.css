@@ -99,3 +99,7 @@ footer button { padding:8px 10px; }
 .air-quality { display:grid; grid-template-columns:auto auto; align-items:center; gap:1px 8px; text-decoration:none; color:var(--ink); font-size:12px; }
 .air-quality strong { grid-column:2; grid-row:1 / 4; font:bold 30px Arial,sans-serif; min-width:66px; padding:8px; border-radius:5px; text-align:center; background:var(--rule); }
 .air-quality small { font-size:10px; grid-column:1; }
+
+#gameHost { width:100%; height:100%; }
+#gameHost[hidden] { display:none; }
+#gameHost iframe { display:block; width:100%; height:100%; border:0; }
