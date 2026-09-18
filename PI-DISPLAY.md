@@ -61,3 +61,6 @@ The footer selects YouTube or Memories and persists the choice on this device. M
 The kiosk extension's `memory-cache.js` refreshes its local redirect rules every minute. Only `pi.marktan.ai` requests use these cached extension resources; ordinary browsers stream from At Home. The local feed supports continuing the cached library during network outages while the dashboard is open. This does not make the entire dashboard or YouTube offline. Hiding/deleting a memory takes effect on the Pi after a successful sync, rather than instantly.
 
 Install the three files in `pi-device` under `~/.local/lib/marktan-memory-cache`, run `install-memory-cache.py`, start the sync service, then restart `marktan-display.service` once to load the extension update. The installer preserves the birthday-only credential and its static authorization rule. No media or secrets are stored in Git.
+
+## South Singapore air quality
+The header displays station 1663 (Singapore/South) from AQICN, attributed to NEA / WAQI, with source AQI colour bands and the observation time in Singapore time. Refreshes every five minutes. Data older than three hours is marked Old; failed requests display Unavailable rather than retaining an apparently current number.

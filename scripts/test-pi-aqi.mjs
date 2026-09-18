@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {parseSouthAqi,aqiCategory} from '../api/display-aqi.js';
+const data={city:{idx:1663,id:'Singapore/South'},aqi:76,time:{utc:{s:'2026-09-18 19:00:00',tz:'+08:00'}}};
+const html=d=>'setWidgetAqiGraphModel('+JSON.stringify(d)+');';
+assert.equal(parseSouthAqi(html(data)).value,76);
+assert.equal(parseSouthAqi(html(data)).observedAt,'2026-09-18T11:00:00.000Z');
+assert.throws(()=>parseSouthAqi(html({...data,city:{idx:1666,id:'Singapore/Central'}})));
+assert.throws(()=>parseSouthAqi('<html>unavailable</html>'));
+for(const [n,color] of [[0,'#009966'],[50,'#009966'],[51,'#ffde33'],[100,'#ffde33'],[101,'#ff9933'],[151,'#cc0033'],[201,'#660099'],[301,'#7e0023']])assert.equal(aqiCategory(n).background,color);
+console.log('South station identity, timestamp, missing feed and AQI colour boundaries passed.');

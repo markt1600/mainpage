@@ -86,6 +86,19 @@ if(typeof document !== 'undefined') {
   }
   loadData();setInterval(loadData,300000);window.addEventListener('online',loadData);
 
+  async function loadAqi(){
+    try{
+      const r=await fetch('/api/display-aqi',{signal:AbortSignal.timeout(25000)});if(!r.ok)throw Error();const d=await r.json();
+      if(!Number.isInteger(d.value)||!/^#[a-f0-9]{6}$/i.test(d.background)||!/^#[a-f0-9]{6}$/i.test(d.color)||!Number.isFinite(Date.parse(d.observedAt)))throw Error();
+      const stale=Date.now()-Date.parse(d.observedAt)>3*3600000;
+      $('aqiValue').textContent=d.value;$('aqiValue').style.background=d.background;$('aqiValue').style.color=d.color;
+      $('aqiTime').textContent=(stale?'Old ':'')+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(d.observedAt));
+      $('airQuality').title=`South Singapore AQI ${d.value}: ${d.label}. ${shortTime(d.observedAt)} SGT. NEA via World Air Quality Index.`;
+      $('airQuality').setAttribute('aria-label',$('airQuality').title);
+    }catch{$('aqiValue').textContent='--';$('aqiValue').style.background='var(--rule)';$('aqiValue').style.color='var(--ink)';$('aqiTime').textContent='Unavailable';$('airQuality').title='South Singapore AQI unavailable';$('airQuality').setAttribute('aria-label','South Singapore AQI unavailable');}
+  }
+  loadAqi();setInterval(loadAqi,300000);
+
   let birthdays=[], rotation=0, birthdayDevice=false;
   const ownerToken=()=>{try{return localStorage.getItem('ownerSession');}catch{return null;}};
   function rotateNotice(){
