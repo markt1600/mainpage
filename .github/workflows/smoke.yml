@@ -31,6 +31,9 @@ jobs:
       - name: Verify Pi display logic and feeds
         run: node scripts/test-pi.mjs
 
+      - name: Verify Pi memories playback
+        run: node scripts/test-pi-memories.mjs
+
       - name: Verify birthday-only device access
         run: node scripts/test-birthday-device.mjs
 

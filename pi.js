@@ -1,3 +1,4 @@
+import {createMemories} from './pi-memories.js';
 export function singaporeParts(now = new Date()) {
   return Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Singapore', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(now).map(p => [p.type,p.value]));
 }
@@ -120,41 +121,53 @@ if(typeof document !== 'undefined') {
   loadBirthdays();setInterval(loadBirthdays,300000);setInterval(rotateNotice,10000);
   window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){if(!birthdayDevice)birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
 
+  let source=read('pi-source')==='memories'?'memories':'youtube', muted=true;
+  const memories=createMemories({host:$('memoryHost'),caption:(title,count)=>{$('videoTitle').textContent=title;$('videoCount').textContent=count;},message,onControls:enabled=>{$('next').disabled=!enabled;$('sound').disabled=false;}});
   let videos=[], pendingVideos=null, player=null, ready=false, index=0, errors=0, skipTimer;
   function captionsOff(target=player){
     try{target?.unloadModule?.('captions');}catch{}
   }
   function message(text){$('videoMessage').textContent=text;$('videoMessage').hidden=!text;}
-  function caption(){const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
-  function play(){if(!ready || !videos.length)return;caption();message('');player.loadVideoById(videos[index].id);}
+  function caption(){if(source!=='youtube')return;const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
+  function play(){if(source!=='youtube' || !ready || !videos.length)return;caption();message('');player.loadVideoById(videos[index].id);}
   function advance(){
+    if(source!=='youtube')return;
     clearTimeout(skipTimer);
     if(pendingVideos){videos=pendingVideos;pendingVideos=null;index=0;errors=0;}else index=(index+1)%Math.max(1,videos.length);
     play();
   }
   function bootPlayer(){
-    if(player || !videos.length || !window.YT?.Player)return;
+    if(source!=='youtube' || player || !videos.length || !window.YT?.Player)return;
     player=new window.YT.Player('player',{width:640,height:360,videoId:videos[0].id,
       playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,cc_load_policy:0,origin:location.origin},
-      events:{onReady:e=>{ready=true;e.target.mute();captionsOff(e.target);$('sound').disabled=false;$('next').disabled=false;caption();e.target.playVideo();},
+      events:{onReady:e=>{ready=true;muted?e.target.mute():e.target.unMute();captionsOff(e.target);if(source!=='youtube'){e.target.pauseVideo();return;}$('sound').disabled=false;$('next').disabled=false;caption();e.target.playVideo();},
         onApiChange:e=>captionsOff(e.target),
-        onStateChange:e=>{if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0)advance();},
-        onAutoplayBlocked:()=>message('Tap the video to start playback'),
-        onError:()=>{errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
+        onStateChange:e=>{if(source!=='youtube'){if(e.data===1)e.target.pauseVideo();return;}if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0)advance();},
+        onAutoplayBlocked:()=>{if(source==='youtube')message('Tap the video to start playback');},
+        onError:()=>{if(source!=='youtube')return;errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
       }});
   }
-  $('next').onclick=advance;
-  $('sound').onclick=()=>{if(!ready)return;if(player.isMuted()){player.unMute();$('sound').textContent='Sound on';}else{player.mute();$('sound').textContent='Sound off';}};
+  function selectSource(value){
+    source=value;save('pi-source',source);clearTimeout(skipTimer);
+    document.querySelectorAll('[data-source]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.source===source)));
+    $('youtubeHost').hidden=source!=='youtube';
+    if(source==='memories'){if(ready)player.pauseVideo();memories.setMuted(muted);memories.start();}
+    else{memories.stop();$('sound').disabled=!ready;$('next').disabled=!ready;message(ready?'':'Loading latest uploads�');caption();if(ready)play();else bootPlayer();}
+  }
+  document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>selectSource(b.dataset.source));
+  $('next').onclick=()=>source==='memories'?memories.next():advance();
+  $('sound').onclick=()=>{muted=!muted;$('sound').textContent=muted?'Sound off':'Sound on';memories.setMuted(muted);if(ready){muted?player.mute():player.unMute();}};
+  selectSource(source);setInterval(()=>memories.refresh(),60000);
   async function loadVideos(){
     try{
       const r=await fetch('/api/videos',{signal:AbortSignal.timeout(30000)});if(!r.ok)throw new Error();
       const d=await r.json();const next=d.videos?.filter(v=>/^[A-Za-z0-9_-]{11}$/.test(v.id)).slice(0,5);if(!next?.length)throw new Error();
       if(!videos.length){videos=next;index=0;bootPlayer();}
       else if(next.map(v=>v.id).join()!==videos.map(v=>v.id).join())pendingVideos=next;
-    }catch{if(!videos.length)message('YouTube unavailable · retrying shortly');}
+    }catch{if(source==='youtube'&&!videos.length)message('YouTube unavailable · retrying shortly');}
   }
   window.onYouTubeIframeAPIReady=bootPlayer;
-  function loadPlayerApi(){if(window.YT?.Player){bootPlayer();return;}document.getElementById('youtube-api')?.remove();const s=document.createElement('script');s.id='youtube-api';s.src='https://www.youtube.com/iframe_api';s.onerror=()=>message('YouTube unavailable · retrying shortly');document.head.append(s);}
+  function loadPlayerApi(){if(window.YT?.Player){bootPlayer();return;}document.getElementById('youtube-api')?.remove();const s=document.createElement('script');s.id='youtube-api';s.src='https://www.youtube.com/iframe_api';s.onerror=()=>source==='youtube'&&message('YouTube unavailable · retrying shortly');document.head.append(s);}
   loadPlayerApi();loadVideos();setInterval(loadVideos,900000);
   setInterval(()=>{if(!window.YT?.Player)loadPlayerApi();if(!videos.length)loadVideos();},60000);
 }

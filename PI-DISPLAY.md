@@ -50,3 +50,6 @@ Enable desktop auto-login and disable screen blanking in Raspberry Pi's desktop 
 
 `node scripts/preview-pi.mjs` starts the preview at http://127.0.0.1:8899/pi.
 `node scripts/test-pi.mjs` checks the time boundaries, overrides, Happy Day dates, YouTube parsing, gold conversion, and independent provider failure.
+
+## Memories playback
+The footer selects YouTube or Memories and persists the choice on this device. Memories reads the published At Home library through `/api/display-memories`; unpublished records stay excluded. Media streams directly from At Home, preserving its hide/delete checks. Every album plays in order (photos five seconds, videos to completion), then the full library repeats. Album soundtracks replace video audio when supplied. Sound and Next work in both modes; switching stops the other player. Library refreshes are adopted at the next full loop.
