@@ -75,11 +75,11 @@ if(typeof document !== 'undefined') {
   }
   loadData();setInterval(loadData,300000);window.addEventListener('online',loadData);
 
-  let birthdays=[], rotation=0;
+  let birthdays=[], rotation=0, birthdayDevice=false;
   const ownerToken=()=>{try{return localStorage.getItem('ownerSession');}catch{return null;}};
   function rotateNotice(){
     const token=ownerToken();
-    if(!token || Number(token.split('.')[1])<Date.now())birthdays=[];
+    if(!birthdayDevice && (!token || Number(token.split('.')[1])<Date.now()))birthdays=[];
     const list=birthdaysInWindow(birthdays);
     const show=list.length>0 && rotation%2===1;
     document.querySelector('.weather').hidden=show;
@@ -90,6 +90,13 @@ if(typeof document !== 'undefined') {
     rotation++;
   }
   async function loadBirthdays(){
+    // The Pi's local extension adds its device credential to this one URL.
+    // Ordinary browsers remain unauthenticated and may use owner login below.
+    try{
+      const r=await fetch('/api/display-birthdays',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+      if(r.ok){const d=await r.json();if(!Array.isArray(d.birthdays))throw new Error();birthdayDevice=true;birthdays=d.birthdays;$('birthdayLogin').hidden=true;return;}
+    }catch{}
+    birthdayDevice=false;
     const token=ownerToken();
     if(!token){birthdays=[];$('birthdayLogin').hidden=false;rotation=0;rotateNotice();return;}
     try{
@@ -101,7 +108,7 @@ if(typeof document !== 'undefined') {
     }catch{birthdays=[];$('birthdayLogin').hidden=false;rotation=0;rotateNotice();}
   }
   loadBirthdays();setInterval(loadBirthdays,300000);setInterval(rotateNotice,10000);
-  window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
+  window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){if(!birthdayDevice)birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
 
   let videos=[], pendingVideos=null, player=null, ready=false, index=0, errors=0, skipTimer;
   function message(text){$('videoMessage').textContent=text;$('videoMessage').hidden=!text;}

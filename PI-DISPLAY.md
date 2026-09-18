@@ -8,6 +8,10 @@ The latest five public channel uploads refresh every 15 minutes. Changed lists t
 
 ## Birthdays
 
+The installed physical Pi uses a separate birthday-only device credential and needs no Google login. A local Chromium extension adds an Authorization header only to `https://pi.marktan.ai/api/display-birthdays`, only for same-site GET requests. The credential stays in the Pi user's protected configuration directory; the repository contains only its SHA-256 verifier in `api/_birthday-device.js`. That endpoint returns names and month/day only for the −3/+7-day notice window, never birth years, private events, edits, finances or owner-session access. Responses use `private, no-store`. Remove the verifier and redeploy to revoke the Pi. This is a device-installed bearer credential, not a hardware-backed key; someone with access to the Pi user's files could copy it.
+
+The following owner-login option remains available for other browsers:
+
 For Google Sign-In on the new hostname, add `https://pi.marktan.ai` to the existing Google OAuth client's Authorized JavaScript origins. Browser sessions are specific to each hostname. The display's homepage link opens `/index.html` on its current hostname.
 
 Sign in on the homepage once in the **same Pi Chromium profile and hostname**, then return to `/pi`. The display reuses the existing owner session and private calendar endpoint; birthday names are never added to a public feed or cached in browser storage. Notices alternate with weather every ten seconds, cycling through all birthdays from three days ago through seven days ahead, ordered the same way as the homepage. Dates use Singapore time. Without a valid owner session, only weather appears; sign in again if the session expires (normally 90 days). The local preview has no private birthday data.

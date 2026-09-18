@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
+    "api/display-birthdays.js": {
+      "maxDuration": 15
+    },
     "api/display.js": {
       "maxDuration": 30
     },
