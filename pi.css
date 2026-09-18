@@ -55,5 +55,35 @@ button:disabled { opacity:.45; }
 #status { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 /* Applies to the embedded video as well. This is visual dimming, not backlight control. */
 body.dim #display { filter:brightness(.22); }
-@media(min-width:801px) { body { display:grid; min-height:100vh; place-items:center; } #display { margin:0; } }
-@media(max-width:799px) { #display { zoom:calc(100vw / 800px); } }
+/* Native 1024 × 600 panel: larger video, text, and touch targets. */
+#display { width:1024px; height:600px; padding:14px 20px 10px; }
+header { height:80px; }
+.brand { font-size:16px; }
+h1 { font-size:40px; }
+.heart { font-size:32px; }
+.clock time { font-size:34px; }
+#date { font-size:14px; }
+.content { grid-template-columns:640px 324px; gap:20px; margin-top:12px; height:436px; }
+.video, #player, .video iframe { width:640px; height:360px; }
+.video-caption { height:28px; font-size:14px; }
+.weather, .birthday { height:48px; }
+.birthday-icon { font-size:30px; }
+.birthday b { font-size:20px; }
+.weather .eyebrow { font-size:14px; }
+.temperature { font-size:34px; }
+.conditions b { font-size:18px; max-width:260px; }
+#weatherDetails { font-size:14px; }
+#weatherTime { font-size:13px; }
+.quotes { padding-left:19px; }
+article { padding:5px 0 6px; }
+.eyebrow { font-size:16px; }
+.eyebrow span { font-size:13px; }
+article strong { font-size:32px; }
+.quote-line { gap:6px; height:39px; }
+.change { font-size:14px; line-height:16px; }
+small { font-size:13px; }
+footer { height:44px; flex:none; }
+button { font-size:16px; min-height:40px; padding:8px 14px; }
+#status { font-size:13px; }
+@media(min-width:1025px) { body { display:grid; min-height:100vh; place-items:center; } #display { margin:0; } }
+@media(max-width:1023px), (max-height:599px) { #display { zoom:min(calc(100vw / 1024px), calc(100vh / 600px)); } }

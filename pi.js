@@ -134,7 +134,7 @@ if(typeof document !== 'undefined') {
   }
   function bootPlayer(){
     if(player || !videos.length || !window.YT?.Player)return;
-    player=new window.YT.Player('player',{width:480,height:270,videoId:videos[0].id,
+    player=new window.YT.Player('player',{width:640,height:360,videoId:videos[0].id,
       playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,cc_load_policy:0,origin:location.origin},
       events:{onReady:e=>{ready=true;e.target.mute();captionsOff(e.target);$('sound').disabled=false;$('next').disabled=false;caption();e.target.playVideo();},
         onApiChange:e=>captionsOff(e.target),

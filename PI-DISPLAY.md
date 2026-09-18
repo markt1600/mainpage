@@ -1,6 +1,6 @@
 # Raspberry Pi display
 
-Open **https://pi.marktan.ai** in Chromium at 800 × 480, landscape, 100% browser zoom. The subdomain root opens `/pi` in the same Vercel project. The main homepage is unchanged. The page includes Happy Day (the same anniversary calculation as the homepage), Singapore weather, SGD/JPY, ARES, VWRA.L, and SGD per half troy ounce of gold.
+Open **https://pi.marktan.ai** in Chromium at 1024 × 600, landscape, 100% browser zoom. The subdomain root opens `/pi` in the same Vercel project. The main homepage is unchanged. The page includes Happy Day (the same anniversary calculation as the homepage), Singapore weather, SGD/JPY, ARES, VWRA.L, and SGD per half troy ounce of gold.
 
 Gold reuses the homepage's GC=F futures proxy multiplied by USD/SGD and 0.5. It is not a spot quote or a retail bullion price. Equity/FX/gold timestamps are the provider's quote times, in Singapore time; data may be delayed. Weather is fetched from the same Open-Meteo provider as the homepage. The lightweight data endpoint refreshes at most every five minutes, independently of the homepage's daily edition.
 
@@ -26,7 +26,7 @@ Auto dims at 21:30 and returns to full at 07:30, Asia/Singapore, irrespective of
 
 ## Pi setup after the display arrives
 
-Use the display manufacturer's Pi 5 instructions for its DSI cable, connector, driver and orientation. Power off and unplug the Pi before connecting DSI. Confirm the desktop is 800 × 480 first.
+Use the display manufacturer's Pi 5 instructions for its DSI cable, connector, driver and orientation. Power off and unplug the Pi before connecting DSI. Confirm the desktop is 1024 × 600 first.
 
 Test the page from the Pi desktop's terminal:
 
