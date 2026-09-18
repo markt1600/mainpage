@@ -44,6 +44,14 @@
       "maxDuration": 15
     }
   },
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "pi.marktan.ai" }],
+      "destination": "/pi",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/pi",

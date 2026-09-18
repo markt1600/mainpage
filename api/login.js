@@ -36,6 +36,7 @@ async function verifyGoogleCredential(credential, clientId) {
 const CORS_ORIGINS = new Set([
   "https://marktan.ai",
   "https://www.marktan.ai",
+  "https://pi.marktan.ai",
   "https://dailymag.marktan.ai",
 ]);
 
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
 
   if (req.method === "DELETE") {
-    if (!new Set(['https://marktan.ai', 'https://www.marktan.ai']).has(origin)) {
+    if (!new Set(['https://marktan.ai', 'https://www.marktan.ai', 'https://pi.marktan.ai']).has(origin)) {
       res.status(403).json({ error: 'forbidden' }); return;
     }
     clearCameraCookie(res);
