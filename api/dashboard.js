@@ -76,18 +76,18 @@ function describeCode(code) {
 }
 
 // Current US AQI from Open-Meteo's (also keyless) air-quality API.
-async function getCityAqi(city) {
+async function getCityAqi(city, signal) {
   const url =
     `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}` +
     `&current=us_aqi&timezone=${encodeURIComponent(city.tz)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Air-quality ${res.status}`);
   const d = await res.json();
   const aqi = d.current?.us_aqi;
   return Number.isFinite(aqi) ? Math.round(aqi) : null;
 }
 
-async function getCityWeather(city) {
+export async function getCityWeather(city, signal) {
   // Snow report only during the snow season (Nov-Apr, city-local time).
   const month = Number(
     new Intl.DateTimeFormat("en-US", { timeZone: city.tz, month: "numeric" }).format(new Date())
@@ -102,7 +102,7 @@ async function getCityWeather(city) {
     `&timezone=${encodeURIComponent(city.tz)}&forecast_days=1`;
 
   // AQI comes from a separate endpoint; a failure there never blanks the weather.
-  const [res, aqi] = await Promise.all([fetch(url), getCityAqi(city).catch(() => null)]);
+  const [res, aqi] = await Promise.all([fetch(url, { signal }), getCityAqi(city, signal).catch(() => null)]);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   const d = await res.json();
 
@@ -155,11 +155,12 @@ async function getCities() {
 }
 
 // --- Markets via Yahoo Finance's keyless chart endpoint --------------------
-async function getQuote({ label, symbol, note }) {
+export async function getQuote({ label, symbol, note, signal }) {
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
     `?interval=1d&range=5d`;
   const res = await fetch(url, {
+    signal,
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; marktan-dashboard/1.0)",
       Accept: "application/json",
@@ -196,6 +197,7 @@ async function getQuote({ label, symbol, note }) {
     spark: closes.length >= 2 ? closes : null,
     sparkTimes: closes.length >= 2 ? times : null,
     currency: meta.currency || "USD",
+    quotedAt: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
   };
 }
 
