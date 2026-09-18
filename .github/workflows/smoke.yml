@@ -28,6 +28,9 @@ jobs:
       - name: Verify camera SSO scope and logout
         run: node scripts/test-camera-sso.mjs
 
+      - name: Verify Pi display logic and feeds
+        run: node scripts/test-pi.mjs
+
       - name: Validate data + config JSON
         run: |
           node -e '

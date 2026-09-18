@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="noindex">
+  <title>Happy Day · marktan.ai</title>
+  <link rel="stylesheet" href="/pi.css">
+</head>
+<body>
+<main id="display">
+  <header>
+    <div><a class="brand" href="/">marktan.ai</a><h1><span class="heart">♥</span> <span id="happy">Happy Day</span></h1></div>
+    <div class="clock"><time id="clock">—</time><div id="date">Singapore</div></div>
+  </header>
+  <section class="content">
+    <div class="left">
+      <div class="video"><div id="player"></div><p id="videoMessage">Loading latest uploads…</p></div>
+      <div class="video-caption"><span id="videoTitle">@markt1600 · latest five</span><span id="videoCount"></span></div>
+      <div class="weather"><div><span class="eyebrow">SINGAPORE</span><div class="temperature" id="temperature">—°</div></div><div class="conditions"><b id="condition">Loading weather…</b><div id="weatherDetails"> </div><small id="weatherTime"></small></div></div>
+      <div class="birthday" id="birthday" hidden><span class="birthday-icon" aria-hidden="true">🎂</span><div><b id="birthdayName"></b><small id="birthdayWhen"></small></div></div>
+    </div>
+    <div class="quotes">
+      <article><div class="eyebrow">SGD → JPY <span>¥ / S$1</span></div><strong id="fx">—</strong><small id="fxTime">Awaiting quote</small></article>
+      <article><div class="eyebrow">ARES <span>NYSE · USD</span></div><strong id="ares">—</strong><small id="aresTime">Awaiting quote</small></article>
+      <article><div class="eyebrow">GOLD <span>SGD / ½ troy oz</span></div><strong id="gold">—</strong><small id="goldTime">Futures proxy · awaiting quote</small></article>
+      <article><div class="eyebrow">VWRA <span>LSE · USD</span></div><strong id="vwra">—</strong><small id="vwraTime">Awaiting quote</small></article>
+    </div>
+  </section>
+  <footer>
+    <div class="brightness" aria-label="Display brightness"><button data-mode="auto">Auto</button><button data-mode="dim">Dim</button><button data-mode="full">Full</button></div>
+    <div class="status-wrap"><span id="status" role="status">Connecting…</span><a id="birthdayLogin" href="/" hidden>Sign in on homepage for birthdays</a></div>
+    <div class="playback"><button id="sound" disabled>Sound off</button><button id="next" disabled>Next ▷</button></div>
+  </footer>
+</main>
+<script type="module" src="/pi.js"></script>
+</body>
+</html>
