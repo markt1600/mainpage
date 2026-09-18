@@ -4,6 +4,10 @@ Open **https://pi.marktan.ai** in Chromium at 800 × 480, landscape, 100% browse
 
 Gold reuses the homepage's GC=F futures proxy multiplied by USD/SGD and 0.5. It is not a spot quote or a retail bullion price. Equity/FX/gold timestamps are the provider's quote times, in Singapore time; data may be delayed. Weather is fetched from the same Open-Meteo provider as the homepage. The lightweight data endpoint refreshes at most every five minutes, independently of the homepage's daily edition.
 
+The display also includes BTC in USD. All five tiles show signed absolute and percentage changes, with green/up, red/down, or neutral/flat indicators. Changes compare the current quote with the last available five-minute close at or before 24 hours ago; when markets are closed, the latest known price carries forward. Gold compares the SGD half-ounce value at both times, incorporating currency changes. Missing historical data is marked unavailable rather than substituted with a previous-close figure.
+
+YouTube captions are disabled at player initialization and when each video's captions module loads. Subtitles burned into a video image cannot be removed.
+
 The latest five public channel uploads refresh every 15 minutes. Changed lists take over at the next video boundary. Playback loops, starts muted and skips unavailable videos. Tap Sound off to unmute. YouTube may require a tap to start, and its ads, embedding restrictions and outages still apply. The public RSS feed is used first, with the public Videos tab as a fallback. That fallback depends on YouTube page structure and may need maintenance. No video files are downloaded.
 
 ## Birthdays

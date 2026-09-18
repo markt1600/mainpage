@@ -155,10 +155,10 @@ async function getCities() {
 }
 
 // --- Markets via Yahoo Finance's keyless chart endpoint --------------------
-export async function getQuote({ label, symbol, note, signal }) {
+export async function getQuote({ label, symbol, note, signal, rolling24h = false, now = Date.now() }) {
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
-    `?interval=1d&range=5d`;
+    `?interval=${rolling24h ? '5m' : '1d'}&range=5d`;
   const res = await fetch(url, {
     signal,
     headers: {
@@ -185,6 +185,13 @@ export async function getQuote({ label, symbol, note, signal }) {
     .filter((p) => p.c != null);
   const closes = points.map((p) => p.c);
   const times = points.map((p) => p.t);
+  // For the Pi, compare with the last available five-minute close at or
+  // before 24 hours ago. Closed markets carry forward their last quote.
+  const target = Math.floor(now / 1000) - 86400;
+  const baseline = rolling24h ? (Number.isFinite(meta.regularMarketTime) && meta.regularMarketTime <= target && Number.isFinite(price)
+    ? { c: price, t: meta.regularMarketTime }
+    : points.filter(p => Number.isFinite(p.c) && p.t != null && p.t <= target).sort((a,b) => b.t-a.t)[0]) : null;
+  const change24h = baseline && Number.isFinite(price) ? price - baseline.c : null;
   if (closes.length && price != null) closes[closes.length - 1] = price; // latest point = live price
 
   return {
@@ -198,6 +205,12 @@ export async function getQuote({ label, symbol, note, signal }) {
     sparkTimes: closes.length >= 2 ? times : null,
     currency: meta.currency || "USD",
     quotedAt: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
+    ...(rolling24h ? {
+      baseline24h: baseline?.c ?? null,
+      baseline24hAt: baseline ? new Date(baseline.t * 1000).toISOString() : null,
+      change24h,
+      pct24h: baseline?.c > 0 && change24h != null ? change24h / baseline.c * 100 : null,
+    } : {}),
   };
 }
 

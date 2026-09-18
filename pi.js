@@ -46,22 +46,32 @@ if(typeof document !== 'undefined') {
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;save('pi-brightness',mode);tick();});
   tick();setInterval(tick,10000);
   const number=value=>Number.isFinite(value)?value.toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+  function renderChange(id,change,pct){
+    const el=$(id+'Change');
+    const available=Number.isFinite(change)&&Number.isFinite(pct);
+    const direction=available && Math.abs(change)>=0.005 ? (change>0?'up':'down') : 'flat';
+    el.className='change '+direction;
+    el.textContent=available?`${direction==='up'?'▲ +':direction==='down'?'▼ −':'— '}${number(Math.abs(change))}\n${pct>0?'+':''}${pct.toFixed(2)}% · 24h`:'24h unavailable';
+    el.setAttribute('aria-label',available?`24-hour change ${change.toFixed(2)}, ${pct.toFixed(2)} percent`:'24-hour change unavailable');
+  }
   let last=read('pi-data');
   function render(data,offline=false){
     const q=data.quotes || {};
-    for(const [id,symbol] of [['fx','SGDJPY=X'],['ares','ARES'],['vwra','VWRA.L']]){
+    for(const [id,symbol] of [['fx','SGDJPY=X'],['ares','ARES'],['vwra','VWRA.L'],['btc','BTC-USD']]){
       $(id).textContent=number(q[symbol]?.price);
       $(id+'Time').textContent=Number.isFinite(q[symbol]?.price)?shortTime(q[symbol]?.quotedAt):'Quote unavailable';
+      renderChange(id,q[symbol]?.change24h,q[symbol]?.pct24h);
     }
     $('gold').textContent=Number.isFinite(data.goldHalfOzSgd)?'S$'+number(data.goldHalfOzSgd):'—';
     $('goldTime').textContent='Futures · '+shortTime(q['GC=F']?.quotedAt);
+    renderChange('gold',data.goldChange24h,data.goldPct24h);
     const w=data.weather;
     $('temperature').textContent=Number.isFinite(w?.current)?Math.round(w.current)+'°':'—°';
     $('condition').textContent=w?.condition || 'Weather unavailable';
     $('weatherDetails').textContent=Number.isFinite(w?.rainChance)?'Rain '+w.rainChance+'%':'';
     $('weatherTime').textContent='Weather · '+shortTime(data.fetchedAt);
     const age=Date.now()-Date.parse(data.fetchedAt);
-    const partial=!w || ['SGDJPY=X','ARES','VWRA.L','GC=F','SGD=X'].some(s=>!Number.isFinite(q[s]?.price));
+    const partial=!w || ['SGDJPY=X','ARES','VWRA.L','GC=F','SGD=X','BTC-USD'].some(s=>!Number.isFinite(q[s]?.price));
     $('status').textContent=offline || age>900000 ? 'Saved data · reconnecting' : partial ? 'Some data unavailable' : 'Quotes may be delayed';
   }
   if(last)render(last,true);
@@ -111,6 +121,9 @@ if(typeof document !== 'undefined') {
   window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){if(!birthdayDevice)birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
 
   let videos=[], pendingVideos=null, player=null, ready=false, index=0, errors=0, skipTimer;
+  function captionsOff(target=player){
+    try{target?.unloadModule?.('captions');}catch{}
+  }
   function message(text){$('videoMessage').textContent=text;$('videoMessage').hidden=!text;}
   function caption(){const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
   function play(){if(!ready || !videos.length)return;caption();message('');player.loadVideoById(videos[index].id);}
@@ -122,9 +135,10 @@ if(typeof document !== 'undefined') {
   function bootPlayer(){
     if(player || !videos.length || !window.YT?.Player)return;
     player=new window.YT.Player('player',{width:480,height:270,videoId:videos[0].id,
-      playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,origin:location.origin},
-      events:{onReady:e=>{ready=true;e.target.mute();$('sound').disabled=false;$('next').disabled=false;caption();e.target.playVideo();},
-        onStateChange:e=>{if(e.data===1){errors=0;message('');caption();}if(e.data===0)advance();},
+      playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,cc_load_policy:0,origin:location.origin},
+      events:{onReady:e=>{ready=true;e.target.mute();captionsOff(e.target);$('sound').disabled=false;$('next').disabled=false;caption();e.target.playVideo();},
+        onApiChange:e=>captionsOff(e.target),
+        onStateChange:e=>{if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0)advance();},
         onAutoplayBlocked:()=>message('Tap the video to start playback'),
         onError:()=>{errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
       }});

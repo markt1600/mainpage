@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { happyDayText, shouldDim, birthdaysInWindow, whenLabel } from '../pi.js';
 import { parseChannel, parseFeed } from '../api/videos.js';
 import display from '../api/display.js';
+import { getQuote } from '../api/dashboard.js';
 
 for (const [time, dim] of [['2026-09-18T13:29:59Z',false],['2026-09-18T13:30:00Z',true],['2026-09-18T23:29:59Z',true],['2026-09-18T23:30:00Z',false]]) {
   assert.equal(shouldDim('auto',new Date(time)),dim,time);
@@ -26,12 +27,15 @@ assert.equal(parseChannel('var ytInitialData = '+JSON.stringify(channel)+';</scr
 
 const realFetch=globalThis.fetch;
 let failAres=false;
+let closedMarket=false, noBaseline=false;
 globalThis.fetch=async url=>{
   if(String(url).includes('finance')){
     const symbol=decodeURIComponent(String(url).split('/').pop().split('?')[0]);
     if(symbol==='ARES' && failAres)throw new Error('Provider down');
-    const prices={'ARES':100,'VWRA.L':150,'GC=F':3000,'SGD=X':1.3,'SGDJPY=X':115};
-    return {ok:true,json:async()=>({chart:{result:[{meta:{regularMarketPrice:prices[symbol],regularMarketTime:1789732800,currency:'USD'},timestamp:[],indicators:{quote:[{close:[]}]}}]}})};
+    const prices={'ARES':100,'VWRA.L':150,'GC=F':3000,'SGD=X':1.3,'SGDJPY=X':115,'BTC-USD':100000};
+    const baselines={'ARES':90,'VWRA.L':160,'GC=F':2700,'SGD=X':1.2,'SGDJPY=X':114,'BTC-USD':95000};
+    const now=Math.floor(Date.now()/1000), target=now-86400;
+    return {ok:true,json:async()=>({chart:{result:[{meta:{regularMarketPrice:prices[symbol],regularMarketTime:closedMarket?target-3600:now,currency:'USD',previousClose:1},timestamp:noBaseline?[target+300]:[target-300,target+300],indicators:{quote:[{close:noBaseline?[999]:[baselines[symbol],999]}]}}]}})};
   }
   return {ok:true,json:async()=>({current:{temperature_2m:30,weather_code:3},daily:{}})};
 };
@@ -42,9 +46,18 @@ try{
   assert.equal(payload.goldHalfOzSgd,1950);
   assert.equal(payload.quotes['VWRA.L'].price,150);
   assert.equal(payload.weather.current,30);
+  assert.equal(payload.quotes.ARES.change24h,10);
+  assert.equal(payload.quotes['VWRA.L'].change24h,-10);
+  assert.equal(payload.quotes['BTC-USD'].change24h,5000);
+  assert.equal(payload.goldChange24h,330);
+  assert.ok(Math.abs(payload.goldPct24h-330/1620*100)<1e-9);
   assert.ok(payload.quotes.ARES.quotedAt);
   failAres=true;await display({},res);
   assert.equal(payload.quotes.ARES,null);
   assert.equal(payload.goldHalfOzSgd,1950);
+  failAres=false;closedMarket=true;
+  assert.equal((await getQuote({symbol:'ARES',rolling24h:true})).change24h,0);
+  closedMarket=false;noBaseline=true;
+  assert.equal((await getQuote({symbol:'ARES',rolling24h:true})).change24h,null);
 }finally{globalThis.fetch=realFetch;}
 console.log('Pi checks passed: SGT dim schedule, overrides, anniversary/leap day, feeds, conversion, partial failure.');

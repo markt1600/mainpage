@@ -2,21 +2,26 @@
 import { getCityWeather, getQuote } from './dashboard.js';
 
 export default async function handler(req, res) {
-  const symbols = ['SGDJPY=X', 'ARES', 'VWRA.L', 'GC=F', 'SGD=X'];
+  const symbols = ['SGDJPY=X', 'ARES', 'VWRA.L', 'GC=F', 'SGD=X', 'BTC-USD'];
+  const now = Date.now();
   const signal = AbortSignal.timeout(18000);
   const results = await Promise.allSettled([
     getCityWeather({ name: 'Singapore', lat: 1.3521, lon: 103.8198, tz: 'Asia/Singapore' }, signal),
-    ...symbols.map(symbol => getQuote({ label: symbol, symbol, note: '', signal })),
+    ...symbols.map(symbol => getQuote({ label: symbol, symbol, note: '', signal, rolling24h: true, now })),
   ]);
   const quotes = Object.fromEntries(symbols.map((symbol, i) => [symbol,
     results[i + 1].status === 'fulfilled' ? results[i + 1].value : null]));
   const gold = quotes['GC=F'], fx = quotes['SGD=X'];
+  const goldHalfOzSgd = Number.isFinite(gold?.price) && Number.isFinite(fx?.price) ? gold.price * fx.price * 0.5 : null;
+  const goldBaseline = Number.isFinite(gold?.baseline24h) && Number.isFinite(fx?.baseline24h) ? gold.baseline24h * fx.baseline24h * 0.5 : null;
+  const goldChange24h = goldHalfOzSgd != null && goldBaseline != null ? goldHalfOzSgd - goldBaseline : null;
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
   res.status(200).json({
     fetchedAt: new Date().toISOString(),
     weather: results[0].status === 'fulfilled' ? results[0].value : null,
     quotes,
-    goldHalfOzSgd: Number.isFinite(gold?.price) && Number.isFinite(fx?.price)
-      ? gold.price * fx.price * 0.5 : null,
+    goldHalfOzSgd,
+    goldChange24h,
+    goldPct24h: goldBaseline > 0 && goldChange24h != null ? goldChange24h / goldBaseline * 100 : null,
   });
 }

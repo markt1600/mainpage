@@ -35,12 +35,16 @@ h1 { margin:3px 0 0; font:bold 32px Georgia,serif; letter-spacing:-1px; }
 .conditions b { font-size:14px; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; }
 #weatherDetails { font-size:12px; }
 #weatherTime { grid-column:1 / -1; font-size:12px; }
-.quotes { display:grid; grid-template-rows:repeat(4,1fr); border-left:1px solid var(--rule); padding-left:15px; }
-article { border-bottom:1px solid var(--rule); padding:3px 0 6px; min-width:0; }
+.quotes { display:grid; grid-template-rows:repeat(5,1fr); border-left:1px solid var(--rule); padding-left:15px; }
+article { border-bottom:1px solid var(--rule); padding:2px 0 3px; min-width:0; }
 article:last-child { border:0; }
 .eyebrow { display:flex; justify-content:space-between; gap:5px; font-size:14px; font-weight:700; }
 .eyebrow span { font-size:12px; font-weight:400; color:var(--muted); }
-article strong { display:block; font-size:30px; line-height:1.23; font-variant-numeric:tabular-nums; letter-spacing:-.6px; }
+article strong { display:block; font-size:25px; line-height:1.15; font-variant-numeric:tabular-nums; letter-spacing:-.7px; }
+.quote-line { display:flex; justify-content:space-between; align-items:center; gap:4px; height:29px; }
+.change { font-size:12px; line-height:13px; text-align:right; white-space:pre-line; flex:none; font-variant-numeric:tabular-nums; color:var(--muted); }
+.change.up { color:#166534; }
+.change.down { color:#b42318; }
 small { color:var(--muted); font-size:12px; }
 footer { margin-top:auto; height:40px; display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid var(--rule); padding-top:4px; }
 button { font:14px Arial,sans-serif; min-height:34px; padding:6px 10px; background:transparent; color:var(--ink); border:1px solid var(--rule); border-radius:4px; cursor:pointer; touch-action:manipulation; }
