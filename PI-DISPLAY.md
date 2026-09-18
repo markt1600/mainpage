@@ -53,3 +53,11 @@ Enable desktop auto-login and disable screen blanking in Raspberry Pi's desktop 
 
 ## Memories playback
 The footer selects YouTube or Memories and persists the choice on this device. Memories reads the published At Home library through `/api/display-memories`; unpublished records stay excluded. Media streams directly from At Home, preserving its hide/delete checks. Every album plays in order (photos five seconds, videos to completion), then the full library repeats. Album soundtracks replace video audio when supplied. Sound and Next work in both modes; switching stops the other player. Library refreshes are adopted at the next full loop.
+
+
+### Pi SD-card cache
+`pi-device/sync-memories.py` runs as the user's `marktan-memory-sync.service`, scheduled every five minutes by `marktan-memory-sync.timer`. It downloads published photos, videos and soundtracks to `~/.config/marktan-birthday-device/memories`, commits files only after complete downloads, reuses immutable asset URLs, and removes files absent from the next successful feed. A failed feed leaves the previous cache intact. Cache limit: 12 GiB, with 4 GiB free space reserved. Failed/oversized downloads remain online URLs.
+
+The kiosk extension's `memory-cache.js` refreshes its local redirect rules every minute. Only `pi.marktan.ai` requests use these cached extension resources; ordinary browsers stream from At Home. The local feed supports continuing the cached library during network outages while the dashboard is open. This does not make the entire dashboard or YouTube offline. Hiding/deleting a memory takes effect on the Pi after a successful sync, rather than instantly.
+
+Install the three files in `pi-device` under `~/.local/lib/marktan-memory-cache`, run `install-memory-cache.py`, start the sync service, then restart `marktan-display.service` once to load the extension update. The installer preserves the birthday-only credential and its static authorization rule. No media or secrets are stored in Git.

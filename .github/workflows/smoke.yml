@@ -34,6 +34,9 @@ jobs:
       - name: Verify Pi memories playback
         run: node scripts/test-pi-memories.mjs
 
+      - name: Verify Pi local memory cache
+        run: python3 scripts/test-memory-cache.py
+
       - name: Verify birthday-only device access
         run: node scripts/test-birthday-device.mjs
 
