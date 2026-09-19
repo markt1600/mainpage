@@ -2,7 +2,7 @@ export function aqiCategory(value){
   const bands=[[50,'Good','#009966','#ffffff'],[100,'Moderate','#ffde33','#000000'],[150,'Unhealthy for sensitive groups','#ff9933','#000000'],[200,'Unhealthy','#cc0033','#ffffff'],[300,'Very unhealthy','#660099','#ffffff'],[Infinity,'Hazardous','#7e0023','#ffffff']];
   const [,label,background,color]=bands.find(([limit])=>value<=limit);return {label,background,color};
 }
-export function parseSouthAqi(html){
+export function parseAqiModel(html){
   const marker='setWidgetAqiGraphModel(',start=html.indexOf(marker);
   if(start<0)throw Error('AQI data missing');
   let begin=html.indexOf('{',start+marker.length),depth=0,string=false,escape=false,end=-1;
@@ -10,7 +10,10 @@ export function parseSouthAqi(html){
     const c=html[i];if(string){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')string=false;}
     else if(c==='"')string=true;else if(c==='{')depth++;else if(c==='}'&&--depth===0){end=i+1;break;}
   }
-  const d=JSON.parse(html.slice(begin,end));
+  return JSON.parse(html.slice(begin,end));
+}
+export function parseSouthAqi(html){
+  const d=parseAqiModel(html);
   if(d.city?.idx!==1663||d.city?.id!=='Singapore/South'||!Number.isInteger(d.aqi)||d.aqi<0||d.aqi>1000)throw Error('Invalid South AQI');
   const t=d.time?.utc,observedAt=t?.s&&t?.tz?new Date(t.s.replace(' ','T')+t.tz).toISOString():null;
   if(!observedAt)throw Error('AQI time missing');

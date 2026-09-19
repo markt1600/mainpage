@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Singapore AQI</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>html,body,#map{height:100%;width:100%;margin:0;font-family:Arial,sans-serif}#notice{position:absolute;z-index:1000;top:8px;left:8px;background:#fff;padding:5px 8px;border-radius:4px;font-size:12px}.reading{display:flex;flex-direction:column;align-items:center;white-space:nowrap}.reading b{font-size:24px;padding:3px 10px;border:1px solid #555;border-radius:5px;box-shadow:0 1px 4px #777}.reading span{font-size:12px;background:#fffd;padding:2px 5px;border-radius:3px;color:#222}.leaflet-control-attribution{font-size:9px!important}</style></head>
+<body><div id="map"></div><div id="notice" role="status">Loading Singapore AQI...</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+if(!window.L){document.getElementById('notice').textContent='Map unavailable - use Refresh';}else{
+const map=L.map('map',{zoomControl:false,zoomSnap:.25,dragging:false,touchZoom:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false}).fitBounds([[1.20,103.59],[1.49,104.05]],{padding:[20,25]});
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | NEA / <a href="https://aqicn.org/city/singapore/central/">WAQI</a>',maxZoom:19}).addTo(map);
+const markers=L.layerGroup().addTo(map),notice=document.getElementById('notice');
+document.addEventListener('click',e=>{if(e.target.closest('a'))e.preventDefault();});
+async function refresh(){try{const r=await fetch('/api/display-aqi-map',{signal:AbortSignal.timeout(25000)});if(!r.ok)throw Error();const d=await r.json();if(!d.stations?.length)throw Error();markers.clearLayers();for(const s of d.stations){const node=document.createElement('div');node.className='reading';const value=document.createElement('b'),name=document.createElement('span');value.textContent=s.value;value.style.background=s.background;value.style.color=s.color;name.textContent=s.name;node.append(value,name);L.marker([s.lat,s.lng],{interactive:false,icon:L.divIcon({html:node,className:'',iconSize:[84,54],iconAnchor:[42,27]})}).addTo(markers);}const oldest=Math.min(...d.stations.map(s=>Date.parse(s.observedAt)));notice.textContent='Singapore AQI'+(Number.isFinite(oldest)?' - '+(Date.now()-oldest>10800000?'older reading ':'')+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(oldest))+' SGT':'');}catch{markers.clearLayers();notice.textContent='AQI unavailable - retrying';}}
+refresh();setInterval(refresh,300000);
+}
+</script></body></html>

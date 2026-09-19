@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
+    "api/display-aqi-map.js": { "maxDuration": 25 },
     "api/display-aqi.js": { "maxDuration": 25 },
     "api/display-memories.js": { "maxDuration": 30 },
     "api/display-birthdays.js": {

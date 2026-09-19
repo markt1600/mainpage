@@ -75,3 +75,6 @@ The authorized Pi credential now permits birthday notices and a limited upcoming
 
 ## CNA live
 CNA selects the official CNA 24/7 YouTube livestream (`XWq5kBlakcQ`, verified live and embeddable on 19 September 2026). It uses the existing YouTube player, remembers the source, keeps captions off, and offers Sound and Live (reload the live feed) controls. Playback errors retry after one minute. If CNA replaces the broadcast, update `cnaLiveId` in `pi.js`.
+
+## AQI map mode
+AQI shows the five Singapore regional readings listed on AQICN Central (North, South, East, West and Central) over an OpenStreetMap base map. Values use the same AQI colours as the clock badge, refresh every five minutes, and display their oldest observation time. The footer Refresh reloads the map. Map taps cannot navigate away; switching sources unloads the map.
