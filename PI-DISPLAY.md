@@ -78,3 +78,5 @@ CNA selects the official CNA 24/7 YouTube livestream (`XWq5kBlakcQ`, verified li
 
 ## AQI map mode
 AQI shows the five Singapore regional readings listed on AQICN Central (North, South, East, West and Central) over an OpenStreetMap base map. Values use the same AQI colours as the clock badge, refresh every five minutes, and display their oldest observation time. The footer Refresh reloads the map. Map taps cannot navigate away; switching sources unloads the map.
+
+The footer rotation button cycles YouTube, Memories, Game, CNA and AQI every five minutes, starting with the current mode. Tap it again or select any individual mode to stop. The rotation preference survives kiosk restarts.
