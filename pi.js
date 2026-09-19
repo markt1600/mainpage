@@ -137,7 +137,9 @@ if(typeof document !== 'undefined') {
   loadBirthdays();setInterval(loadBirthdays,300000);setInterval(rotateNotice,10000);
   window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){if(!birthdayDevice)birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
 
-  let source=['youtube','memories','game'].includes(read('pi-source'))?read('pi-source'):'youtube', muted=true;
+  let source=['youtube','memories','game','cna'].includes(read('pi-source'))?read('pi-source'):'youtube', muted=true;
+  const cnaLiveId='XWq5kBlakcQ';
+  const youtubeSource=()=>source==='youtube'||source==='cna';
   let gameFrame=null;
   const gameOrigin='https://athomepenny.marktan.ai';
   const gameSound=()=>gameFrame?.contentWindow?.postMessage({type:'pi-game-sound',muted},gameOrigin);
@@ -148,31 +150,32 @@ if(typeof document !== 'undefined') {
     try{target?.unloadModule?.('captions');}catch{}
   }
   function message(text){$('videoMessage').textContent=text;$('videoMessage').hidden=!text;}
-  function caption(){if(source!=='youtube')return;const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
-  function play(){if(source!=='youtube' || !ready || !videos.length)return;caption();message('');player.loadVideoById(videos[index].id);}
+  function caption(){if(source==='cna'){$('videoTitle').textContent='CNA - 24/7 live news';$('videoCount').textContent='LIVE';return;}if(source!=='youtube')return;const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
+  function play(){if(!youtubeSource() || !ready || (source==='youtube'&&!videos.length))return;caption();message('');player.loadVideoById(source==='cna'?cnaLiveId:videos[index].id);}
   function advance(){
+    if(source==='cna'){clearTimeout(skipTimer);play();return;}
     if(source!=='youtube')return;
     clearTimeout(skipTimer);
     if(pendingVideos){videos=pendingVideos;pendingVideos=null;index=0;errors=0;}else index=(index+1)%Math.max(1,videos.length);
     play();
   }
   function bootPlayer(){
-    if(source!=='youtube' || player || !videos.length || !window.YT?.Player)return;
-    player=new window.YT.Player('player',{width:640,height:360,videoId:videos[0].id,
+    if(!youtubeSource() || player || (source==='youtube'&&!videos.length) || !window.YT?.Player)return;
+    player=new window.YT.Player('player',{width:640,height:360,videoId:source==='cna'?cnaLiveId:videos[0].id,
       playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,cc_load_policy:0,origin:location.origin},
-      events:{onReady:e=>{ready=true;muted?e.target.mute():e.target.unMute();captionsOff(e.target);if(source!=='youtube'){e.target.pauseVideo();return;}$('sound').disabled=false;$('next').disabled=false;caption();e.target.playVideo();},
+      events:{onReady:e=>{ready=true;muted?e.target.mute():e.target.unMute();captionsOff(e.target);if(!youtubeSource()){e.target.pauseVideo();return;}$('sound').disabled=false;$('next').disabled=false;caption();play();},
         onApiChange:e=>captionsOff(e.target),
-        onStateChange:e=>{if(source!=='youtube'){if(e.data===1)e.target.pauseVideo();return;}if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0)advance();},
-        onAutoplayBlocked:()=>{if(source==='youtube')message('Tap the video to start playback');},
-        onError:()=>{if(source!=='youtube')return;errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
+        onStateChange:e=>{if(!youtubeSource()){if(e.data===1)e.target.pauseVideo();return;}if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0){if(source==='cna'){message('Reconnecting to CNA...');skipTimer=setTimeout(advance,15000);}else advance();}},
+        onAutoplayBlocked:()=>{if(youtubeSource())message('Tap the video to start playback');},
+        onError:()=>{if(source==='cna'){message('CNA unavailable - retrying shortly');clearTimeout(skipTimer);skipTimer=setTimeout(advance,60000);return;}if(source!=='youtube')return;errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
       }});
   }
   function selectSource(value){
     source=value;save('pi-source',source);clearTimeout(skipTimer);
     document.querySelectorAll('[data-source]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.source===source)));
-    $('youtubeHost').hidden=source!=='youtube';
+    $('youtubeHost').hidden=!youtubeSource();
     $('gameHost').hidden=source!=='game';
-    $('next').textContent=source==='game'?'Restart':'Next \u25b7';
+    $('next').textContent=source==='game'?'Restart':source==='cna'?'Live':'Next \u25b7';
     if(source!=='game'&&gameFrame){gameFrame.remove();gameFrame=null;}
     if(source==='game'){
       if(ready)player.pauseVideo();memories.stop();$('videoTitle').textContent='At Home Penny - full auto';$('videoCount').textContent='';$('sound').disabled=false;$('next').disabled=false;message('Loading the house...');
@@ -180,7 +183,7 @@ if(typeof document !== 'undefined') {
       return;
     }
     if(source==='memories'){if(ready)player.pauseVideo();memories.setMuted(muted);memories.start();}
-    else{memories.stop();$('sound').disabled=!ready;$('next').disabled=!ready;message(ready?'':'Loading latest uploads�');caption();if(ready)play();else bootPlayer();}
+    else{memories.stop();$('sound').disabled=!ready;$('next').disabled=!ready;message(ready?'':source==='cna'?'Loading CNA live...':'Loading latest uploads�');caption();if(ready)play();else bootPlayer();}
   }
   document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>selectSource(b.dataset.source));
   $('next').onclick=()=>{if(source==='game')gameFrame?.contentWindow?.postMessage({type:'pi-game-restart'},gameOrigin);else if(source==='memories')memories.next();else advance();};
@@ -190,12 +193,12 @@ if(typeof document !== 'undefined') {
     try{
       const r=await fetch('/api/videos',{signal:AbortSignal.timeout(30000)});if(!r.ok)throw new Error();
       const d=await r.json();const next=d.videos?.filter(v=>/^[A-Za-z0-9_-]{11}$/.test(v.id)).slice(0,5);if(!next?.length)throw new Error();
-      if(!videos.length){videos=next;index=0;bootPlayer();}
+      if(!videos.length){videos=next;index=0;if(ready&&source==='youtube')play();else bootPlayer();}
       else if(next.map(v=>v.id).join()!==videos.map(v=>v.id).join())pendingVideos=next;
     }catch{if(source==='youtube'&&!videos.length)message('YouTube unavailable · retrying shortly');}
   }
   window.onYouTubeIframeAPIReady=bootPlayer;
-  function loadPlayerApi(){if(window.YT?.Player){bootPlayer();return;}document.getElementById('youtube-api')?.remove();const s=document.createElement('script');s.id='youtube-api';s.src='https://www.youtube.com/iframe_api';s.onerror=()=>source==='youtube'&&message('YouTube unavailable · retrying shortly');document.head.append(s);}
+  function loadPlayerApi(){if(window.YT?.Player){bootPlayer();return;}document.getElementById('youtube-api')?.remove();const s=document.createElement('script');s.id='youtube-api';s.src='https://www.youtube.com/iframe_api';s.onerror=()=>youtubeSource()&&message('YouTube unavailable · retrying shortly');document.head.append(s);}
   loadPlayerApi();loadVideos();setInterval(loadVideos,900000);
   setInterval(()=>{if(!window.YT?.Player)loadPlayerApi();if(!videos.length)loadVideos();},60000);
 }

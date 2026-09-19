@@ -72,3 +72,6 @@ The Game selector embeds `https://athomepenny.marktan.ai/?pi=1&lite=1` in the me
 
 ## Calendar notices
 The authorized Pi credential now permits birthday notices and a limited upcoming-calendar feed at the existing `/api/display-birthdays` URL. It includes today and the next two Singapore calendar dates, recurring events and ongoing multi-day events, matching the homepage inclusion rule (`show: public` items excluded). Only title, occurrence dates, time and venue are returned; no notes, links, editing rights or full calendar. Weather, each birthday, and each calendar event rotate every ten seconds. Calendar data is held in memory only and refreshes every five minutes.
+
+## CNA live
+CNA selects the official CNA 24/7 YouTube livestream (`XWq5kBlakcQ`, verified live and embeddable on 19 September 2026). It uses the existing YouTube player, remembers the source, keeps captions off, and offers Sound and Live (reload the live feed) controls. Playback errors retry after one minute. If CNA replaces the broadcast, update `cnaLiveId` in `pi.js`.
