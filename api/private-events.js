@@ -72,7 +72,7 @@ function ghHeaders(token) {
   };
 }
 
-async function readStore(ghToken) {
+export async function readStore(ghToken) {
   const res = await fetch(`${GH}/repos/${REPO}/contents/${PATH}?ref=${encodeURIComponent(BRANCH)}`, { headers: ghHeaders(ghToken) });
   if (res.status === 404) return { events: [], sha: null };
   if (!res.ok) throw new Error(`GitHub read ${res.status}`);

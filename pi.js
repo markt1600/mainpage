@@ -99,18 +99,21 @@ if(typeof document !== 'undefined') {
   }
   loadAqi();setInterval(loadAqi,300000);
 
-  let birthdays=[], rotation=0, birthdayDevice=false;
+  let birthdays=[], calendarEvents=[], rotation=0, birthdayDevice=false;
   const ownerToken=()=>{try{return localStorage.getItem('ownerSession');}catch{return null;}};
   function rotateNotice(){
     const token=ownerToken();
-    if(!birthdayDevice && (!token || Number(token.split('.')[1])<Date.now()))birthdays=[];
+    if(!birthdayDevice && (!token || Number(token.split('.')[1])<Date.now())){birthdays=[];calendarEvents=[];}
     const list=birthdaysInWindow(birthdays);
-    const show=list.length>0 && rotation%2===1;
-    document.querySelector('.weather').hidden=show;
-    $('birthday').hidden=!show;
-    if(show){const b=list[Math.floor(rotation/2)%list.length];$('birthdayName').textContent=b.delta===0?`Happy birthday, ${b.name}!`:b.name+"’s birthday";
-      $('birthdayWhen').textContent=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(b.date))+' · '+whenLabel(b.delta);}
-    else{$('birthdayName').textContent='';$('birthdayWhen').textContent='';}
+    const notices=[{type:'weather'},...list.map(value=>({type:'birthday',value})),...calendarEvents.map(value=>({type:'event',value}))];
+    const notice=notices[rotation%notices.length];
+    document.querySelector('.weather').hidden=notice.type!=='weather';
+    $('birthday').hidden=notice.type!=='birthday';$('calendarNotice').hidden=notice.type!=='event';
+    $('birthdayName').textContent='';$('birthdayWhen').textContent='';$('eventTitle').textContent='';$('eventWhen').textContent='';
+    if(notice.type==='birthday'){const b=notice.value;$('birthdayName').textContent=b.delta===0?`Happy birthday, ${b.name}!`:b.name+"'s birthday";
+      $('birthdayWhen').textContent=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(b.date))+' - '+whenLabel(b.delta);}
+    if(notice.type==='event'){const e=notice.value,format=value=>new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(value+'T00:00:00Z'));
+      $('eventTitle').textContent=e.title;$('eventWhen').textContent=[format(e.date)+(e.endDate!==e.date?' - '+format(e.endDate):''),e.time||'All day',e.venue].filter(Boolean).join(' | ');}
     rotation++;
   }
   async function loadBirthdays(){
@@ -118,9 +121,9 @@ if(typeof document !== 'undefined') {
     // Ordinary browsers remain unauthenticated and may use owner login below.
     try{
       const r=await fetch('/api/display-birthdays',{cache:'no-store',signal:AbortSignal.timeout(15000)});
-      if(r.ok){const d=await r.json();if(!Array.isArray(d.birthdays))throw new Error();birthdayDevice=true;birthdays=d.birthdays;$('birthdayLogin').hidden=true;return;}
+      if(r.ok){const d=await r.json();if(!Array.isArray(d.birthdays))throw new Error();birthdayDevice=true;birthdays=d.birthdays;calendarEvents=Array.isArray(d.events)?d.events:[];$('birthdayLogin').hidden=true;return;}
     }catch{}
-    birthdayDevice=false;
+    birthdayDevice=false;calendarEvents=[];
     const token=ownerToken();
     if(!token){birthdays=[];$('birthdayLogin').hidden=false;rotation=0;rotateNotice();return;}
     try{

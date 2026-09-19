@@ -69,3 +69,6 @@ The cache creates H.264/AAC MP4 playback copies for HEVC/10-bit phone footage an
 
 ## Game mode
 The Game selector embeds `https://athomepenny.marktan.ai/?pi=1&lite=1` in the media area. It starts on autopilot, restarts after game over, and uses the footer Sound / Restart buttons. The iframe is removed when leaving Game mode, releasing its rendering and audio resources. The selected source persists across boots.
+
+## Calendar notices
+The authorized Pi credential now permits birthday notices and a limited upcoming-calendar feed at the existing `/api/display-birthdays` URL. It includes today and the next two Singapore calendar dates, recurring events and ongoing multi-day events, matching the homepage inclusion rule (`show: public` items excluded). Only title, occurrence dates, time and venue are returned; no notes, links, editing rights or full calendar. Weather, each birthday, and each calendar event rotate every ten seconds. Calendar data is held in memory only and refreshes every five minutes.

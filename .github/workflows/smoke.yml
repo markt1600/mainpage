@@ -40,6 +40,9 @@ jobs:
       - name: Verify Pi local memory cache
         run: python3 scripts/test-memory-cache.py
 
+      - name: Verify display calendar window
+        run: node scripts/test-display-events.mjs
+
       - name: Verify birthday-only device access
         run: node scripts/test-birthday-device.mjs
 
