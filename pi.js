@@ -1,5 +1,6 @@
 import {createMemories} from './pi-memories.js';
 import {createRotation, sources} from './pi-rotation.js';
+import {createWebcams} from './pi-webcams.js';
 export function singaporeParts(now = new Date()) {
   return Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Singapore', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(now).map(p => [p.type,p.value]));
 }
@@ -135,8 +136,9 @@ if(typeof document !== 'undefined') {
   loadBirthdays();setInterval(loadBirthdays,300000);setInterval(rotateNotice,10000);
   window.addEventListener('storage',e=>{if(e.key==='ownerSession' || e.key===null){if(!birthdayDevice)birthdays=[];rotation=0;rotateNotice();loadBirthdays();}});
   let source=sources.includes(read('pi-source'))?read('pi-source'):'youtube', muted=true;
+  const webcamCycle=createWebcams({play:()=>{caption();if(ready)play();else bootPlayer();}});
   const cnaLiveId='XWq5kBlakcQ';
-  const youtubeSource=()=>source==='youtube'||source==='cna';
+  const youtubeSource=()=>source==='youtube'||source==='cna'||source==='webcam';
   let gameFrame=null,aqiMapFrame=null;
   const gameOrigin='https://athomepenny.marktan.ai';
   const gameSound=()=>gameFrame?.contentWindow?.postMessage({type:'pi-game-sound',muted},gameOrigin);
@@ -147,9 +149,10 @@ if(typeof document !== 'undefined') {
     try{target?.unloadModule?.('captions');}catch{}
   }
   function message(text){$('videoMessage').textContent=text;$('videoMessage').hidden=!text;}
-  function caption(){if(source==='cna'){$('videoTitle').textContent='CNA - 24/7 live news';$('videoCount').textContent='LIVE';return;}if(source!=='youtube')return;const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
-  function play(){if(!youtubeSource() || !ready || (source==='youtube'&&!videos.length))return;caption();message('');player.loadVideoById(source==='cna'?cnaLiveId:videos[index].id);}
+  function caption(){if(source==='webcam'){$('videoTitle').textContent=webcamCycle.current().title;$('videoCount').textContent='LIVE · 2 min';return;}if(source==='cna'){$('videoTitle').textContent='CNA - 24/7 live news';$('videoCount').textContent='LIVE';return;}if(source!=='youtube')return;const v=videos[index];$('videoTitle').textContent=v?.title || '@markt1600';$('videoCount').textContent=videos.length?`${index+1} / ${videos.length}`:'';}
+  function play(){if(!youtubeSource() || !ready || (source==='youtube'&&!videos.length))return;clearTimeout(skipTimer);caption();message('');player.loadVideoById(source==='webcam'?webcamCycle.current().id:source==='cna'?cnaLiveId:videos[index].id);}
   function advance(){
+    if(source==='webcam'){clearTimeout(skipTimer);webcamCycle.next();return;}
     if(source==='cna'){clearTimeout(skipTimer);play();return;}
     if(source!=='youtube')return;
     clearTimeout(skipTimer);
@@ -158,16 +161,17 @@ if(typeof document !== 'undefined') {
   }
   function bootPlayer(){
     if(!youtubeSource() || player || (source==='youtube'&&!videos.length) || !window.YT?.Player)return;
-    player=new window.YT.Player('player',{width:640,height:360,videoId:source==='cna'?cnaLiveId:videos[0].id,
+    player=new window.YT.Player('player',{width:640,height:360,videoId:source==='webcam'?webcamCycle.current().id:source==='cna'?cnaLiveId:videos[0].id,
       playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,cc_load_policy:0,origin:location.origin},
       events:{onReady:e=>{e.target.getIframe().setAttribute('tabindex','-1');ready=true;muted?e.target.mute():e.target.unMute();captionsOff(e.target);if(!youtubeSource()){e.target.pauseVideo();return;}$('sound').disabled=false;$('next').disabled=false;caption();play();},
         onApiChange:e=>captionsOff(e.target),
         onStateChange:e=>{if(!youtubeSource()){if(e.data===1)e.target.pauseVideo();return;}if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0){if(source==='cna'){message('Reconnecting to CNA...');skipTimer=setTimeout(advance,15000);}else advance();}},
         onAutoplayBlocked:()=>{if(youtubeSource())message(source==='cna'?'Tap Live below to start playback':'Tap Next below to start playback');},
-        onError:()=>{if(source==='cna'){message('CNA unavailable - retrying shortly');clearTimeout(skipTimer);skipTimer=setTimeout(advance,60000);return;}if(source!=='youtube')return;errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
+        onError:()=>{if(source==='webcam'){message('Camera unavailable - switching shortly');clearTimeout(skipTimer);skipTimer=setTimeout(advance,5000);return;}if(source==='cna'){message('CNA unavailable - retrying shortly');clearTimeout(skipTimer);skipTimer=setTimeout(advance,60000);return;}if(source!=='youtube')return;errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
       }});
   }
   function selectSource(value){
+    webcamCycle.stop();
     source=value;save('pi-source',source);clearTimeout(skipTimer);
     document.querySelectorAll('[data-source]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.source===source)));
     $('youtubeHost').hidden=!youtubeSource();
@@ -186,7 +190,7 @@ if(typeof document !== 'undefined') {
       return;
     }
     if(source==='memories'){if(ready)player.pauseVideo();memories.setMuted(muted);memories.start();}
-    else{memories.stop();$('sound').disabled=!ready;$('next').disabled=!ready;message(ready?'':source==='cna'?'Loading CNA live...':'Loading latest uploads...');caption();if(ready)play();else bootPlayer();}
+    else{memories.stop();$('sound').disabled=!ready;$('next').disabled=!ready;message(ready?'':source==='cna'?'Loading CNA live...':source==='webcam'?'Loading live camera...':'Loading latest uploads...');caption();if(source==='webcam')webcamCycle.start();else if(ready)play();else bootPlayer();}
   }
   const sourceRotation=createRotation({current:()=>source,select:selectSource,changed:enabled=>{
     save('pi-source-rotation',enabled);

@@ -8,10 +8,10 @@ const rotation=createRotation({current:()=>source, select:value=>source=value, c
 const advance=()=>{const [id,callback]=timers.entries().next().value;timers.delete(id);callback();};
 rotation.setEnabled(true);
 assert.equal(source,'youtube');
-for(const expected of ['memories','game','cna','aqi','youtube']){advance();assert.equal(source,expected);assert.equal(timers.size,1);}
+for(const expected of ['memories','game','cna','aqi','webcam','youtube']){advance();assert.equal(source,expected);assert.equal(timers.size,1);}
 rotation.manual('youtube'); // Even tapping the current mode cancels rotation.
 assert.equal(enabled,false);assert.equal(timers.size,0);
 rotation.toggle();assert.equal(enabled,true);assert.equal(timers.size,1);
 rotation.toggle();assert.equal(enabled,false);assert.equal(timers.size,0);
-rotation.manual('aqi');rotation.setEnabled(true);advance();assert.equal(source,'youtube');
+rotation.manual('webcam');rotation.setEnabled(true);advance();assert.equal(source,'youtube');
 console.log('Pi mode rotation tests passed');

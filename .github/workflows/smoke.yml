@@ -30,6 +30,8 @@ jobs:
 
       - name: Verify Pi display logic and feeds
         run: node scripts/test-pi.mjs
+          node scripts/test-pi-rotation.mjs
+          node scripts/test-pi-webcams.mjs
 
       - name: Verify South Singapore AQI
         run: node scripts/test-pi-aqi.mjs
