@@ -163,10 +163,10 @@ if(typeof document !== 'undefined') {
     if(!youtubeSource() || player || (source==='youtube'&&!videos.length) || !window.YT?.Player)return;
     player=new window.YT.Player('player',{width:640,height:360,videoId:source==='cna'?cnaLiveId:videos[0].id,
       playerVars:{autoplay:1,playsinline:1,controls:1,rel:0,cc_load_policy:0,origin:location.origin},
-      events:{onReady:e=>{ready=true;muted?e.target.mute():e.target.unMute();captionsOff(e.target);if(!youtubeSource()){e.target.pauseVideo();return;}$('sound').disabled=false;$('next').disabled=false;caption();play();},
+      events:{onReady:e=>{e.target.getIframe().setAttribute('tabindex','-1');ready=true;muted?e.target.mute():e.target.unMute();captionsOff(e.target);if(!youtubeSource()){e.target.pauseVideo();return;}$('sound').disabled=false;$('next').disabled=false;caption();play();},
         onApiChange:e=>captionsOff(e.target),
         onStateChange:e=>{if(!youtubeSource()){if(e.data===1)e.target.pauseVideo();return;}if(e.data===1){errors=0;message('');caption();captionsOff(e.target);}if(e.data===0){if(source==='cna'){message('Reconnecting to CNA...');skipTimer=setTimeout(advance,15000);}else advance();}},
-        onAutoplayBlocked:()=>{if(youtubeSource())message('Tap the video to start playback');},
+        onAutoplayBlocked:()=>{if(youtubeSource())message(source==='cna'?'Tap Live below to start playback':'Tap Next below to start playback');},
         onError:()=>{if(source==='cna'){message('CNA unavailable - retrying shortly');clearTimeout(skipTimer);skipTimer=setTimeout(advance,60000);return;}if(source!=='youtube')return;errors++;if(errors>=videos.length){message('Videos unavailable · retrying shortly');skipTimer=setTimeout(()=>{errors=0;advance();},60000);}else skipTimer=setTimeout(advance,1500);}
       }});
   }
