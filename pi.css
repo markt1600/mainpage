@@ -121,3 +121,16 @@ footer button { padding:8px; }
 footer .status-wrap { overflow:hidden; }
 footer #status { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 footer .brightness, footer .playback { flex:none; }
+
+/* Keep this dashboard-owned control above every media source. */
+#mediaFullscreen { position:absolute; top:8px; right:8px; z-index:10; min-width:44px; min-height:44px; padding:8px 12px; background:rgba(20,20,20,.85); color:#fff; border:1px solid #aaa; font-size:20px; }
+body.media-fullscreen { display:block; overflow:hidden; }
+body.media-fullscreen #display { width:100vw; height:100dvh; margin:0; padding:0; zoom:1; background:#000; }
+body.media-fullscreen header, body.media-fullscreen footer,
+body.media-fullscreen .quotes, body.media-fullscreen .video-caption,
+body.media-fullscreen .weather, body.media-fullscreen .birthday,
+body.media-fullscreen .calendar-notice { display:none; }
+body.media-fullscreen .content { display:block; width:100%; height:100%; margin:0; }
+body.media-fullscreen .left, body.media-fullscreen .video { width:100%; height:100%; }
+body.media-fullscreen #player, body.media-fullscreen .video iframe { width:100%; height:100%; }
+body.media-fullscreen #mediaFullscreen { font-size:16px; }

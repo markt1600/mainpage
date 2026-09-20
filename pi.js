@@ -34,6 +34,19 @@ if(typeof document !== 'undefined') {
   const $=id=>document.getElementById(id);
   const read=key=>{ try{return JSON.parse(localStorage.getItem(key));}catch{return null;} };
   const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
+  let mediaFullscreen=read('pi-media-fullscreen')===true;
+  function setMediaFullscreen(enabled){
+    mediaFullscreen=enabled;save('pi-media-fullscreen',enabled);
+    document.body.classList.toggle('media-fullscreen',enabled);
+    const button=$('mediaFullscreen');
+    button.textContent=enabled?'↙ Dashboard':'⛶';
+    button.setAttribute('aria-pressed',String(enabled));
+    button.setAttribute('aria-label',enabled?'Return to dashboard':'Expand media to full screen');
+    button.title=enabled?'Return to dashboard':'Full screen';
+  }
+  $('mediaFullscreen').onclick=()=>setMediaFullscreen(!mediaFullscreen);
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mediaFullscreen)setMediaFullscreen(false);});
+  setMediaFullscreen(mediaFullscreen);
   let mode=read('pi-brightness') || 'auto';
   if(!['auto','dim','full'].includes(mode)) mode='auto';
   const shortTime=value=>value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Singapore',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(value)) : 'Time unavailable';
