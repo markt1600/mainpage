@@ -148,7 +148,10 @@ export async function getCityWeather(city, signal) {
 }
 
 async function getCities() {
-  const results = await Promise.allSettled(CITIES.map(getCityWeather));
+  // NOT .map(getCityWeather): map's second argument (the index) would land
+  // in the signal parameter and fetch throws on a non-AbortSignal — which
+  // silently blanked the whole weather section.
+  const results = await Promise.allSettled(CITIES.map((city) => getCityWeather(city)));
   return results
     .filter((r) => r.status === "fulfilled")
     .map((r) => r.value);
