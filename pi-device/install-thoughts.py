@@ -3,7 +3,7 @@ source=pathlib.Path(__file__).parent
 extension=pathlib.Path.home()/'.config/marktan-birthday-device'
 manifest_path=extension/'manifest.json'
 manifest=json.loads(manifest_path.read_text())
-manifest['version']='1.3.2'
+manifest['version']='1.5.1'
 manifest['host_permissions']=[p for p in manifest['host_permissions'] if p!='http://127.0.0.1/*']
 manifest['permissions']=sorted(set(manifest['permissions']+['nativeMessaging']))
 native=source/'thoughts-native.py'
@@ -19,12 +19,15 @@ profile_hosts=pathlib.Path.home()/'.config/marktan-display-chromium/NativeMessag
 profile_hosts.mkdir(parents=True,exist_ok=True)
 shutil.copyfile(hosts/'ai.marktan.thoughts.json',profile_hosts/'ai.marktan.thoughts.json')
 manifest['content_scripts']=[{'matches':['https://pi.marktan.ai/*'],'js':['thoughts-bridge.js'],'run_at':'document_start'}]
-for name in ['thoughts-bridge.js','thoughts-background.js']:
+for name in ['thoughts-bridge.js','thoughts-background.js','thoughts-page.html','thoughts-page.js']:
     shutil.copyfile(source/name,extension/name)
 background=extension/'memory-cache.js'
-text=background.read_text()
-if "importScripts('thoughts-background.js')" not in text:
-    background.write_text("importScripts('thoughts-background.js');\n"+text)
+text=background.read_text().replace("importScripts('thoughts-background.js');\n",'')
+background.write_text(text)
+(extension/'thoughts-worker.js').write_text("importScripts('thoughts-background.js', 'memory-cache.js');\n")
+manifest['background']={'service_worker':'memory-cache.js'}
+manifest['web_accessible_resources']=[x for x in manifest.get('web_accessible_resources',[]) if 'thoughts-page.html' not in x.get('resources',[])]
+manifest['web_accessible_resources'].append({'resources':['thoughts-page.html'],'matches':['https://pi.marktan.ai/*']})
 manifest_path.write_text(json.dumps(manifest,indent=2))
 units=pathlib.Path.home()/'.config/systemd/user'
 runner=next(source.glob('llama-*/llama-server'))

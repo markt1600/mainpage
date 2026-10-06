@@ -96,3 +96,5 @@ stops new requests and scrolling; an in-flight paragraph may finish. Two low-pri
 2048-token context and a 1900MB memory cap bound inference. Services: marktan-llm and
 marktan-thoughts. Restart with systemctl --user; disable both to remove the background model.
 The extension installation preserves birthday credentials/rules and memory redirects.
+
+The Thoughts native connection is hosted in a hidden extension page restricted to pi.marktan.ai. It does not rely on the extension service worker. Browser logging verified a successful native reply and delivery to the dashboard on 2026-10-07.

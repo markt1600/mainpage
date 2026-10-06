@@ -1,10 +1,18 @@
-// Runs only on this dashboard. It exposes one fixed, local prose endpoint.
+let frame, ready;
+window.addEventListener('message',async event=>{
+  if(event.source!==window||event.origin!==location.origin||event.data?.type!=='pi-thought-request')return;
+  if(typeof event.data.id!=='string'||event.data.id.length>64)return;
+  if(!frame){
+    frame=document.createElement('iframe');frame.hidden=true;
+    ready=new Promise(resolve=>frame.onload=resolve);
+    frame.src=chrome.runtime.getURL('thoughts-page.html');
+    document.documentElement.append(frame);
+  }
+  await ready;
+  frame.contentWindow.postMessage(event.data,new URL(frame.src).origin);
+});
 window.addEventListener('message',event=>{
-  if(event.source!==window || event.origin!=='https://pi.marktan.ai' || event.data?.type!=='pi-thought-request')return;
-  const id=event.data.id;
-  if(typeof id!=='string'||id.length>64)return;
-  chrome.runtime.sendMessage({type:'pi-thought'},result=>{
-    const error=chrome.runtime.lastError;
-    window.postMessage({type:'pi-thought-result',id,...(error?{error:'Local writer unavailable'}:result)},location.origin);
-  });
+  if(!frame||event.source!==frame.contentWindow||event.origin!==new URL(frame.src).origin||event.data?.type!=='pi-thought-result')return;
+  console.info('Thoughts result:',event.data.error||'success');
+  window.postMessage(event.data,location.origin);
 });
