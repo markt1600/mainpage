@@ -87,7 +87,7 @@ Media full-screen: tap the expand icon at the upper-right of the media panel. It
 
 Thoughts is a Pi-only local AI prose mode after CNA, included in rotation and fullscreen.
 The device runs llama.cpp b11457 on loopback 8091 and thoughts-server.py on loopback 8092;
-the existing device extension bridges only the fixed prose endpoint to pi.marktan.ai.
+the existing device extension uses a fixed-purpose native messaging host to reach the prose service. Browser localhost fetch is not required. The native host is registered for only this device extension, in both Chromium and kiosk profile locations.
 No birthday/calendar data, cloud inference or API key is used. Public weather/AQI and SGT time
 provide inspiration; output is labelled imaginative AI prose. Each paragraph is generated first,
 then revealed word by word (not token streaming), followed by a ten-second pause. Recent openings

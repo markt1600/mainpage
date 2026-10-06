@@ -3,8 +3,21 @@ source=pathlib.Path(__file__).parent
 extension=pathlib.Path.home()/'.config/marktan-birthday-device'
 manifest_path=extension/'manifest.json'
 manifest=json.loads(manifest_path.read_text())
-manifest['version']='1.2.0'
-manifest['host_permissions']=sorted(set(manifest['host_permissions']+['http://127.0.0.1/*']))
+manifest['version']='1.3.2'
+manifest['host_permissions']=[p for p in manifest['host_permissions'] if p!='http://127.0.0.1/*']
+manifest['permissions']=sorted(set(manifest['permissions']+['nativeMessaging']))
+native=source/'thoughts-native.py'
+native.write_text(native.read_text(), newline='\n')
+native.chmod(0o700)
+hosts=pathlib.Path.home()/'.config/chromium/NativeMessagingHosts'
+hosts.mkdir(parents=True,exist_ok=True)
+(hosts/'ai.marktan.thoughts.json').write_text(json.dumps({
+    'name':'ai.marktan.thoughts','description':'Local dashboard prose only',
+    'path':str(native),'type':'stdio',
+    'allowed_origins':['chrome-extension://ofjfjljepmafpleklphhepclkbgepjgj/']}))
+profile_hosts=pathlib.Path.home()/'.config/marktan-display-chromium/NativeMessagingHosts'
+profile_hosts.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(hosts/'ai.marktan.thoughts.json',profile_hosts/'ai.marktan.thoughts.json')
 manifest['content_scripts']=[{'matches':['https://pi.marktan.ai/*'],'js':['thoughts-bridge.js'],'run_at':'document_start'}]
 for name in ['thoughts-bridge.js','thoughts-background.js']:
     shutil.copyfile(source/name,extension/name)
