@@ -134,3 +134,10 @@ body.media-fullscreen .content { display:block; width:100%; height:100%; margin:
 body.media-fullscreen .left, body.media-fullscreen .video { width:100%; height:100%; }
 body.media-fullscreen #player, body.media-fullscreen .video iframe { width:100%; height:100%; }
 body.media-fullscreen #mediaFullscreen { font-size:16px; }
+#thoughtsHost { height:100%; overflow:auto; padding:20px 28px 30px; background:#211f25; color:#eee5d6; scrollbar-width:none; }
+#thoughtsHost[hidden] { display:none; }
+#thoughtsHost small { display:block; padding-right:40px; color:#bcb0ca; font:12px Arial,sans-serif; }
+#thoughtsHost p { font:22px/1.6 Georgia,serif; margin:20px 0; }
+body.media-fullscreen #thoughtsHost { padding:35px max(35px,8vw); }
+body.media-fullscreen #thoughtsHost small { padding-right:140px; }
+body.media-fullscreen #thoughtsHost p { font-size:clamp(24px,3vw,36px); }

@@ -32,6 +32,7 @@ jobs:
         run: node scripts/test-pi.mjs
           node scripts/test-pi-rotation.mjs
           node scripts/test-pi-webcams.mjs
+          node scripts/test-pi-thoughts.mjs
 
       - name: Verify South Singapore AQI
         run: node scripts/test-pi-aqi.mjs

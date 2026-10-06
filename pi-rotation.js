@@ -1,4 +1,4 @@
-export const sources = ['youtube', 'memories', 'game', 'cna', 'aqi', 'webcam'];
+export const sources = ['youtube', 'memories', 'game', 'cna', 'thoughts', 'aqi', 'webcam'];
 
 export function createRotation({current, select, changed, schedule = setTimeout, cancel = clearTimeout}) {
   let enabled = false, timer;

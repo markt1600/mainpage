@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {createThoughts} from '../pi-thoughts.js';
+let listener, request;
+const node=()=>({children:[],textContent:'',append(...items){this.children.push(...items);}});
+globalThis.document={createElement:node};
+globalThis.location={origin:'https://pi.marktan.ai'};
+globalThis.window={addEventListener:(type,fn)=>listener=fn,postMessage:msg=>request=msg};
+const host=node(),thoughts=createThoughts({host});
+thoughts.start();assert.equal(host.hidden,false);assert.equal(request.type,'pi-thought-request');
+const id=request.id;
+listener({source:window,origin:'https://evil.example',data:{type:'pi-thought-result',id,text:'Untrusted'}});
+assert.equal(host.children[1].children.length,0);
+thoughts.stop();assert.equal(host.hidden,true);
+listener({source:window,origin:location.origin,data:{type:'pi-thought-result',id,text:'Late response'}});
+assert.equal(host.children[1].children.length,0);
+thoughts.start();assert.notEqual(request.id,id);thoughts.stop();
+console.log('Thoughts request isolation, stop and restart passed');

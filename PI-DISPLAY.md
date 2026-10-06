@@ -84,3 +84,15 @@ The footer rotation button cycles YouTube, Memories, Game, CNA and AQI every fiv
 Webcam joins the five-minute mode rotation and cycles FNN Shibuya Crossing, NamibiaCam Namib Desert and NASA HD ISS every two minutes. Official SKY was ended/non-embeddable on 2026-09-19; FNN substitution approved. Next skips a camera. Leaving Webcam cancels its timer and advances the starting camera for the next visit, so the five-minute outer rotation does not always cut the same camera short. Playback errors skip after five seconds. Broadcast IDs in pi-webcams.js were verified live and embeddable on 2026-09-19; replace them if broadcasters change streams. Captions and click-through remain disabled.
 
 Media full-screen: tap the expand icon at the upper-right of the media panel. It fills the viewport for every source while mode/webcam rotation keeps running. The always-visible Dashboard button returns without restarting playback; Escape also returns. The preference persists across reloads. Dashboard dimming still applies. Native memory-video fullscreen is hidden so the dashboard return control remains accessible.
+
+Thoughts is a Pi-only local AI prose mode after CNA, included in rotation and fullscreen.
+The device runs llama.cpp b11457 on loopback 8091 and thoughts-server.py on loopback 8092;
+the existing device extension bridges only the fixed prose endpoint to pi.marktan.ai.
+No birthday/calendar data, cloud inference or API key is used. Public weather/AQI and SGT time
+provide inspiration; output is labelled imaginative AI prose. Each paragraph is generated first,
+then revealed word by word (not token streaming), followed by a ten-second pause. Recent openings
+and random writing prompts encourage variety but cannot guarantee originality. Switching modes
+stops new requests and scrolling; an in-flight paragraph may finish. Two low-priority CPU threads,
+2048-token context and a 1900MB memory cap bound inference. Services: marktan-llm and
+marktan-thoughts. Restart with systemctl --user; disable both to remove the background model.
+The extension installation preserves birthday credentials/rules and memory redirects.

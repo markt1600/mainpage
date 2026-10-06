@@ -1,5 +1,6 @@
 import {createMemories} from './pi-memories.js';
 import {createRotation, sources} from './pi-rotation.js';
+import {createThoughts} from './pi-thoughts.js';
 import {createWebcams} from './pi-webcams.js';
 export function singaporeParts(now = new Date()) {
   return Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Singapore', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(now).map(p => [p.type,p.value]));
@@ -157,6 +158,7 @@ if(typeof document !== 'undefined') {
   const gameSound=()=>gameFrame?.contentWindow?.postMessage({type:'pi-game-sound',muted},gameOrigin);
   window.addEventListener('message',event=>{if(source==='game'&&event.origin===gameOrigin&&event.source===gameFrame?.contentWindow&&event.data?.type==='pi-game-ready'){message('');gameSound();}});
   const memories=createMemories({host:$('memoryHost'),caption:(title,count)=>{$('videoTitle').textContent=title;$('videoCount').textContent=count;},message,onControls:enabled=>{$('next').disabled=!enabled;$('sound').disabled=false;}});
+  const thoughts=createThoughts({host:$('thoughtsHost')});
   let videos=[], pendingVideos=null, player=null, ready=false, index=0, errors=0, skipTimer;
   function captionsOff(target=player){
     try{target?.unloadModule?.('captions');}catch{}
@@ -184,7 +186,7 @@ if(typeof document !== 'undefined') {
       }});
   }
   function selectSource(value){
-    webcamCycle.stop();
+    webcamCycle.stop();thoughts.stop();
     source=value;save('pi-source',source);clearTimeout(skipTimer);
     document.querySelectorAll('[data-source]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.source===source)));
     $('youtubeHost').hidden=!youtubeSource();
@@ -193,6 +195,9 @@ if(typeof document !== 'undefined') {
     if(source!=='aqi'&&aqiMapFrame){aqiMapFrame.remove();aqiMapFrame=null;}
     $('next').textContent=source==='game'?'Restart':source==='cna'?'Live':source==='aqi'?'Refresh':'Next \u25b7';
     if(source!=='game'&&gameFrame){gameFrame.remove();gameFrame=null;}
+    if(source==='thoughts'){
+      if(ready)player.pauseVideo();memories.stop();message('');$('sound').disabled=true;$('next').disabled=false;$('videoTitle').textContent='Thoughts - written on this Pi';$('videoCount').textContent='AI prose';thoughts.start();return;
+    }
     if(source==='aqi'){
       if(ready)player.pauseVideo();memories.stop();$('sound').disabled=true;$('next').disabled=false;message('');$('videoTitle').textContent='Singapore air quality - NEA / WAQI';$('videoCount').textContent='';
       if(!aqiMapFrame){aqiMapFrame=document.createElement('iframe');aqiMapFrame.title='Singapore air quality map';aqiMapFrame.tabIndex=-1;aqiMapFrame.src='/pi-aqi-map.html';$('aqiMapHost').replaceChildren(aqiMapFrame);}return;
@@ -212,7 +217,7 @@ if(typeof document !== 'undefined') {
   }});
   document.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>sourceRotation.manual(b.dataset.source));
   $('rotateSources').onclick=()=>sourceRotation.toggle();
-  $('next').onclick=()=>{if(source==='aqi'){aqiMapFrame.src='/pi-aqi-map.html';return;}if(source==='game')gameFrame?.contentWindow?.postMessage({type:'pi-game-restart'},gameOrigin);else if(source==='memories')memories.next();else advance();};
+  $('next').onclick=()=>{if(source==='thoughts'){thoughts.next();return;}if(source==='aqi'){aqiMapFrame.src='/pi-aqi-map.html';return;}if(source==='game')gameFrame?.contentWindow?.postMessage({type:'pi-game-restart'},gameOrigin);else if(source==='memories')memories.next();else advance();};
   $('sound').onclick=()=>{muted=!muted;$('sound').textContent=muted?'Sound off':'Sound on';memories.setMuted(muted);gameSound();if(ready){muted?player.mute():player.unMute();}};
   selectSource(source);setInterval(()=>memories.refresh(),60000);
   sourceRotation.setEnabled(read('pi-source-rotation')===true);
