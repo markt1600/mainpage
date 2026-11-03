@@ -75,16 +75,38 @@ function describeCode(code) {
   return hit ? { label: hit[0], glyph: hit[1] } : { label: "—", glyph: "•" };
 }
 
-// Current US AQI from Open-Meteo's (also keyless) air-quality API.
+// Current US AQI, computed as a NOW-cast rather than Open-Meteo's own
+// `us_aqi`: that field follows the EPA convention of a trailing 24-hour
+// PM average, so a modelled overnight pollution episode keeps the number
+// "unhealthy" for a full day after the air has cleared (and the CAMS
+// model overestimates PM for some cities to begin with). Instead we
+// apply the EPA PM breakpoints to the CURRENT concentrations and combine
+// with the short-window gas sub-indices (O3 8h, NO2/SO2 1h, CO 8h) —
+// matching what live station sites like IQAir show.
+const AQI_PM25 = [[0, 12, 0, 50], [12.1, 35.4, 51, 100], [35.5, 55.4, 101, 150], [55.5, 150.4, 151, 200], [150.5, 250.4, 201, 300], [250.5, 500.4, 301, 500]];
+const AQI_PM10 = [[0, 54, 0, 50], [55, 154, 51, 100], [155, 254, 101, 150], [255, 354, 151, 200], [355, 424, 201, 300], [425, 604, 301, 500]];
+export function aqiFromConcentration(bps, c) {
+  if (!Number.isFinite(c) || c < 0) return null;
+  for (const [clo, chi, ilo, ihi] of bps) {
+    if (c <= chi) return Math.round(((ihi - ilo) / (chi - clo)) * (c - clo) + ilo);
+  }
+  return 500;
+}
+
 async function getCityAqi(city, signal) {
   const url =
     `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}` +
-    `&current=us_aqi&timezone=${encodeURIComponent(city.tz)}`;
+    `&current=pm2_5,pm10,us_aqi_ozone,us_aqi_nitrogen_dioxide,us_aqi_sulphur_dioxide,us_aqi_carbon_monoxide` +
+    `&timezone=${encodeURIComponent(city.tz)}`;
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Air-quality ${res.status}`);
-  const d = await res.json();
-  const aqi = d.current?.us_aqi;
-  return Number.isFinite(aqi) ? Math.round(aqi) : null;
+  const c = (await res.json()).current || {};
+  const candidates = [
+    aqiFromConcentration(AQI_PM25, c.pm2_5),
+    aqiFromConcentration(AQI_PM10, c.pm10),
+    c.us_aqi_ozone, c.us_aqi_nitrogen_dioxide, c.us_aqi_sulphur_dioxide, c.us_aqi_carbon_monoxide,
+  ].filter((v) => Number.isFinite(v));
+  return candidates.length ? Math.round(Math.max(...candidates)) : null;
 }
 
 export async function getCityWeather(city, signal) {
