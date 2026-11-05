@@ -379,25 +379,38 @@ const wordsOf = (html) => String(html).replace(/<[^>]+>/g, " ").split(/\s+/).fil
 // nothing). Section headings first; if a story has none, paragraphs
 // that LEAD with a bold phrase (the site's other sectioning habit).
 const stripTags = (s) => unesc(String(s).replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
-const TOPIC_NOISE = /^(conclusion|final thoughts|wrap.?up|misc|etc|this week|intro(duction)?|housekeeping|programming note|one more thing)\b/i;
+const TOPIC_NOISE = /^(conclusion|final thoughts|wrap.?up|misc|etc|this week|intro(duction)?|housekeeping|programming note|one more thing|updates?|quick hits|links?|notes?|new stuff|new gear|the gear|old stuff)\b/i;
 export function topicsOf(html) {
   const s = String(html || "");
-  const found = [];
+  const sections = [];
+  const gear = [];
+  const leadOf = (frag) => {
+    const raw = stripTags(frag);
+    if (!raw || /[.!?]$/.test(raw)) return null; // a sentence, not a name
+    const t = raw.replace(/[:;,\u2014\u2013-]+\s*$/, "");
+    return t.length >= 3 && t.length <= 60 ? t : null;
+  };
   // section headings, any level the theme might use
   for (const m of s.matchAll(/<h[2-6][^>]*>([\s\S]*?)<\/h[2-6]>/gi)) {
     const t = stripTags(m[1]);
-    if (t) found.push(t);
+    if (t && !TOPIC_NOISE.test(t)) sections.push(t);
   }
-  // paragraphs that LEAD with a bold phrase — the site's other
-  // sectioning habit (gear names in Gear Reports often appear this way)
-  for (const m of s.matchAll(/<p[^>]*>\s*<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi)) {
-    const raw = stripTags(m[1]);
-    if (/[.!?]$/.test(raw)) continue; // a bolded sentence, not a section lead
-    const t = raw.replace(/[:;,\u2014\u2013-]+\s*$/, "");
-    if (t && t.length >= 3 && t.length <= 60) found.push(t);
+  // gear names: bold lead-ins at the start of a paragraph or bullet
+  // (optionally wrapped in / wrapping a link) ...
+  for (const m of s.matchAll(/<(?:p|li)[^>]*>\s*(?:<a[^>]*>\s*)?<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi)) {
+    const t = leadOf(m[1]);
+    if (t) gear.push(t);
+  }
+  // ... and product links inside bullet items ("picked up a <a>Keychron
+  // M6S-A3</a> mouse"), which is how unbolded gear appears
+  for (const li of s.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)) {
+    for (const a of li[1].matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)) {
+      const t = leadOf(a[1]);
+      if (t && t.split(/\s+/).length <= 6) gear.push(t);
+    }
   }
   const seen = new Set();
-  const out = found.filter((t) => {
+  const out = [...sections, ...gear].filter((t) => {
     const k = t.toLowerCase();
     if (seen.has(k) || TOPIC_NOISE.test(t)) return false;
     seen.add(k);
