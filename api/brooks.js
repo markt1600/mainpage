@@ -124,6 +124,15 @@ function makeJar() {
       const jar = jars.get(hostOf(url));
       return jar && jar.size ? [...jar.entries()].map(([k, v]) => `${k}=${v}`).join("; ") : "";
     },
+    // preload a whole Cookie header (copied from the owner's browser)
+    seed(host, cookieHeader) {
+      const jar = jars.get(host) || new Map();
+      for (const pair of String(cookieHeader).split(/;\s*/)) {
+        const eq = pair.indexOf("=");
+        if (eq > 0) jar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+      }
+      jars.set(host, jar);
+    },
   };
 }
 
@@ -272,6 +281,7 @@ async function fetchFeedPosts(feedUrl) {
 async function sync(store) {
   const feedUrl = (process.env.BROOKS_FEED_URL || "").trim();
   const haveCreds = !!((process.env.BROOKS_EMAIL || "").trim() && (process.env.BROOKS_PASSWORD || "").trim());
+  const haveCookie = !!(process.env.BROOKS_COOKIE || "").trim();
   const known = new Set(store.posts.map((p) => p.url));
   const fresh = [];
   const repaired = [];
@@ -280,7 +290,7 @@ async function sync(store) {
   // public RSS carries member TEASERS (the "must be a member" gate), so
   // the credential login is always preferred when available, and gated
   // feed items are never cached.
-  if (feedUrl && !haveCreds) {
+  if (feedUrl && !haveCreds && !haveCookie) {
     let gatedItems = 0, total = 0;
     for (const it of await fetchFeedPosts(feedUrl)) {
       if (!it.url) continue;
@@ -295,7 +305,15 @@ async function sync(store) {
   }
 
   const jar = makeJar();
-  await memberLogin(jar);
+  const browserCookie = (process.env.BROOKS_COOKIE || "").trim();
+  if (browserCookie) {
+    // the owner's own logged-in browser session, copied once into env —
+    // Memberful's sign-in captchas datacenter IPs, so this is the
+    // reliable path; expiry shows up as the gate error below
+    jar.seed("brooksreview.net", browserCookie);
+  } else {
+    await memberLogin(jar);
+  }
 
   // walk category pages collecting unseen story links
   const unseen = [];
@@ -340,7 +358,9 @@ async function sync(store) {
     if (got) repaired.push(got);
   }
   if (gated && !fresh.length && !repaired.length) {
-    throw new Error("the site still shows the member gate — login didn't stick (check BROOKS_EMAIL / BROOKS_PASSWORD)");
+    throw new Error((process.env.BROOKS_COOKIE || "").trim()
+      ? "the site still shows the member gate — BROOKS_COOKIE looks expired; copy a fresh cookie header from your logged-in browser into Vercel"
+      : "the site still shows the member gate — Memberful's sign-in blocks server logins with a captcha; set BROOKS_COOKIE instead (copy the cookie header from your logged-in browser)");
   }
 
   // more work left if we ran out of budget before the lists did
