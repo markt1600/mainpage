@@ -159,7 +159,14 @@ const unesc = (s) => String(s).replace(/&#(\d+);/g, (_, n) => String.fromCodePoi
 
 // The anonymous page shows this instead of the story — its absence is
 // how we verify the login actually worked.
-const GATE_MARK = /must be a <a[^>]*>member<\/a> to read/i;
+// Match on the TEXT, not the markup — the gate renders differently in
+// the RSS feed vs the page, so strip tags before testing. The phrase
+// "to read the rest of this article" is the reliable fingerprint.
+const GATE_RX = /to read the rest of this article|must be a\s+member\s+to read/i;
+const isGated = (html) => {
+  const s = String(html || "");
+  return GATE_RX.test(s) || GATE_RX.test(s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
+};
 
 async function memberLogin(jar) {
   const email = (process.env.BROOKS_EMAIL || "").trim();
@@ -278,8 +285,8 @@ async function sync(store) {
     for (const it of await fetchFeedPosts(feedUrl)) {
       if (!it.url) continue;
       total++;
-      if (GATE_MARK.test(it.html || "")) { gatedItems++; continue; }
-      if (!known.has(it.url)) fresh.push({ ...it, html: it.html, added: Date.now() });
+      if (isGated(it.html)) { gatedItems++; continue; }
+      if (!known.has(it.url)) fresh.push({ ...it, date: toIso(it.date), html: it.html, added: Date.now() });
     }
     if (gatedItems && gatedItems >= total - 1) {
       throw new Error("BROOKS_FEED_URL is the public feed — it only carries member teasers. Set BROOKS_EMAIL + BROOKS_PASSWORD instead.");
@@ -310,7 +317,7 @@ async function sync(store) {
 
   // self-heal: anything already cached as a TEASER (e.g. from an earlier
   // public-feed sync) gets re-fetched with the member session
-  const toRepair = store.posts.filter((p) => GATE_MARK.test(p.html || ""));
+  const toRepair = store.posts.filter((p) => isGated(p.html));
 
   let gated = false;
   const grab = async (e) => {
@@ -318,8 +325,8 @@ async function sync(store) {
     if (!res.ok) return null;
     const body = extractContent(await res.text());
     if (!body) return null;
-    if (GATE_MARK.test(body)) { gated = true; return null; } // login didn't take
-    return { url: e.url, title: e.title, date: e.date, html: body, added: Date.now() };
+    if (isGated(body)) { gated = true; return null; } // login didn't take
+    return { url: e.url, title: e.title, date: toIso(e.date), html: body, added: Date.now() };
   };
   let budget = MAX_NEW_PER_SYNC;
   for (const e of unseen) {
@@ -340,6 +347,11 @@ async function sync(store) {
   const remaining = unseen.length + toRepair.length > MAX_NEW_PER_SYNC && (fresh.length + repaired.length) > 0;
   return { fresh, repaired, remaining };
 }
+
+// dates arrive as ISO (category pages) or RFC-822 (RSS) — normalise so
+// sorting is always chronological
+const toIso = (d) => { const t = new Date(d || 0); return isNaN(t) ? null : t.toISOString(); };
+const tsOf = (p) => { const t = Date.parse(p && p.date || ""); return isNaN(t) ? 0 : t; };
 
 const wordsOf = (html) => String(html).replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
 
@@ -394,7 +406,7 @@ export default async function handler(req, res) {
       if (fresh.length || repaired.length || !store.lastSync) {
         // repairs replace their teaser copies in place; fresh prepends
         const fixed = store.posts.map((p) => repaired.find((r) => r.url === p.url) || p);
-        const merged = [...fresh, ...fixed].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+        const merged = [...fresh, ...fixed].sort((a, b) => tsOf(b) - tsOf(a));
         const w = await writeStore(ghToken, merged, lastSync, store.sha);
         posts = w.posts; sha = w.sha;
       }
@@ -411,7 +423,7 @@ export default async function handler(req, res) {
       return;
     }
     res.status(200).json({
-      posts: store.posts.map((p) => ({ url: p.url, title: p.title, date: p.date, words: wordsOf(p.html), topics: topicsOf(p.html) })),
+      posts: [...store.posts].sort((a, b) => tsOf(b) - tsOf(a)).map((p) => ({ url: p.url, title: p.title, date: p.date, words: wordsOf(p.html), topics: topicsOf(p.html) })),
       lastSync: store.lastSync,
     });
   } catch (err) {

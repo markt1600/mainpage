@@ -68,6 +68,7 @@
 <div id="top">
   <a href="/">← marktan.ai</a>
   <span class="t" id="backTop" style="display:none;cursor:pointer">← all stories</span>
+  <span class="t" id="resync" style="display:none;cursor:pointer" title="Check for new stories and repair the cache now">↻ resync</span>
   <span id="stat"></span>
 </div>
 <div class="wrap">
@@ -193,24 +194,35 @@ $("backBtn").addEventListener("click", ()=>renderList());
 $("backTop").addEventListener("click", ()=>renderList());
 
 /* On load: pull anything new into the encrypted cache. The first-ever
-   visit backfills the whole archive across several bounded calls. */
+   visit backfills the whole archive across several bounded calls; the
+   ↻ button re-runs it on demand. */
+let SYNCING = false;
 async function syncLoop(){
+  if(SYNCING) return;
+  SYNCING = true;
+  $("resync").style.display = "none";
   let totalAdded = 0;
-  for(let round = 0; round < 30; round++){
-    stat(round === 0 ? "checking for new stories…" : `fetching archive… ${totalAdded} stored`);
-    let d;
-    try{
-      const r = await authFetch("/api/brooks", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ sync: 1 }) });
-      d = await r.json();
-      if(!r.ok) throw new Error(d.error || `error ${r.status}`);
-    }catch(e){ stat(String(e.message || e).slice(0, 90), true); return; }
-    totalAdded += (d.added || 0) + (d.repaired || 0);
-    if((d.added || 0) + (d.repaired || 0) > 0) await loadList();
-    if(!d.remaining) break;
+  try{
+    for(let round = 0; round < 30; round++){
+      stat(round === 0 ? "checking for new stories…" : `fetching archive… ${totalAdded} stored`);
+      let d;
+      try{
+        const r = await authFetch("/api/brooks", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ sync: 1 }) });
+        d = await r.json();
+        if(!r.ok) throw new Error(d.error || `error ${r.status}`);
+      }catch(e){ stat(String(e.message || e).slice(0, 90), true); return; }
+      totalAdded += (d.added || 0) + (d.repaired || 0);
+      if((d.added || 0) + (d.repaired || 0) > 0) await loadList();
+      if(!d.remaining) break;
+    }
+    stat(totalAdded ? `✓ ${totalAdded} stor${totalAdded===1?"y":"ies"} updated` : "✓ up to date");
+    setTimeout(()=>stat(""), 4000);
+  }finally{
+    SYNCING = false;
+    $("resync").style.display = "";
   }
-  stat(totalAdded ? `✓ ${totalAdded} new stor${totalAdded===1?"y":"ies"} cached` : "✓ up to date");
-  setTimeout(()=>stat(""), 4000);
 }
+$("resync").addEventListener("click", ()=>syncLoop());
 </script>
 </body>
 </html>
