@@ -379,28 +379,31 @@ const wordsOf = (html) => String(html).replace(/<[^>]+>/g, " ").split(/\s+/).fil
 // nothing). Section headings first; if a story has none, paragraphs
 // that LEAD with a bold phrase (the site's other sectioning habit).
 const stripTags = (s) => unesc(String(s).replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+const TOPIC_NOISE = /^(conclusion|final thoughts|wrap.?up|misc|etc|this week|intro(duction)?|housekeeping|programming note|one more thing)\b/i;
 export function topicsOf(html) {
   const s = String(html || "");
-  let out = [];
-  for (const m of s.matchAll(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi)) {
+  const found = [];
+  // section headings, any level the theme might use
+  for (const m of s.matchAll(/<h[2-6][^>]*>([\s\S]*?)<\/h[2-6]>/gi)) {
     const t = stripTags(m[1]);
-    if (t) out.push(t);
+    if (t) found.push(t);
   }
-  if (!out.length) {
-    for (const m of s.matchAll(/<p>\s*<(?:strong|b)>([\s\S]*?)<\/(?:strong|b)>/gi)) {
-      const t = stripTags(m[1]).replace(/[:—–-]\s*$/, "");
-      // a bold lead reads like a heading, not a bolded sentence
-      if (t && t.length <= 60 && !/[.!?]$/.test(t)) out.push(t);
-    }
+  // paragraphs that LEAD with a bold phrase — the site's other
+  // sectioning habit (gear names in Gear Reports often appear this way)
+  for (const m of s.matchAll(/<p[^>]*>\s*<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi)) {
+    const raw = stripTags(m[1]);
+    if (/[.!?]$/.test(raw)) continue; // a bolded sentence, not a section lead
+    const t = raw.replace(/[:;,\u2014\u2013-]+\s*$/, "");
+    if (t && t.length >= 3 && t.length <= 60) found.push(t);
   }
   const seen = new Set();
-  out = out.filter((t) => {
+  const out = found.filter((t) => {
     const k = t.toLowerCase();
-    if (seen.has(k) || /^(conclusion|final thoughts|wrap.?up|misc|etc)\b/i.test(t)) return false;
+    if (seen.has(k) || TOPIC_NOISE.test(t)) return false;
     seen.add(k);
     return true;
   });
-  return out.slice(0, 10).map((t) => (t.length > 70 ? t.slice(0, 67) + "…" : t));
+  return out.slice(0, 12).map((t) => (t.length > 70 ? t.slice(0, 67) + "\u2026" : t));
 }
 
 export default async function handler(req, res) {
