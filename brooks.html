@@ -39,6 +39,8 @@
   .story:hover .st{color:var(--accent-deep)}
   .st{font-family:"Fraunces",serif;font-weight:600;font-size:20px;line-height:1.3}
   .sm{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-soft);margin-top:4px;letter-spacing:.04em}
+  .tp{font-size:14px;color:var(--ink-soft);margin-top:6px;line-height:1.55;font-style:italic}
+  .tpdot{color:var(--rule-strong);font-style:normal}
   /* reader view */
   #reader{display:none}
   #rTitle{font-family:"Fraunces",serif;font-weight:800;font-size:30px;line-height:1.2;margin:18px 0 6px}
@@ -140,6 +142,7 @@ function renderList(lastSync){
     ? POSTS.map((p,i)=>`<div class="story" data-i="${i}">
         <div class="st">${esc(p.title)}</div>
         <div class="sm">${esc(fmtDate(p.date))}${p.words?` · ${Math.max(1, Math.round(p.words/230))} min read`:""}</div>
+        ${Array.isArray(p.topics) && p.topics.length ? `<div class="tp">${p.topics.map(esc).join('<span class="tpdot"> · </span>')}</div>` : ""}
       </div>`).join("")
     : `<div class="sub" style="margin-top:26px">Nothing cached yet — the first sync is running; the full archive arrives over the next minute or two.</div>`;
   el.querySelectorAll(".story").forEach(s=>s.addEventListener("click", ()=>openStory(+s.dataset.i)));
@@ -201,8 +204,8 @@ async function syncLoop(){
       d = await r.json();
       if(!r.ok) throw new Error(d.error || `error ${r.status}`);
     }catch(e){ stat(String(e.message || e).slice(0, 90), true); return; }
-    totalAdded += d.added || 0;
-    if(d.added) await loadList();
+    totalAdded += (d.added || 0) + (d.repaired || 0);
+    if((d.added || 0) + (d.repaired || 0) > 0) await loadList();
     if(!d.remaining) break;
   }
   stat(totalAdded ? `✓ ${totalAdded} new stor${totalAdded===1?"y":"ies"} cached` : "✓ up to date");

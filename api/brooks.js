@@ -264,14 +264,27 @@ async function fetchFeedPosts(feedUrl) {
 
 async function sync(store) {
   const feedUrl = (process.env.BROOKS_FEED_URL || "").trim();
+  const haveCreds = !!((process.env.BROOKS_EMAIL || "").trim() && (process.env.BROOKS_PASSWORD || "").trim());
   const known = new Set(store.posts.map((p) => p.url));
   const fresh = [];
+  const repaired = [];
 
-  if (feedUrl) {
+  // Feed mode only when there's a feed and NO credentials: the site's
+  // public RSS carries member TEASERS (the "must be a member" gate), so
+  // the credential login is always preferred when available, and gated
+  // feed items are never cached.
+  if (feedUrl && !haveCreds) {
+    let gatedItems = 0, total = 0;
     for (const it of await fetchFeedPosts(feedUrl)) {
-      if (it.url && !known.has(it.url)) fresh.push({ ...it, html: it.html, added: Date.now() });
+      if (!it.url) continue;
+      total++;
+      if (GATE_MARK.test(it.html || "")) { gatedItems++; continue; }
+      if (!known.has(it.url)) fresh.push({ ...it, html: it.html, added: Date.now() });
     }
-    return { fresh, remaining: false };
+    if (gatedItems && gatedItems >= total - 1) {
+      throw new Error("BROOKS_FEED_URL is the public feed — it only carries member teasers. Set BROOKS_EMAIL + BROOKS_PASSWORD instead.");
+    }
+    return { fresh, repaired, remaining: false };
   }
 
   const jar = makeJar();
@@ -295,24 +308,68 @@ async function sync(store) {
     if (unseen.length >= MAX_NEW_PER_SYNC) break;
   }
 
-  let gated = false;
-  for (const e of unseen.slice(0, MAX_NEW_PER_SYNC)) {
-    const { res } = await jarFetch(jar, e.url);
-    if (!res.ok) continue;
-    const html = await res.text();
-    const body = extractContent(html);
-    if (!body) continue;
-    if (GATE_MARK.test(body)) { gated = true; continue; } // login didn't take
-    fresh.push({ url: e.url, title: e.title, date: e.date, html: body, added: Date.now() });
-  }
-  if (gated && !fresh.length) throw new Error("the site still shows the member gate — login didn't stick");
+  // self-heal: anything already cached as a TEASER (e.g. from an earlier
+  // public-feed sync) gets re-fetched with the member session
+  const toRepair = store.posts.filter((p) => GATE_MARK.test(p.html || ""));
 
-  // more to backfill if we hit the per-call cap
-  const remaining = unseen.length > MAX_NEW_PER_SYNC || (unseen.length === MAX_NEW_PER_SYNC && fresh.length > 0);
-  return { fresh, remaining };
+  let gated = false;
+  const grab = async (e) => {
+    const { res } = await jarFetch(jar, e.url);
+    if (!res.ok) return null;
+    const body = extractContent(await res.text());
+    if (!body) return null;
+    if (GATE_MARK.test(body)) { gated = true; return null; } // login didn't take
+    return { url: e.url, title: e.title, date: e.date, html: body, added: Date.now() };
+  };
+  let budget = MAX_NEW_PER_SYNC;
+  for (const e of unseen) {
+    if (budget-- <= 0) break;
+    const got = await grab(e);
+    if (got) fresh.push(got);
+  }
+  for (const p of toRepair) {
+    if (budget-- <= 0) break;
+    const got = await grab(p);
+    if (got) repaired.push(got);
+  }
+  if (gated && !fresh.length && !repaired.length) {
+    throw new Error("the site still shows the member gate — login didn't stick (check BROOKS_EMAIL / BROOKS_PASSWORD)");
+  }
+
+  // more work left if we ran out of budget before the lists did
+  const remaining = unseen.length + toRepair.length > MAX_NEW_PER_SYNC && (fresh.length + repaired.length) > 0;
+  return { fresh, repaired, remaining };
 }
 
 const wordsOf = (html) => String(html).replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
+
+// What the story covers — for the list view ("Gear Report" alone says
+// nothing). Section headings first; if a story has none, paragraphs
+// that LEAD with a bold phrase (the site's other sectioning habit).
+const stripTags = (s) => unesc(String(s).replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+export function topicsOf(html) {
+  const s = String(html || "");
+  let out = [];
+  for (const m of s.matchAll(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi)) {
+    const t = stripTags(m[1]);
+    if (t) out.push(t);
+  }
+  if (!out.length) {
+    for (const m of s.matchAll(/<p>\s*<(?:strong|b)>([\s\S]*?)<\/(?:strong|b)>/gi)) {
+      const t = stripTags(m[1]).replace(/[:—–-]\s*$/, "");
+      // a bold lead reads like a heading, not a bolded sentence
+      if (t && t.length <= 60 && !/[.!?]$/.test(t)) out.push(t);
+    }
+  }
+  const seen = new Set();
+  out = out.filter((t) => {
+    const k = t.toLowerCase();
+    if (seen.has(k) || /^(conclusion|final thoughts|wrap.?up|misc|etc)\b/i.test(t)) return false;
+    seen.add(k);
+    return true;
+  });
+  return out.slice(0, 10).map((t) => (t.length > 70 ? t.slice(0, 67) + "…" : t));
+}
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -331,15 +388,17 @@ export default async function handler(req, res) {
     const store = await readStore(ghToken);
 
     if (req.method === "POST") {
-      const { fresh, remaining } = await sync(store);
+      const { fresh, repaired, remaining } = await sync(store);
       let posts = store.posts, sha = store.sha;
       const lastSync = new Date().toISOString();
-      if (fresh.length || !store.lastSync) {
-        const merged = [...fresh, ...store.posts].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+      if (fresh.length || repaired.length || !store.lastSync) {
+        // repairs replace their teaser copies in place; fresh prepends
+        const fixed = store.posts.map((p) => repaired.find((r) => r.url === p.url) || p);
+        const merged = [...fresh, ...fixed].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
         const w = await writeStore(ghToken, merged, lastSync, store.sha);
         posts = w.posts; sha = w.sha;
       }
-      res.status(200).json({ added: fresh.length, total: posts.length, remaining, lastSync });
+      res.status(200).json({ added: fresh.length, repaired: repaired.length, total: posts.length, remaining, lastSync });
       return;
     }
 
@@ -352,11 +411,12 @@ export default async function handler(req, res) {
       return;
     }
     res.status(200).json({
-      posts: store.posts.map((p) => ({ url: p.url, title: p.title, date: p.date, words: wordsOf(p.html) })),
+      posts: store.posts.map((p) => ({ url: p.url, title: p.title, date: p.date, words: wordsOf(p.html), topics: topicsOf(p.html) })),
       lastSync: store.lastSync,
     });
   } catch (err) {
     if (err && err.conflict) { res.status(409).json({ error: "conflict — try again" }); return; }
+    if (process.env.BROOKS_DEBUG) console.error(err && err.stack || err);
     res.status(502).json({ error: String(err && err.message || err).slice(0, 300) });
   }
 }
