@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Brooks Review · reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* Personal reader for the owner's Brooks Review membership — the
+     stories are his paid subscription, cached encrypted and shown ONLY
+     behind his Google login. Visitors get the gate and nothing else. */
+  :root{
+    --paper:#f4ede0; --paper-2:#ede4d3; --ink:#1c1812; --ink-soft:#5a5142;
+    --rule:#d8cdb8; --rule-strong:#b8ab90; --accent:#bb3b22; --accent-deep:#8a2b18;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:Georgia,serif;min-height:100vh}
+  .bar{height:5px;background:linear-gradient(90deg,var(--accent),var(--accent-deep))}
+  .wrap{max-width:720px;margin:0 auto;padding:22px 18px 70px}
+  a{color:inherit}
+  #top{
+    position:sticky;top:0;z-index:50;display:flex;align-items:baseline;gap:14px;
+    background:var(--paper-2);border-bottom:1px solid var(--rule-strong);padding:9px 16px;
+  }
+  #top a,#top span.t{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);text-decoration:none;white-space:nowrap}
+  #top a:hover{color:var(--accent-deep)}
+  #stat{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-soft);white-space:nowrap}
+  #stat.err{color:var(--accent-deep)}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft)}
+  h1{font-family:"Fraunces",serif;font-weight:800;font-size:32px;margin:2px 0 4px}
+  .sub{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.04em;line-height:1.7}
+  #gate{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);margin-top:30px;line-height:1.8}
+  #app{display:none}
+  /* story list */
+  .story{border-bottom:1px solid var(--rule);padding:13px 0;cursor:pointer}
+  .story:hover .st{color:var(--accent-deep)}
+  .st{font-family:"Fraunces",serif;font-weight:600;font-size:20px;line-height:1.3}
+  .sm{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-soft);margin-top:4px;letter-spacing:.04em}
+  /* reader view */
+  #reader{display:none}
+  #rTitle{font-family:"Fraunces",serif;font-weight:800;font-size:30px;line-height:1.2;margin:18px 0 6px}
+  #rMeta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.04em;margin-bottom:20px}
+  #rMeta a{color:var(--accent-deep)}
+  #rBody{font-size:17.5px;line-height:1.72;color:#26211a}
+  #rBody p{margin:0 0 1.1em}
+  #rBody h2,#rBody h3{font-family:"Fraunces",serif;margin:1.4em 0 .5em;line-height:1.25}
+  #rBody img{max-width:100%;height:auto;border-radius:4px}
+  #rBody blockquote{border-left:3px solid var(--rule-strong);padding-left:16px;color:var(--ink-soft);margin:1.1em 0;font-style:italic}
+  #rBody a{color:var(--accent-deep)}
+  #rBody ul,#rBody ol{margin:0 0 1.1em 1.4em}
+  #rBody hr{border:none;border-top:1px solid var(--rule);margin:1.6em 0}
+  #backRow{margin:26px 0 0}
+  .ghostbtn{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid var(--rule-strong);border-radius:2px;background:var(--paper-2);color:var(--ink-soft);
+    padding:7px 14px;cursor:pointer;
+  }
+  .ghostbtn:hover{color:var(--accent-deep);border-color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<div id="top">
+  <a href="/">← marktan.ai</a>
+  <span class="t" id="backTop" style="display:none;cursor:pointer">← all stories</span>
+  <span id="stat"></span>
+</div>
+<div class="wrap">
+  <div class="eyebrow">marktan.ai · member reader</div>
+  <h1>Brooks Review</h1>
+  <div class="sub">Your <a href="https://brooksreview.net" rel="noopener">brooksreview.net</a> membership, readable. Stories are fetched with your own member account and cached encrypted — this page exists only for your login.</div>
+
+  <div id="gate">checking your login…</div>
+
+  <div id="app">
+    <div id="list"></div>
+    <div id="reader">
+      <div id="rTitle"></div>
+      <div id="rMeta"></div>
+      <div id="rBody"></div>
+      <div id="backRow"><button class="ghostbtn" id="backBtn">← all stories</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let SESSION = null;
+let POSTS = [];
+
+function stat(msg, err){ const el = $("stat"); el.textContent = msg; el.className = err ? "err" : ""; }
+
+(async function boot(){
+  try{ SESSION = localStorage.getItem("ownerSession") || null; }catch(e){}
+  if(SESSION){
+    try{
+      const r = await fetch("/api/login", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ session: SESSION }) });
+      if(!r.ok) SESSION = null;
+    }catch(e){ SESSION = null; }
+  }
+  if(!SESSION){
+    $("gate").innerHTML = 'This page is for the owner. <a href="/">Log in on the dashboard</a> first, then come back.';
+    return;
+  }
+  $("gate").style.display = "none";
+  $("app").style.display = "block";
+  await loadList();      // instant, from the encrypted cache
+  syncLoop();            // then look for new stories and store them
+})();
+
+function authFetch(url, opts){
+  opts = opts || {};
+  return fetch(url, { ...opts, headers: { ...(opts.headers||{}), authorization: "Bearer " + SESSION } });
+}
+
+function fmtDate(d){
+  if(!d) return "";
+  const t = new Date(d);
+  return isNaN(t) ? d : t.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+}
+
+async function loadList(){
+  try{
+    const d = await authFetch("/api/brooks", { cache:"no-store" }).then(r=>r.json());
+    POSTS = Array.isArray(d.posts) ? d.posts : [];
+    renderList(d.lastSync);
+  }catch(e){ stat("couldn't load cache", true); }
+}
+
+function renderList(lastSync){
+  $("reader").style.display = "none";
+  $("backTop").style.display = "none";
+  const el = $("list");
+  el.style.display = "";
+  el.innerHTML = POSTS.length
+    ? POSTS.map((p,i)=>`<div class="story" data-i="${i}">
+        <div class="st">${esc(p.title)}</div>
+        <div class="sm">${esc(fmtDate(p.date))}${p.words?` · ${Math.max(1, Math.round(p.words/230))} min read`:""}</div>
+      </div>`).join("")
+    : `<div class="sub" style="margin-top:26px">Nothing cached yet — the first sync is running; the full archive arrives over the next minute or two.</div>`;
+  el.querySelectorAll(".story").forEach(s=>s.addEventListener("click", ()=>openStory(+s.dataset.i)));
+}
+
+async function openStory(i){
+  const p = POSTS[i]; if(!p) return;
+  stat("loading…");
+  try{
+    const d = await authFetch("/api/brooks?post=" + encodeURIComponent(p.url), { cache:"no-store" }).then(r=>r.json());
+    if(!d.post){ stat("story not cached", true); return; }
+    stat("");
+    $("list").style.display = "none";
+    $("reader").style.display = "block"; // #reader is display:none in CSS — "" wouldn't override it
+    $("backTop").style.display = "";
+    $("rTitle").textContent = d.post.title;
+    $("rMeta").innerHTML = `${esc(fmtDate(d.post.date))} · <a href="${esc(d.post.url)}" rel="noopener" target="_blank">original ↗</a>`;
+    $("rBody").innerHTML = d.post.html; // sanitised server-side at cache time
+    hydrateBody();
+    window.scrollTo(0, 0);
+  }catch(e){ stat("couldn't load story", true); }
+}
+
+/* Images route through our owner-gated proxy (so everything renders
+   from marktan.ai), and links to other Brooks Review stories open
+   right here in the reader when they're cached. */
+const normUrl = (u) => { try{ const x = new URL(u, "https://brooksreview.net"); return (x.origin + x.pathname).replace(/\/$/, ""); }catch(e){ return String(u); } };
+function hydrateBody(){
+  $("rBody").querySelectorAll("img").forEach(img=>{
+    const src = img.getAttribute("src") || "";
+    if(/^https?:\/\//.test(src)){
+      img.src = "/api/brooks-img?src=" + encodeURIComponent(src) + "&token=" + encodeURIComponent(SESSION);
+    }
+    img.removeAttribute("srcset"); img.removeAttribute("sizes");
+    img.loading = "lazy";
+  });
+  $("rBody").querySelectorAll("a[href]").forEach(a=>{
+    const target = normUrl(a.getAttribute("href"));
+    const idx = POSTS.findIndex(p => normUrl(p.url) === target);
+    if(idx >= 0){
+      a.addEventListener("click", (ev)=>{ ev.preventDefault(); openStory(idx); });
+    }else{
+      a.target = "_blank"; a.rel = "noopener";
+    }
+  });
+}
+$("backBtn").addEventListener("click", ()=>renderList());
+$("backTop").addEventListener("click", ()=>renderList());
+
+/* On load: pull anything new into the encrypted cache. The first-ever
+   visit backfills the whole archive across several bounded calls. */
+async function syncLoop(){
+  let totalAdded = 0;
+  for(let round = 0; round < 30; round++){
+    stat(round === 0 ? "checking for new stories…" : `fetching archive… ${totalAdded} stored`);
+    let d;
+    try{
+      const r = await authFetch("/api/brooks", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ sync: 1 }) });
+      d = await r.json();
+      if(!r.ok) throw new Error(d.error || `error ${r.status}`);
+    }catch(e){ stat(String(e.message || e).slice(0, 90), true); return; }
+    totalAdded += d.added || 0;
+    if(d.added) await loadList();
+    if(!d.remaining) break;
+  }
+  stat(totalAdded ? `✓ ${totalAdded} new stor${totalAdded===1?"y":"ies"} cached` : "✓ up to date");
+  setTimeout(()=>stat(""), 4000);
+}
+</script>
+</body>
+</html>

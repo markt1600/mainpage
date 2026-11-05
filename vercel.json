@@ -1,9 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/display-aqi-map.js": { "maxDuration": 25 },
-    "api/display-aqi.js": { "maxDuration": 25 },
-    "api/display-memories.js": { "maxDuration": 30 },
+    "api/display-aqi-map.js": {
+      "maxDuration": 25
+    },
+    "api/display-aqi.js": {
+      "maxDuration": 25
+    },
+    "api/display-memories.js": {
+      "maxDuration": 30
+    },
     "api/display-birthdays.js": {
       "maxDuration": 15
     },
@@ -48,12 +54,23 @@
     },
     "api/networth.js": {
       "maxDuration": 15
+    },
+    "api/brooks.js": {
+      "maxDuration": 60
+    },
+    "api/brooks-img.js": {
+      "maxDuration": 15
     }
   },
   "redirects": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "pi.marktan.ai" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "pi.marktan.ai"
+        }
+      ],
       "destination": "/pi",
       "permanent": false
     }
@@ -74,6 +91,10 @@
     {
       "source": "/list",
       "destination": "/list.html"
+    },
+    {
+      "source": "/brooks",
+      "destination": "/brooks.html"
     }
   ],
   "crons": [
