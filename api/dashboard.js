@@ -121,10 +121,21 @@ export async function getCityWeather(city, signal) {
     `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature` +
     `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,precipitation_probability_max` +
     (snowSeason ? `,snowfall_sum&hourly=snow_depth` : ``) +
-    `&timezone=${encodeURIComponent(city.tz)}&forecast_days=1`;
+    `&timezone=${encodeURIComponent(city.tz)}&forecast_days=6`; // today + the 5-day outlook
+
+  // ECMWF's AIFS (AI model, GraphCast-class) highs/lows ride along as a
+  // second opinion in the outlook. Optional — a failure never blanks it.
+  const aiUrl =
+    `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min&timezone=${encodeURIComponent(city.tz)}` +
+    `&forecast_days=6&models=ecmwf_aifs025_single`;
 
   // AQI comes from a separate endpoint; a failure there never blanks the weather.
-  const [res, aqi] = await Promise.all([fetch(url, { signal }), getCityAqi(city, signal).catch(() => null)]);
+  const [res, aqi, ai] = await Promise.all([
+    fetch(url, { signal }),
+    getCityAqi(city, signal).catch(() => null),
+    fetch(aiUrl, { signal }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  ]);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   const d = await res.json();
 
@@ -148,6 +159,29 @@ export async function getCityWeather(city, signal) {
     }
   }
 
+  // 5-day outlook (days 1..5; day 0 is the tile itself), with the AI
+  // model's high/low attached per day where its dates line up
+  const aiByDate = {};
+  for (let i = 0; i < (ai?.daily?.time || []).length; i++) {
+    aiByDate[ai.daily.time[i]] = [ai.daily.temperature_2m_max?.[i], ai.daily.temperature_2m_min?.[i]];
+  }
+  const rnd = (v) => (Number.isFinite(v) ? Math.round(v) : null);
+  const outlook = (d.daily?.time || []).slice(1, 6).map((date, i) => {
+    const j = i + 1;
+    const oc = describeCode(d.daily?.weather_code?.[j]);
+    const aiT = aiByDate[date] || [];
+    return {
+      date,
+      glyph: oc.glyph,
+      cond: oc.label,
+      tmax: rnd(d.daily?.temperature_2m_max?.[j]),
+      tmin: rnd(d.daily?.temperature_2m_min?.[j]),
+      rain: rnd(d.daily?.precipitation_probability_max?.[j]),
+      aiMax: rnd(aiT[0]),
+      aiMin: rnd(aiT[1]),
+    };
+  }).filter((o) => o.tmax != null && o.tmin != null);
+
   return {
     name: city.name,
     tz: city.tz,
@@ -166,6 +200,7 @@ export async function getCityWeather(city, signal) {
     glyph,
     sunrise: hhmm(d.daily?.sunrise?.[0]),
     sunset: hhmm(d.daily?.sunset?.[0]),
+    outlook,
   };
 }
 
