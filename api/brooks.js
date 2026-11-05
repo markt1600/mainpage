@@ -224,6 +224,24 @@ export function parseCategory(html) {
   return out;
 }
 
+
+// Trailing site boilerplate inside entry-content: the "Discover more
+// from The Brooks Review" subscribe group and any embedded forms.
+// Applied when caching AND when serving, so stories cached before this
+// existed come out clean too.
+export function stripBoilerplate(html) {
+  let body = String(html || "");
+  const disc = body.search(/<h\d[^>]*>\s*Discover more from/i);
+  if (disc > -1) {
+    const groupStart = body.lastIndexOf('<div class="wp-block-group', disc);
+    body = body.slice(0, groupStart > -1 ? groupStart : disc);
+  }
+  return body
+    .replace(/<form[\s\S]*?<\/form>/gi, "")
+    .replace(/<div[^>]*jetpack-subscriptions[^>]*>/gi, "")
+    .trim();
+}
+
 // pull the story body out of a (logged-in) post page and defang it
 export function extractContent(html) {
   const start = html.indexOf('<div class="entry-content');
@@ -246,7 +264,7 @@ export function extractContent(html) {
     .trim();
   // trailing closers left over from slicing at a stop marker
   body = body.replace(/(<\/div>\s*)+$/g, "");
-  return body;
+  return stripBoilerplate(body);
 }
 
 // personal member feed, when one is configured (RSS or JSON Feed)
@@ -455,11 +473,11 @@ export default async function handler(req, res) {
     if (postUrl) {
       const p = store.posts.find((x) => x.url === postUrl);
       if (!p) { res.status(404).json({ error: "not cached" }); return; }
-      res.status(200).json({ post: p });
+      res.status(200).json({ post: { ...p, html: stripBoilerplate(p.html) } });
       return;
     }
     res.status(200).json({
-      posts: [...store.posts].sort((a, b) => tsOf(b) - tsOf(a)).map((p) => ({ url: p.url, title: p.title, date: p.date, words: wordsOf(p.html), topics: topicsOf(p.html) })),
+      posts: [...store.posts].sort((a, b) => tsOf(b) - tsOf(a)).map((p) => { const clean = stripBoilerplate(p.html); return { url: p.url, title: p.title, date: p.date, words: wordsOf(clean), topics: topicsOf(clean) }; }),
       lastSync: store.lastSync,
     });
   } catch (err) {
