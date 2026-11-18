@@ -30,16 +30,6 @@ const FX_PAIRS = [
   { label: "USD → CAD", symbol: "CAD=X", note: "" },
 ];
 
-// Public-holiday regions (Nager.Date, keyless). subdivision filters
-// country feeds to holidays that apply in that province/region.
-const HOLIDAY_REGIONS = [
-  { code: "SG", label: "Singapore" },
-  { code: "JP", label: "Japan" },
-  { code: "CA", label: "Vancouver", subdivision: "CA-BC" },
-  { code: "HK", label: "Hong Kong" },
-  { code: "CN", label: "Shanghai" },
-];
-
 // Market instruments. label = display name, symbol = Yahoo Finance ticker.
 const MARKETS = [
   { label: "Ares Management", symbol: "ARES", note: "ARES" },
@@ -311,22 +301,6 @@ async function getFx() {
     .map((r) => r.value);
 }
 
-// --- Public holidays via Nager.Date (keyless) -------------------------------
-async function getRegionHoliday({ code, label, subdivision }) {
-  const res = await fetch(`https://date.nager.at/api/v3/NextPublicHolidays/${code}`);
-  if (!res.ok) throw new Error(`Nager ${res.status} for ${code}`);
-  const list = await res.json();
-
-  // Keep nationwide holidays, plus subdivision-specific ones (e.g. CA-BC).
-  const applies = (h) =>
-    h.global || !Array.isArray(h.counties) || h.counties.length === 0
-      ? true
-      : subdivision ? h.counties.includes(subdivision) : false;
-
-  const hit = (Array.isArray(list) ? list : []).find(applies);
-  return hit && hit.date && hit.name ? { region: label, name: hit.name, date: hit.date } : null;
-}
-
 // --- COE premiums via data.gov.sg (keyless) ---------------------------------
 // LTA "COE Bidding Results" dataset: one row per category per bidding
 // exercise (month + bidding round), with the quota premium.
@@ -398,13 +372,6 @@ async function getCoe() {
       .filter((r) => r.cls && Number.isFinite(r.premium))
       .sort((a, b) => a.cls.localeCompare(b.cls)),
   };
-}
-
-async function getHolidays() {
-  const results = await Promise.allSettled(HOLIDAY_REGIONS.map(getRegionHoliday));
-  return results
-    .filter((r) => r.status === "fulfilled" && r.value)
-    .map((r) => r.value);
 }
 
 // --- Editorial content: reuse the day's MERIDIAN edition --------------------
@@ -531,15 +498,14 @@ export default async function handler(req, res) {
     timeZone: "Asia/Singapore",
   }).format(now);
 
-  // Weather, markets, FX, holidays, COE, and the edition run independently
+  // Weather, markets, FX, COE, and the edition run independently
   // so one failing never blanks the others.
-  const [citiesR, marketsR, fxR, holidaysR, coeR] = await Promise.allSettled([
-    getCities(), getMarkets(), getFx(), getHolidays(), getCoe(),
+  const [citiesR, marketsR, fxR, coeR] = await Promise.allSettled([
+    getCities(), getMarkets(), getFx(), getCoe(),
   ]);
   const cities = citiesR.status === "fulfilled" ? citiesR.value : [];
   const markets = marketsR.status === "fulfilled" ? marketsR.value : [];
   const fx = fxR.status === "fulfilled" ? fxR.value : [];
-  const holidays = holidaysR.status === "fulfilled" ? holidaysR.value : [];
   const coe = coeR.status === "fulfilled" ? coeR.value : null;
 
   let edition;
@@ -558,7 +524,6 @@ export default async function handler(req, res) {
     cities,
     markets,
     fx,
-    holidays,
     coe,
     ...edition,
   });

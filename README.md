@@ -38,7 +38,7 @@ Setup (one-time): in Google Cloud Console → APIs & Services → Credentials, c
 ## Files
 
 - **`index.html`** — the whole frontend. Fetches `/api/dashboard`, `/api/fitness`, and `/api/balances` and renders them. If the dashboard call fails (e.g. opening the file locally), it falls back to a sample edition instead of breaking.
-- **`api/dashboard.js`** — weather, markets, FX, holidays, and the day's edition. The **Stories & Briefs come from MERIDIAN**: it fetches `feed.json` from `github.com/markt1600/dailymag` (published each morning ~7am SGT), maps the desk leads into features (MERIDIAN's cover-teaser top picks) + briefs, and deep-links each back to its desk at dailymag.marktan.ai. No web search runs here — the research is MERIDIAN's. If today's feed hasn't published yet, the raw file is simply the most recent edition (the "last good" stories, dated in the provenance line).
+- **`api/dashboard.js`** — weather, markets, FX, and the day's edition. The **Stories & Briefs come from MERIDIAN**: it fetches `feed.json` from `github.com/markt1600/dailymag` (published each morning ~7am SGT), maps the desk leads into features (MERIDIAN's cover-teaser top picks) + briefs, and deep-links each back to its desk at dailymag.marktan.ai. No web search runs here — the research is MERIDIAN's. If today's feed hasn't published yet, the raw file is simply the most recent edition (the "last good" stories, dated in the provenance line).
 - **`api/sports.js`** — major-event sports results. Its own endpoint (and a cron an hour after the news one) so the two web-search Claude calls never share a rate-limit minute; returns an empty list when nothing major is on, and the section hides itself.
 - **`api/fitness.js`** — Strava summary. Exchanges a long-lived refresh token for an access token on each run; cached ~1h.
 - **`api/balances.js`** — ElevenLabs credits + Claude API 30-day spend. Never cached. Gated: with `DASHBOARD_SECRET` set, requests need a valid owner login session (Google Sign-In); without the secret set, it's public.
@@ -125,7 +125,6 @@ In **`api/dashboard.js`**:
 - **Cities** — edit the `CITIES` array (name, lat/lon, timezone). Panels render top-to-bottom in array order.
 - **Tickers** — edit the `MARKETS` array (display label + Yahoo Finance symbol).
 - **FX pairs** — edit the `FX_PAIRS` array (Yahoo symbols like `SGDJPY=X`).
-- **Holiday regions** — edit `HOLIDAY_REGIONS` (Nager.Date country codes; optional `subdivision` like `CA-BC`).
 - **News sources & section sizes** — the allowed publications live in the `allowed_domains` list; the prompt (`SCHEMA_PROMPT`) asks for 5 briefs + 3 features.
 - **Refresh rate / cost** — change `s-maxage=86400` in the `Cache-Control` header and the cron schedule in `vercel.json`.
 
