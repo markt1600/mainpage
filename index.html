@@ -318,8 +318,8 @@
   .sport-scores{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.7;letter-spacing:.02em}
 
 
-  /* Birthdays + Holidays + Events (same card row layout) */
-  #birthdays,#holidays,#events{display:flex;flex-wrap:wrap;gap:14px}
+  /* Birthdays + Events (same card row layout) */
+  #birthdays,#events{display:flex;flex-wrap:wrap;gap:14px}
   #events .bday-name{font-size:20px}
   .bday{
     background:var(--paper-2);border:1px solid var(--rule-strong);
@@ -739,7 +739,6 @@
       <a href="https://dailymag.marktan.ai" target="_blank" rel="noopener">Meridian</a>
       <a href="#weatherSec">Weather</a>
       <a href="#eventsSec">Events</a>
-      <a href="#holidaysSec">Holidays</a>
       <a href="#projectsSec">Vibe Code</a>
       <span class="owner-only nav-owner">
         <span class="nav-sep">·</span>
@@ -904,15 +903,6 @@
         <span class="cnt" id="eventCnt"></span>
       </div>
       <div id="events"></div>
-    </section>
-
-    <!-- Public holidays: next one per region -->
-    <section class="markets rise" id="holidaysSec" style="display:none" aria-label="Public holidays">
-      <div class="sec-head">
-        <h2>Holidays <span class="dot">·</span> Coming Up</h2>
-        <span class="cnt" id="holCnt"></span>
-      </div>
-      <div id="holidays"></div>
     </section>
 
     <!-- Owner-only content: hidden until the owner logs in via the footer
@@ -1112,13 +1102,6 @@ const DEMO = {
       ],
     };
   })(),
-  holidays: [
-    { region:"Japan", name:"Marine Day", date:"2026-07-20" },
-    { region:"Vancouver", name:"British Columbia Day", date:"2026-08-03" },
-    { region:"Singapore", name:"National Day", date:"2026-08-09" },
-    { region:"Shanghai", name:"Mid-Autumn Festival", date:"2026-09-25" },
-    { region:"Hong Kong", name:"National Day", date:"2026-10-01" },
-  ],
   briefs: [
     { category:"Tech", source:"Sample", headline:"Your live briefs will appear here", summary:"Once ANTHROPIC_API_KEY is set in Vercel, Claude writes fresh briefs each morning. This is placeholder copy." },
     { category:"World", source:"Sample", headline:"Five briefs, refreshed daily", summary:"A neutral mix of world, Asia, tech and science — gathered with the web search tool." },
@@ -1911,32 +1894,6 @@ function renderFx(fx){
   }).join("");
 }
 
-/* Next public holiday per region, soonest first. Keyed to SGT like the rest
-   of the page. */
-function renderHolidays(hols){
-  hols = (hols||[]).filter(h=>h && h.date && h.name);
-  const [ty,tm,td] = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);
-  const todayUTC = Date.UTC(ty, tm-1, td);
-  const list = hols.map(h=>{
-    const [y,m,d] = h.date.split("-").map(Number);
-    return { ...h, delta: Math.round((Date.UTC(y,m-1,d) - todayUTC)/86400000) };
-  }).filter(h=>h.delta >= 0).sort((a,b)=>a.delta - b.delta);
-  if(!list.length){ $("holidaysSec").style.display = "none"; return; }
-  $("holidaysSec").style.display = "";
-  $("holCnt").textContent = `next per region`;
-  $("holidays").innerHTML = list.map(h=>{
-    const [y,m,d] = h.date.split("-").map(Number);
-    const nice = new Intl.DateTimeFormat("en-GB",{day:"numeric",month:"short",timeZone:"UTC"}).format(new Date(Date.UTC(y,m-1,d)));
-    const today = h.delta === 0;
-    return `
-      <div class="bday${today?' today':''}">
-        <div class="bday-date">${esc(h.region)}${today?" 🎉":""}</div>
-        <div class="bday-name">${esc(h.name)}</div>
-        <div class="bday-when">${esc(nice)} · ${esc(whenLabel(h.delta))}</div>
-      </div>`;
-  }).join("");
-}
-
 /* COE premiums — latest bidding exercise, all five categories. */
 const COE_DESC = {
   "Category A": "cars ≤1600cc & ≤130bhp",
@@ -2073,7 +2030,6 @@ function renderAll(d){
   renderMacro(d.macro);
   renderFx(d.fx);
   renderCoe(d.coe);
-  renderHolidays(d.holidays);
   renderBriefs(d.briefs);
   renderFeatures(d.features);
   renderExtras(d);
@@ -2097,7 +2053,6 @@ async function load(fresh){
     if(!(data.markets||[]).length) noteIssue("markets");
     if(!(data.fx||[]).length) noteIssue("FX");
     if(data.coe == null) noteIssue("COE");
-    if(!(data.holidays||[]).length) noteIssue("holidays");
     return true;
   }catch(err){
     noteIssue("news & markets feed");
